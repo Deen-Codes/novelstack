@@ -2,14 +2,14 @@
 
 ## Current status — 8-bullet summary (latest)
 
-- **Backend fully live.** Supabase project + schema + seed + **migration 001 applied this session** — DOB, reports, blocks, reading_events, takedown/admin flags are all live tables.
+- **Project now lives in `~/Documents/novelstack`** — moved out of the temp workspace, so the folder persists and is the canonical source. The old workspace copy is stale; commit/push from Documents going forward.
+- **Backend fully live.** Supabase project + schema + seed + **migration 001 applied** — DOB, reports, blocks, reading_events, takedown/admin flags are all live tables.
 - **Web app is MVP-complete and de-stubbed** — auth, write flow, library, the home feed, search, profile, comments, moderation and tipping all run real data against the live backend.
-- **Q1 done** — date of birth collected at signup; mature (`is_mature`) content is age-gated across the feed, search and story pages — hidden from under-18 and logged-out visitors.
-- **Q2 done** — report button wired onto stories, chapters, comments and profiles; block-user; an admin review queue (`/admin/reports`) with CSAM prioritisation and soft-takedown. Categories grounded in UK Online Safety Act / Apple 1.2 research.
-- **Q3 done** — Home is now one ranked interest feed (follow-graph + genre-affinity + recency + popularity, transparent weights in `lib/feed.ts`); the fake Community tab is killed and merged into Home; interest tracking logs every read.
-- **Q4 done** — reader→writer tipping (tip button on story, profile and chapter-end + the `tips` ledger) and banner ads on free chapters. Only the Stripe payout rail is deferred.
-- **Mobile is the remaining block (~35%)** — Write / Library / Community / Profile are still placeholder screens; no mobile search; no magic-link deep-link callback. This is item 5, not yet built.
-- **Nothing is compiled yet** — see `BUILD_AND_RUN.md` for exact build steps + a likely-errors guide. Deferred: Stripe payout rail, real ad network, Vercel deploy, the full 100-account seed run. Open question: seed-account transparency (DECISIONS).
+- **Mobile is now de-stubbed too (item 5 DONE).** Write, Library, Profile rebuilt against live Supabase; new Search tab (replaces the fake Community tab, keeps Home centred); reader gets prev/next chapter nav + reading-progress + interest tracking; magic-link deep-link callback (`novelstack://auth-callback`) implemented with PKCE; DOB captured at mobile signup; Home runs the same ranked feed as web.
+- **Q1–Q4 all done on web AND mobile** — DOB age-gating, moderation/report surfaces, the ranked interest feed, and tipping + banner ads on free chapters. Only the Stripe payout rail is deferred.
+- **Nothing is compiled yet** — see `BUILD_AND_RUN.md` for exact build steps + a likely-errors guide. The sandbox can't `npm install`, so neither app has been run; expect a few first-build fixes.
+- **Mobile deep-link / ad SDK need a dev build.** The `novelstack://auth-callback` flow and any future rewarded-ad SDK require `npx expo prebuild` / EAS — plain Expo Go is fine for everything else.
+- **Deferred:** Stripe payout rail, real ad network, Vercel deploy, the full ~100-account seed run. Open question: seed-account transparency (DECISIONS).
 
 ## Summary for Deen
 
@@ -42,19 +42,19 @@
 
 - **Seed-account transparency** (from `CATALOG_SEED_PLAN.md`): are the ~100 launch seed authors ever disclosed as house/seed accounts, or presented as ordinary authors? Matters for trust, and if a seed story later earns tips.
 
-## Feature status snapshot — start of de-stub pass
+## Feature status snapshot — after the full de-stub pass
 
 | Feature | Web | Mobile |
 |---|---|---|
-| Auth (magic-link) | DONE | PARTIAL — deep-link callback missing |
-| Write flow | DONE | STUB — placeholder screen |
-| Library | PARTIAL — no bookmark action, no following feed | STUB — placeholder screen |
-| Reading view | DONE | PARTIAL — no chapter nav / prefs |
-| Home / discovery | PARTIAL — landing-page trending hardcoded | DONE |
-| Community | PARTIAL — comments/likes real, threads fake | STUB — fake threads |
-| Profile + settings | DONE | STUB — placeholder screen |
-| Monetisation (ad-gate) | PARTIAL — gate real, "ad" is a bare timer | PARTIAL — same |
-| Search | PARTIAL — no author/tag search | NOT-STARTED |
+| Auth (magic-link) | DONE | DONE — PKCE deep-link callback wired |
+| Write flow | DONE | DONE — story list + chapter editor/publish |
+| Library | DONE | DONE — continue-reading, follows, saved |
+| Reading view | DONE | DONE — prev/next nav + progress tracking |
+| Home / discovery | DONE | DONE — same ranked interest feed |
+| Community | Merged into Home feed (Q3) | Merged into Home feed (Q3) |
+| Profile + settings | DONE | DONE — profile edit, NovelStack+, sign-out |
+| Monetisation (ad-gate) | DONE — gate real, "ad" is a bare timer | DONE — same |
+| Search | DONE | DONE — new Search tab (titles + writers + genre) |
 
 Caveat: neither app has been compiled or run yet. "DONE" = real implementation, not runtime-verified.
 

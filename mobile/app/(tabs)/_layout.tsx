@@ -54,6 +54,8 @@ export default function TabLayout() {
           tabBarIcon: ({ color, size }) => <Ionicons name="person-outline" size={size} color={color} />,
         }}
       />
+      {/* Legacy Community route — kept as a redirect, hidden from the tab bar. */}
+      <Tabs.Screen name="community" options={{ href: null }} />
     </Tabs>
   );
 }
