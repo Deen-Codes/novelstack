@@ -1,0 +1,27 @@
+{
+  "expo": {
+    "name": "NovelStack",
+    "slug": "novelstack",
+    "version": "0.1.0",
+    "scheme": "novelstack",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "backgroundColor": "#F5EFE0",
+      "resizeMode": "contain"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "app.novelstack"
+    },
+    "android": {
+      "package": "app.novelstack"
+    },
+    "plugins": ["expo-router"],
+    "experiments": { "typedRoutes": true },
+    "extra": {
+      "supabaseUrl": "https://kgjstbfgqzxxtyjidapq.supabase.co",
+      "supabaseAnonKey": "sb_publishable_KU1-3JfXO5aD5z00GKQ2dw_0K8oR3am"
+    }
+  }
+}
