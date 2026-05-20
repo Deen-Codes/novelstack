@@ -122,9 +122,9 @@ export default async function StoryPage({ params }: { params: { slug: string } }
         novelstack<span className="text-signal">.</span>
       </Link>
 
-      <div className="flex gap-6 mt-10">
+      <div className="flex flex-col sm:flex-row gap-6 mt-10">
         <div
-          className="w-36 shrink-0 aspect-[3/4] rounded-xl"
+          className="w-32 sm:w-36 shrink-0 aspect-[3/4] rounded-xl"
           style={{ background: story.cover_color }}
         />
         <div>

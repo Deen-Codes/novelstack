@@ -14,16 +14,19 @@ export async function AppHeader() {
         <Link href="/" className="text-[20px] font-medium tracking-tight">
           novelstack<span className="text-signal">.</span>
         </Link>
+        {/* On mobile, primary navigation lives in the bottom tab bar
+            (MobileTabBar), so the header keeps just the wordmark and a
+            sign-in affordance for logged-out visitors. Full links at md+. */}
         <div className="flex items-center gap-5 text-sm text-ink-muted">
-          <Link href="/browse" className="hover:text-ink">Home</Link>
-          <Link href="/search" className="hover:text-ink">Search</Link>
+          <Link href="/browse" className="hidden md:inline hover:text-ink">Home</Link>
+          <Link href="/search" className="hidden md:inline hover:text-ink">Search</Link>
           {user ? (
             <>
-              <Link href="/write" className="hover:text-ink">Write</Link>
-              <Link href="/library" className="hover:text-ink">Library</Link>
+              <Link href="/write" className="hidden md:inline hover:text-ink">Write</Link>
+              <Link href="/library" className="hidden md:inline hover:text-ink">Library</Link>
               <Link
                 href="/settings"
-                className="bg-ink text-paper px-4 py-2 rounded-full font-medium"
+                className="hidden md:inline bg-ink text-paper px-4 py-2 rounded-full font-medium"
               >
                 Account
               </Link>
