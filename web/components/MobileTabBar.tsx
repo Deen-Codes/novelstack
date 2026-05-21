@@ -10,12 +10,12 @@ import { usePathname } from 'next/navigation';
 const TABS = [
   { href: '/search', label: 'Search', icon: 'search' },
   { href: '/library', label: 'Library', icon: 'bookmark' },
-  { href: '/browse', label: 'Home', icon: 'home' },
+  { href: '/', label: 'Home', icon: 'home' },
   { href: '/write', label: 'Write', icon: 'edit' },
   { href: '/settings', label: 'Profile', icon: 'user' },
 ] as const;
 
-const HIDE_ON = ['/', '/signin'];
+const HIDE_ON = ['/signin'];
 const HIDE_PREFIX = ['/auth', '/read'];
 
 function Icon({ name, active }: { name: string; active: boolean }) {
@@ -81,8 +81,8 @@ export function MobileTabBar() {
       <div className="flex items-stretch justify-around">
         {TABS.map((tab) => {
           const active =
-            tab.href === '/browse'
-              ? pathname === '/browse'
+            tab.href === '/'
+              ? pathname === '/'
               : pathname === tab.href || pathname.startsWith(tab.href + '/');
           return (
             <Link

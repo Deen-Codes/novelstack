@@ -1,149 +1,99 @@
 import Link from 'next/link';
+import { AppHeader } from '@/components/AppHeader';
+import { getFeed } from '@/lib/feed';
+import { GENRES } from '@/lib/genres';
 import { createClient } from '@/lib/supabase/server';
-import { viewerIsAdult } from '@/lib/age';
-import { StoryCard } from '@/components/StoryCard';
-import { Reveal } from '@/components/Reveal';
-import type { Story } from '@/lib/types';
 
-// Honest, scale-independent facts — no fabricated user counts pre-launch.
-const stats = [
-  { num: '70%', label: "Writers' share of revenue" },
-  { num: '$6.99', label: 'All-access, per month' },
-  { num: 'Free', label: 'To start reading' },
-  { num: 'Daily', label: 'New chapters drop' },
-];
+export const metadata = { title: 'NovelStack — Stories worth following' };
 
-const props = [
-  { title: 'Writers keep 70%.', body: 'Of every subscription and every ad — paid monthly, open to everyone from chapter one.' },
-  { title: 'Discovery that discovers.', body: 'Human-curated weekly picks. Recommendations from what you read, not what pays for placement.' },
-  { title: 'A reading experience worth opening.', body: 'Cream paper, beautiful type, and ads that never interrupt the page.' },
-];
+function chip(active: boolean) {
+  return `text-[13px] px-3.5 py-1.5 rounded-full border capitalize ${
+    active ? 'bg-ink text-paper border-ink' : 'border-border-soft text-ink-muted'
+  }`;
+}
 
-export default async function Home() {
-  // Real trending stories from Supabase — top by total reads.
+// The homepage IS the catalog — a fast, ranked, scrollable feed of books.
+// No marketing splash: a visitor lands straight in the stories.
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: Promise<{ genre?: string }>;
+}) {
+  const { genre } = await searchParams;
+  const feed = await getFeed(genre);
+
   const supabase = await createClient();
-  const adult = await viewerIsAdult();
-  const trendingQuery = supabase
-    .from('stories')
-    .select('*, author:users(id, username, display_name, is_verified)')
-    .neq('status', 'draft')
-    .order('total_reads', { ascending: false })
-    .limit(4);
-  if (!adult) trendingQuery.eq('is_mature', false);
-  const { data } = await trendingQuery;
-  const trending = (data ?? []) as Story[];
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   return (
-    <main>
-      <nav className="sticky top-0 z-50 border-b border-ink/10 bg-paper/90 backdrop-blur">
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-          <Link href="/" className="text-[22px] font-medium tracking-tight">
-            novelstack<span className="text-signal">.</span>
+    <>
+      <AppHeader />
+      <main className="max-w-2xl mx-auto px-6 py-8">
+        {/* Genre filter */}
+        <div className="flex flex-wrap gap-2 mb-7">
+          <Link href="/" className={chip(!genre)}>
+            For you
           </Link>
-          <div className="flex items-center gap-7 text-sm text-ink-muted">
-            <Link href="/browse">Read</Link>
-            <Link href="/write">Write</Link>
-            <Link href="/browse" className="bg-ink text-paper px-4 py-2 rounded-full font-medium">
-              Open app
+          {GENRES.map((g) => (
+            <Link key={g.value} href={`/?genre=${g.value}`} className={chip(genre === g.value)}>
+              {g.label}
             </Link>
-          </div>
-        </div>
-      </nav>
-
-      <header className="ns-hero max-w-6xl mx-auto px-6 pt-20 pb-14">
-        <p className="text-[13px] text-signal font-medium mb-4">A new chapter for online fiction</p>
-        <h1 className="font-serif text-6xl md:text-7xl font-medium tracking-tight leading-[1.02] max-w-2xl">
-          Stories worth following.
-        </h1>
-        <p className="text-lg text-ink-muted max-w-xl mt-6 mb-8">
-          Free to read with a short ad between chapters, or $6.99/month for every book, ad-free.
-          Writers keep 70%.
-        </p>
-        <div className="flex gap-3">
-          <Link href="/browse" className="bg-signal text-paper px-5 py-2.5 rounded-full font-medium text-sm">
-            Start reading free
-          </Link>
-          <Link href="/write" className="border border-ink/25 px-5 py-2.5 rounded-full font-medium text-sm">
-            Become a writer
-          </Link>
-        </div>
-      </header>
-
-      <section className="border-y border-ink/10">
-        <div className="max-w-6xl mx-auto px-6 py-10 grid grid-cols-2 md:grid-cols-4 gap-6">
-          {stats.map((s, i) => (
-            <Reveal key={s.label} delay={i * 110}>
-              <div className="font-serif text-4xl font-medium">{s.num}</div>
-              <div className="text-[13px] text-ink-muted mt-1">{s.label}</div>
-            </Reveal>
           ))}
         </div>
-      </section>
 
-      <Reveal>
-      <section className="max-w-6xl mx-auto px-6 py-20">
-        <p className="text-[13px] text-ink-muted mb-2">Trending this week</p>
-        <h2 className="font-serif text-4xl font-medium tracking-tight mb-10">
-          Stories everyone is talking about.
-        </h2>
-        {trending.length > 0 ? (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {trending.map((story) => (
-              <StoryCard key={story.id} story={story} />
-            ))}
+        {/* Signed-out nudge: read freely, sign up to write + sync progress */}
+        {!user && (
+          <div className="mb-7 rounded-2xl border border-border-soft bg-paper-soft px-5 py-4 flex items-center justify-between gap-4">
+            <p className="text-[13px] text-ink-muted leading-snug">
+              Reading is free. Sign in to write your own stories and sync your
+              progress across devices.
+            </p>
+            <Link
+              href="/signin"
+              className="shrink-0 bg-ink text-paper px-4 py-2 rounded-full text-[13px] font-medium"
+            >
+              Sign in
+            </Link>
           </div>
-        ) : (
-          <p className="text-ink-muted text-[15px]">
-            No published stories yet — <Link href="/write" className="text-signal">be the first to write one</Link>.
-          </p>
         )}
-      </section>
-      </Reveal>
 
-      <Reveal>
-      <section className="bg-paper-soft">
-        <div className="max-w-6xl mx-auto px-6 py-20">
-          <p className="text-[13px] text-ink-muted mb-2">Why NovelStack</p>
-          <h2 className="font-serif text-4xl font-medium tracking-tight mb-10">
-            Built for readers and writers, not the algorithm.
-          </h2>
-          <div className="grid md:grid-cols-3 gap-6">
-            {props.map((p) => (
-              <div key={p.title} className="bg-white border border-border-soft rounded-2xl p-7">
-                <h3 className="font-serif text-xl font-medium mb-2.5">{p.title}</h3>
-                <p className="text-[15px] text-ink-muted leading-relaxed">{p.body}</p>
-              </div>
+        {feed.length === 0 ? (
+          <p className="text-ink-muted text-[15px]">
+            No stories in this genre yet.{' '}
+            <Link href="/write" className="text-signal">
+              Write the first one.
+            </Link>
+          </p>
+        ) : (
+          <div className="space-y-5">
+            {feed.map((s) => (
+              <Link key={s.id} href={`/story/${s.slug}`} className="flex gap-4 group">
+                <div
+                  className="w-20 shrink-0 aspect-[3/4] rounded-lg transition-transform group-hover:-translate-y-1"
+                  style={{ background: s.cover_color }}
+                />
+                <div className="min-w-0">
+                  <p className="text-[11px] text-signal font-medium">{s._reason}</p>
+                  <h2 className="font-serif text-lg font-medium leading-tight group-hover:text-signal">
+                    {s.title}
+                  </h2>
+                  <p className="text-[13px] text-ink-muted">
+                    {s.author?.display_name ?? 'A writer'} ·{' '}
+                    {(s.total_reads ?? 0).toLocaleString()} reads
+                  </p>
+                  {s.description && (
+                    <p className="text-[13px] text-ink-faint mt-1 line-clamp-2">
+                      {s.description}
+                    </p>
+                  )}
+                </div>
+              </Link>
             ))}
           </div>
-        </div>
-      </section>
-      </Reveal>
-
-      <Reveal>
-      <section className="max-w-6xl mx-auto px-6 py-24 text-center">
-        <h2 className="font-serif text-5xl font-medium tracking-tight mb-4">
-          Your next chapter starts here.
-        </h2>
-        <p className="text-lg text-ink-muted mb-8">
-          Be part of the writers and readers building the next generation of fiction.
-        </p>
-        <div className="flex gap-3 justify-center">
-          <Link href="/browse" className="bg-signal text-paper px-5 py-2.5 rounded-full font-medium text-sm">
-            Start reading free
-          </Link>
-          <Link href="/write" className="border border-ink/25 px-5 py-2.5 rounded-full font-medium text-sm">
-            Become a writer
-          </Link>
-        </div>
-      </section>
-      </Reveal>
-
-      <footer className="border-t border-ink/10">
-        <div className="max-w-6xl mx-auto px-6 py-10 text-[13px] text-ink-faint flex justify-between">
-          <span>© 2026 NovelStack</span>
-          <span>Substack for novels.</span>
-        </div>
-      </footer>
-    </main>
+        )}
+      </main>
+    </>
   );
 }

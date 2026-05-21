@@ -19,7 +19,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   return [
     { url: BASE, lastModified: new Date(), priority: 1 },
-    { url: `${BASE}/browse`, lastModified: new Date(), priority: 0.6 },
     ...storyUrls,
   ];
 }

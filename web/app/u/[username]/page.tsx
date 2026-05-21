@@ -30,7 +30,7 @@ export default async function ProfilePage({
 
   const { data: storiesData } = await supabase
     .from('stories')
-    .select('*, author:users(id, username, display_name, is_verified)')
+    .select('*, author:users!stories_author_id_fkey(id, username, display_name, is_verified)')
     .eq('author_id', profile.id)
     .neq('status', 'draft')
     .order('total_reads', { ascending: false });

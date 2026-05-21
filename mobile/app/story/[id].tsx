@@ -55,7 +55,7 @@ export default function StoryScreen() {
     const adult = await viewerIsAdult();
     const { data: s } = await supabase
       .from('stories')
-      .select('*, author:users(id, username, display_name, is_verified)')
+      .select('*, author:users!stories_author_id_fkey(id, username, display_name, is_verified)')
       .eq('id', id)
       .single();
     if (!s) {

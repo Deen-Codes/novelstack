@@ -16,7 +16,7 @@ async function getChapter(id: string): Promise<ChapterWithStory | null> {
   const supabase = await createClient();
   const { data } = await supabase
     .from('chapters')
-    .select('*, story:stories(id, title, slug, author:users(id, display_name))')
+    .select('*, story:stories(id, title, slug, author:users!stories_author_id_fkey(id, display_name))')
     .eq('id', id)
     .single();
   return (data as ChapterWithStory) ?? null;

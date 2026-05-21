@@ -15,7 +15,7 @@ type StoryWithAuthor = Story & { author: User | null };
 async function getStory(slug: string): Promise<StoryWithAuthor | null> {
   const { data } = await supabase
     .from('stories')
-    .select('*, author:users(*)')
+    .select('*, author:users!stories_author_id_fkey(*)')
     .eq('slug', slug)
     .single();
   return (data as StoryWithAuthor) ?? null;

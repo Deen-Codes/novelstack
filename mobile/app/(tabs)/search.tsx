@@ -45,7 +45,7 @@ export default function Search() {
 
     let sq = supabase
       .from('stories')
-      .select('id, title, genre, cover_color, is_mature, author:users(display_name), chapters(id, number, published_at)')
+      .select('id, title, genre, cover_color, is_mature, author:users!stories_author_id_fkey(display_name), chapters(id, number, published_at)')
       .neq('status', 'draft')
       .limit(25);
     if (!adult) sq = sq.eq('is_mature', false);

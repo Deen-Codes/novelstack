@@ -27,7 +27,7 @@ export default async function Search({
     // Stories — title, description, genre, and tags.
     const storyQuery = supabase
       .from('stories')
-      .select('*, author:users(id, username, display_name, is_verified)')
+      .select('*, author:users!stories_author_id_fkey(id, username, display_name, is_verified)')
       .neq('status', 'draft')
       .or(`title.ilike.%${q}%,description.ilike.%${q}%,genre.ilike.%${q}%,tags.cs.{${q}}`)
       .limit(24);

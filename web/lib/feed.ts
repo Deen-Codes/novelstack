@@ -24,7 +24,7 @@ export async function getFeed(genreFilter?: string): Promise<FeedStory[]> {
   // Candidate set — recent published stories.
   let q = supabase
     .from('stories')
-    .select('*, author:users(id, username, display_name, is_verified)')
+    .select('*, author:users!stories_author_id_fkey(id, username, display_name, is_verified)')
     .neq('status', 'draft')
     .order('published_at', { ascending: false })
     .limit(80);
