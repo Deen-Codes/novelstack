@@ -8,9 +8,10 @@ import type { Chapter } from '@/lib/types';
 export default async function ChapterEditor({
   params,
 }: {
-  params: { storyId: string; chapterId: string };
+  params: Promise<{ storyId: string; chapterId: string }>;
 }) {
-  const supabase = createClient();
+  const supabase = await createClient();
+  const { storyId, chapterId } = await params;
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -19,7 +20,7 @@ export default async function ChapterEditor({
   const { data: chapterData } = await supabase
     .from('chapters')
     .select('*, story:stories(author_id, title)')
-    .eq('id', params.chapterId)
+    .eq('id', chapterId)
     .single();
   const chapter = chapterData as (Chapter & { story: { author_id: string; title: string } }) | null;
   if (!chapter || chapter.story.author_id !== user.id) notFound();
@@ -35,13 +36,13 @@ export default async function ChapterEditor({
     <>
       <AppHeader />
       <main className="max-w-2xl mx-auto px-6 py-10">
-        <Link href={`/write/${params.storyId}`} className="text-[13px] text-signal">
+        <Link href={`/write/${storyId}`} className="text-[13px] text-signal">
           ‹ {chapter.story.title}
         </Link>
 
         <form action={saveChapter} className="mt-4 space-y-4">
           <input type="hidden" name="chapterId" value={chapter.id} />
-          <input type="hidden" name="storyId" value={params.storyId} />
+          <input type="hidden" name="storyId" value={storyId} />
           <input
             name="title"
             defaultValue={chapter.title}
@@ -66,7 +67,7 @@ export default async function ChapterEditor({
 
         <form action={publishChapter} className="mt-3">
           <input type="hidden" name="chapterId" value={chapter.id} />
-          <input type="hidden" name="storyId" value={params.storyId} />
+          <input type="hidden" name="storyId" value={storyId} />
           <button
             type="submit"
             className="bg-signal text-paper px-5 py-2.5 rounded-full font-medium text-sm"

@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 
 // Shared top nav for app pages. Shows different links for signed-in users.
 export async function AppHeader() {
-  const supabase = createClient();
+  const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();

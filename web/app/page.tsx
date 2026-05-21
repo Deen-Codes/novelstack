@@ -4,11 +4,12 @@ import { viewerIsAdult } from '@/lib/age';
 import { StoryCard } from '@/components/StoryCard';
 import type { Story } from '@/lib/types';
 
+// Honest, scale-independent facts — no fabricated user counts pre-launch.
 const stats = [
-  { num: '2.4M', label: 'Active readers' },
-  { num: '80K', label: 'Writers earning' },
-  { num: '$14M', label: 'Paid to writers' },
-  { num: '120K+', label: 'Stories to read' },
+  { num: '70%', label: "Writers' share of revenue" },
+  { num: '$6.99', label: 'All-access, per month' },
+  { num: 'Free', label: 'To start reading' },
+  { num: 'Daily', label: 'New chapters drop' },
 ];
 
 const props = [
@@ -19,7 +20,7 @@ const props = [
 
 export default async function Home() {
   // Real trending stories from Supabase — top by total reads.
-  const supabase = createClient();
+  const supabase = await createClient();
   const adult = await viewerIsAdult();
   const trendingQuery = supabase
     .from('stories')
@@ -118,7 +119,7 @@ export default async function Home() {
           Your next chapter starts here.
         </h2>
         <p className="text-lg text-ink-muted mb-8">
-          Join millions of readers and writers building the next generation of fiction.
+          Be part of the writers and readers building the next generation of fiction.
         </p>
         <div className="flex gap-3 justify-center">
           <Link href="/browse" className="bg-signal text-paper px-5 py-2.5 rounded-full font-medium text-sm">

@@ -10,9 +10,10 @@ export const metadata = { title: 'Search — NovelStack' };
 export default async function Search({
   searchParams,
 }: {
-  searchParams: { q?: string };
+  searchParams: Promise<{ q?: string }>;
 }) {
-  const raw = (searchParams.q ?? '').trim();
+  const { q: qParam } = await searchParams;
+  const raw = (qParam ?? '').trim();
   // Strip characters that would break a PostgREST .or() filter string.
   const q = raw.replace(/[(),{}]/g, ' ').trim();
 
@@ -20,7 +21,7 @@ export default async function Search({
   let writers: User[] = [];
 
   if (q) {
-    const supabase = createClient();
+    const supabase = await createClient();
     const adult = await viewerIsAdult();
 
     // Stories — title, description, genre, and tags.

@@ -6,7 +6,7 @@ import { AppHeader } from '@/components/AppHeader';
 export const metadata = { title: 'Your library — NovelStack' };
 
 export default async function Library() {
-  const supabase = createClient();
+  const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -24,7 +24,7 @@ export default async function Library() {
   // Writers the reader follows.
   const { data: followData } = await supabase
     .from('follows')
-    .select('author:users!follows_author_id_fkey(id, username, display_name, is_verified)')
+    .select('author:users!author_id(id, username, display_name, is_verified)')
     .eq('follower_id', user.id);
   const following = (followData ?? []) as any[];
 

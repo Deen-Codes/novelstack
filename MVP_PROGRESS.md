@@ -2,14 +2,45 @@
 
 ## Current status — 8-bullet summary (latest)
 
-- **Project now lives in `~/Documents/novelstack`** — moved out of the temp workspace, so the folder persists and is the canonical source. The old workspace copy is stale; commit/push from Documents going forward.
-- **Backend fully live.** Supabase project + schema + seed + **migration 001 applied** — DOB, reports, blocks, reading_events, takedown/admin flags are all live tables.
-- **Web app is MVP-complete and de-stubbed** — auth, write flow, library, the home feed, search, profile, comments, moderation and tipping all run real data against the live backend.
-- **Mobile is now de-stubbed too (item 5 DONE).** Write, Library, Profile rebuilt against live Supabase; new Search tab (replaces the fake Community tab, keeps Home centred); reader gets prev/next chapter nav + reading-progress + interest tracking; magic-link deep-link callback (`novelstack://auth-callback`) implemented with PKCE; DOB captured at mobile signup; Home runs the same ranked feed as web.
-- **Q1–Q4 all done on web AND mobile** — DOB age-gating, moderation/report surfaces, the ranked interest feed, and tipping + banner ads on free chapters. Only the Stripe payout rail is deferred.
-- **Nothing is compiled yet** — see `BUILD_AND_RUN.md` for exact build steps + a likely-errors guide. The sandbox can't `npm install`, so neither app has been run; expect a few first-build fixes.
-- **Mobile deep-link / ad SDK need a dev build.** The `novelstack://auth-callback` flow and any future rewarded-ad SDK require `npx expo prebuild` / EAS — plain Expo Go is fine for everything else.
-- **Deferred:** Stripe payout rail, real ad network, Vercel deploy, the full ~100-account seed run. Open question: seed-account transparency (DECISIONS).
+- **Project lives in `~/Documents/novelstack`** — canonical source; commit/push from here.
+- **Backend fully live.** Supabase project + schema + seed + migration 001 applied — DOB, reports, blocks, reading_events, takedown/admin flags all live.
+- **Web app upgraded to Next.js 15 + React 19** and wired for **Cloudflare Workers** via the OpenNext adapter (`open-next.config.ts`, `wrangler.jsonc`). Deploy steps in `DEPLOY.md`.
+- **Web + mobile both de-stubbed** — auth, write, library, ranked home feed, search, profile, comments, moderation, tipping, age-gating all on real data. Mobile has the PKCE deep-link auth callback and a Search tab.
+- **Audit done, bugs fixed** — critical: the `follows` query (broken FK embed that emptied "writers you follow") fixed on web + mobile. Also: published-only chapter lists, `reads.is_subscriber` now recorded for the payout split, sitemap fixed, DOB editor added to web Settings, fake landing-page stats replaced with honest figures.
+- **Nothing is compiled yet** — the sandbox can't `npm install`. First `npm run dev` / `npm run preview` is the first real build; expect a few first-build fixes (esp. from the Next 15 upgrade).
+- **Testing runbook:** `TESTING.md` — web local + Cloudflare preview, mobile Expo Go + dev build, plus a feature checklist.
+- **Biggest remaining gap:** mobile has no story-detail screen, so mobile users can't bookmark / follow / tip / report yet. Plus deferred: Stripe (subscriptions + payouts), real ad network, the ~100-account seed run. See the "What's left" section below.
+
+## What's left before MVP launch
+
+**1 — Get it compiling (do first).** `npm install` then `npm run dev` in `web/`,
+fix first-build errors (the Next 15 upgrade was done without a compiler).
+Then `npm run preview` for the Cloudflare build. Then `npm install` +
+`npx expo start` in `mobile/`.
+
+**2 — Real feature gaps still to build:**
+- Mobile story-detail screen — mobile currently jumps straight into the reader,
+  so mobile users cannot bookmark, follow, tip or report. Biggest gap.
+- Subscriptions / NovelStack+ — no checkout, no billing page; nothing writes to
+  the `subscriptions` table. Needs Stripe.
+- Writer payouts — the 70/30 pool split + payout runs are not built. Needs
+  Stripe Connect (and an LLC/EIN).
+- Real ad network — the banner ad and the "watch an ad" gate are placeholders;
+  ad revenue is recorded as 0.
+
+**3 — Smaller polish:**
+- Mobile profile: add a date-of-birth editor (web Settings already has one).
+- Mobile search: free-text covers titles only (web also matches description/tags).
+
+**4 — Ops / non-code (Deen):**
+- Run the deploy — see `DEPLOY.md` (push, install, preview, `wrangler login`,
+  deploy, connect `novelstack.app`).
+- Supabase auth URL config for the live domain.
+- Publish an abuse-contact email + a content-policy/ToS page; set up an NCMEC
+  reporting account (the moderation legal floor).
+- The ~100-account catalog seed run — see `CATALOG_SEED_PLAN.md`.
+- Apple Developer app-store listing + assets for the mobile submission.
+- Open decision: seed-account transparency (house accounts vs ordinary writers).
 
 ## Summary for Deen
 

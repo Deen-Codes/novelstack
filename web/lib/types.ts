@@ -14,6 +14,7 @@ export interface User {
   bio: string | null;
   avatar_url: string | null;
   is_verified: boolean;
+  date_of_birth: string | null;
 }
 
 export interface Story {

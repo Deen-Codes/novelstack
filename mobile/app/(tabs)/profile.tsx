@@ -60,13 +60,13 @@ export default function ProfileScreen() {
 
     const { data: st } = await supabase
       .from('stories')
-      .select('id, title, cover_color, chapters(id, number)')
+      .select('id, title, cover_color, chapters(id, number, published_at)')
       .eq('author_id', user.id)
       .neq('status', 'draft')
       .order('total_reads', { ascending: false });
     setStories(
       ((st ?? []) as any[]).map((s) => {
-        const chs = (s.chapters ?? []).sort((a: any, b: any) => a.number - b.number);
+        const chs = (s.chapters ?? []).filter((c: any) => c.published_at).sort((a: any, b: any) => a.number - b.number);
         return {
           id: s.id,
           title: s.title,

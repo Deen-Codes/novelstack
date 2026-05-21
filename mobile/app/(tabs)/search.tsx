@@ -46,7 +46,7 @@ export default function Search() {
 
     let sq = supabase
       .from('stories')
-      .select('id, title, genre, cover_color, is_mature, author:users(display_name), chapters(id, number)')
+      .select('id, title, genre, cover_color, is_mature, author:users(display_name), chapters(id, number, published_at)')
       .neq('status', 'draft')
       .limit(25);
     if (!adult) sq = sq.eq('is_mature', false);
@@ -65,7 +65,7 @@ export default function Search() {
 
     setStories(
       ((sd ?? []) as any[]).map((s) => {
-        const chs = (s.chapters ?? []).sort((a: any, b: any) => a.number - b.number);
+        const chs = (s.chapters ?? []).filter((c: any) => c.published_at).sort((a: any, b: any) => a.number - b.number);
         return {
           id: s.id,
           title: s.title,

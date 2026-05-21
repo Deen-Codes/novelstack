@@ -18,7 +18,7 @@ async function isAdmin(supabase: SupabaseClient): Promise<boolean> {
 }
 
 export async function setReportStatus(formData: FormData) {
-  const supabase = createClient();
+  const supabase = await createClient();
   if (!(await isAdmin(supabase))) return;
   await supabase
     .from('reports')
@@ -29,7 +29,7 @@ export async function setReportStatus(formData: FormData) {
 
 // Soft takedown — hides the story from all public reads (RLS uses is_removed).
 export async function removeStory(formData: FormData) {
-  const supabase = createClient();
+  const supabase = await createClient();
   if (!(await isAdmin(supabase))) return;
   await supabase
     .from('stories')

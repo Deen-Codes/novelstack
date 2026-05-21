@@ -18,7 +18,7 @@ function makeExcerpt(body: string) {
 }
 
 export async function createStory(formData: FormData) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -40,7 +40,7 @@ export async function createStory(formData: FormData) {
 }
 
 export async function createChapter(storyId: string, _formData?: FormData) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { count } = await supabase
     .from('chapters')
     .select('id', { count: 'exact', head: true })
@@ -58,7 +58,7 @@ export async function createChapter(storyId: string, _formData?: FormData) {
 }
 
 export async function saveChapter(formData: FormData) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const chapterId = String(formData.get('chapterId'));
   const storyId = String(formData.get('storyId'));
   const title = String(formData.get('title') || '').trim();
@@ -80,7 +80,7 @@ export async function saveChapter(formData: FormData) {
 }
 
 export async function publishChapter(formData: FormData) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const chapterId = String(formData.get('chapterId'));
   const storyId = String(formData.get('storyId'));
   await supabase
@@ -97,7 +97,7 @@ export async function publishChapter(formData: FormData) {
 }
 
 export async function toggleChapterFree(formData: FormData) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const chapterId = String(formData.get('chapterId'));
   const storyId = String(formData.get('storyId'));
   const makeFree = formData.get('makeFree') === 'true';

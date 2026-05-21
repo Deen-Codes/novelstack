@@ -13,7 +13,7 @@ type ChapterWithStory = Chapter & {
 };
 
 async function getChapter(id: string): Promise<ChapterWithStory | null> {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data } = await supabase
     .from('chapters')
     .select('*, story:stories(id, title, slug, author:users(id, display_name))')
@@ -27,9 +27,10 @@ async function getChapter(id: string): Promise<ChapterWithStory | null> {
 export async function generateMetadata({
   params,
 }: {
-  params: { chapterId: string };
+  params: Promise<{ chapterId: string }>;
 }): Promise<Metadata> {
-  const chapter = await getChapter(params.chapterId);
+  const { chapterId } = await params;
+  const chapter = await getChapter(chapterId);
   if (!chapter) return { title: 'Chapter — NovelStack' };
   const desc = (chapter.excerpt || '').slice(0, 155) || `Read chapter ${chapter.number} on NovelStack.`;
   return {
@@ -43,10 +44,11 @@ export async function generateMetadata({
 export default async function ReadChapter({
   params,
 }: {
-  params: { chapterId: string };
+  params: Promise<{ chapterId: string }>;
 }) {
-  const supabase = createClient();
-  const chapter = await getChapter(params.chapterId);
+  const supabase = await createClient();
+  const { chapterId } = await params;
+  const chapter = await getChapter(chapterId);
 
   if (!chapter) {
     return (

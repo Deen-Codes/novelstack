@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/server';
 // The actual charge/payout rail is Stripe — deferred until Deen has an
 // LLC/EIN; until then a tip is captured here and settles when Stripe is wired.
 export async function sendTip(formData: FormData) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();

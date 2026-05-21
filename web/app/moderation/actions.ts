@@ -6,7 +6,7 @@ import { revalidatePath } from 'next/cache';
 // File a content report. Categories match the moderation research in
 // MVP_PROGRESS.md (Wattpad-style + UK Online Safety Act / Apple 1.2 floor).
 export async function submitReport(formData: FormData) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -23,7 +23,7 @@ export async function submitReport(formData: FormData) {
 
 // Block / unblock another user.
 export async function toggleBlock(formData: FormData) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();

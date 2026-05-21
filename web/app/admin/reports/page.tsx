@@ -8,7 +8,7 @@ export const metadata = { title: 'Moderation queue — NovelStack' };
 const STATUSES = ['reviewing', 'actioned', 'dismissed'];
 
 export default async function AdminReports() {
-  const supabase = createClient();
+  const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();

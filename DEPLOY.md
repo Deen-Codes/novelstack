@@ -1,83 +1,71 @@
 # NovelStack — Deploying the web app to novelstack.app
 
-Host: **Vercel** (free Hobby tier is fine for testing; Pro $20/mo is required
-once the app is live and commercial). Domain: **novelstack.app**, registered
-at Cloudflare. ~20 minutes.
+Host: **Cloudflare Workers** via the **OpenNext** adapter (`@opennextjs/cloudflare`).
+Free tier allows commercial use. Domain: **novelstack.app**, already in Cloudflare.
 
-The web app code is already production-ready — the domain is hardcoded where
-it needs to be, and sign-in/auth use the dynamic request origin, so nothing
-in the code needs changing to deploy.
+The web app has been upgraded to **Next.js 15 + React 19** and the OpenNext
+adapter is wired in (`open-next.config.ts`, `wrangler.jsonc`, `next.config.mjs`).
+~30 minutes for the first deploy.
 
 ## 1. Push the latest code to GitHub
 
 ```
 cd ~/Documents/novelstack
 git add -A
-git commit -m "Mobile de-stub + deploy prep"
+git commit -m "Next 15 + Cloudflare adapter, audit fixes, mobile-web"
 git push
 ```
 
-Repo: https://github.com/Deen-Codes/novelstack
+## 2. Install dependencies
 
-## 2. Import the project into Vercel
+```
+cd ~/Documents/novelstack/web
+npm install
+```
 
-1. Go to https://vercel.com → sign in with GitHub.
-2. **Add New… → Project** → import the `novelstack` repo.
-3. **Root Directory** — click *Edit* and set it to `web`. This is essential —
-   the repo holds both `web/` and `mobile/`, and Vercel must build only `web/`.
-4. Framework Preset auto-detects as **Next.js**. Leave build settings default.
+This pulls Next 15, React 19, `@opennextjs/cloudflare` and `wrangler`. If a
+pinned version 404s, run `npm install @opennextjs/cloudflare@latest -D wrangler@latest`.
 
-## 3. Add environment variables
+## 3. Build + preview locally in the Workers runtime
 
-In the import screen (or Project → Settings → Environment Variables) add the
-same two values that are in `web/.env.local`:
+```
+npm run preview
+```
 
-- `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+This runs `opennextjs-cloudflare build` then serves the app in the actual
+Cloudflare Workers runtime locally. **This is the first real compile** — expect
+a few TypeScript errors on the first run (the Next 15 upgrade touched many
+files). Copy any error and send it over; most are one-liners.
 
-Apply them to Production, Preview and Development.
+`npm run dev` still works for normal Next.js local development.
 
-## 4. Deploy
+## 4. Deploy to Cloudflare
 
-Hit **Deploy**. Vercel runs `npm run build` on its servers — this is the first
-real compile of the web app, so the first attempt or two may fail on
-TypeScript errors. That is expected. Copy the error out of the Vercel build
-log and send it over — there's a likely-errors guide in `BUILD_AND_RUN.md`,
-and most are one-line fixes.
+```
+npx wrangler login      # opens the browser, authorize the CLI
+npm run deploy          # builds + deploys the Worker
+```
 
-Once it builds, you get a live `*.vercel.app` URL. Test there before wiring
-the domain.
+`npm run deploy` builds into `.open-next/` and ships it. You get a
+`novelstack.<your-subdomain>.workers.dev` URL — test there first.
 
-## 5. Add the custom domain in Vercel
+Environment variables: the build reads `web/.env.local` (which exists and has
+the two `NEXT_PUBLIC_SUPABASE_*` keys). Because they're `NEXT_PUBLIC_`, they're
+baked in at build time — nothing extra to configure for the CLI deploy.
 
-Project → **Settings → Domains** → add both:
+## 5. Connect the novelstack.app domain
+
+Cloudflare dashboard → **Workers & Pages** → the `novelstack` Worker →
+**Settings → Domains & Routes** → **Add → Custom Domain** → enter:
 
 - `novelstack.app`
 - `www.novelstack.app`
 
-Vercel will display the exact DNS records to create. They are normally:
+Because the domain is already in your Cloudflare account, DNS configures
+itself automatically and SSL is issued within minutes — no manual DNS records,
+no proxy/orange-cloud gotcha. This is the payoff for staying inside Cloudflare.
 
-| Type  | Name | Value                  |
-|-------|------|------------------------|
-| A     | `@`  | `76.76.21.21`          |
-| CNAME | `www`| `cname.vercel-dns.com` |
-
-(Use whatever Vercel actually shows — it can change.)
-
-## 6. Add those records in Cloudflare DNS
-
-In the Cloudflare dashboard → `novelstack.app` → **DNS → Records**, add the
-records from step 5.
-
-**Critical gotcha:** set each of those records to **DNS only** — click the
-orange cloud so it turns **grey**. If Cloudflare proxies (orange cloud) a
-domain that Vercel is also terminating SSL for, you get SSL errors and
-redirect loops. Vercel handles the CDN and certificate itself; Cloudflare
-just needs to point at it.
-
-SSL provisioning on Vercel takes a few minutes after the records resolve.
-
-## 7. Point Supabase auth at the live domain
+## 6. Point Supabase auth at the live domain
 
 Supabase dashboard → **Authentication → URL Configuration**:
 
@@ -85,23 +73,30 @@ Supabase dashboard → **Authentication → URL Configuration**:
 - **Redirect URLs** — add:
   - `https://novelstack.app/auth/callback`
   - `https://novelstack.app/**`
-  - `novelstack://auth-callback`  ← keep this one for the mobile app
+  - `novelstack://auth-callback`  ← keep this for the mobile app
 
-Without this, magic-link sign-in will fail on the live site.
+## 7. (Optional) Auto-deploy on every push
 
-## 8. Verify
+In the dashboard, connect the GitHub repo to the Worker (Workers Builds). Set:
+- Build command: `npx opennextjs-cloudflare build`
+- Deploy command: `npx opennextjs-cloudflare deploy`
+- Root directory: `web`
+- Build env vars: add the two `NEXT_PUBLIC_SUPABASE_*` values (CI builds don't
+  see your local `.env.local`).
 
-- Visit `https://novelstack.app` — seeded stories should load.
-- Sign in with a magic link — the email link should land back on the site
-  signed in.
-- Check a story page and `https://novelstack.app/sitemap.xml`.
+## Verify
+
+- Visit `https://novelstack.app` — seeded stories load.
+- Sign in with a magic link — the email link lands back signed in.
+- Open a story, read a chapter, check `https://novelstack.app/sitemap.xml`.
 
 ---
 
-## If you later want to switch to Cloudflare Pages (to save the $20/mo)
+## Notes
 
-Cloudflare Pages allows commercial use for free. The web app uses Next.js App
-Router server actions, so it needs the `@cloudflare/next-on-pages` adapter and
-the edge runtime — a bit more setup than Vercel. Doable; just ask and I'll
-walk through it. Keeping the domain at Cloudflare now means no registrar
-migration either way.
+- The app is **Next.js 15 / React 19**. The OpenNext adapter supports the
+  latest Next 15 minors; Next 14 support is being dropped, which is why we
+  upgraded.
+- Nothing here has been compiled yet — the sandbox this was built in can't run
+  `npm install`. Step 3 is where real errors surface. `BUILD_AND_RUN.md` has a
+  likely-errors guide.

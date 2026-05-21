@@ -7,7 +7,7 @@ import type { Story } from '@/lib/types';
 export const metadata = { title: 'Your stories — NovelStack' };
 
 export default async function WriterDashboard() {
-  const supabase = createClient();
+  const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();

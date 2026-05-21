@@ -8,9 +8,10 @@ import type { Story, Chapter } from '@/lib/types';
 export default async function ManageStory({
   params,
 }: {
-  params: { storyId: string };
+  params: Promise<{ storyId: string }>;
 }) {
-  const supabase = createClient();
+  const supabase = await createClient();
+  const { storyId } = await params;
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -19,7 +20,7 @@ export default async function ManageStory({
   const { data: storyData } = await supabase
     .from('stories')
     .select('*')
-    .eq('id', params.storyId)
+    .eq('id', storyId)
     .single();
   const story = storyData as Story | null;
   if (!story || story.author_id !== user.id) notFound();

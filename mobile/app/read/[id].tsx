@@ -23,12 +23,20 @@ export default function Reader() {
       data: { user },
     } = await supabase.auth.getUser();
     if (!user) return;
+    // Snapshot subscriber status — it drives the writer-payout pool split.
+    const { data: sub } = await supabase
+      .from('subscriptions')
+      .select('id')
+      .eq('reader_id', user.id)
+      .eq('status', 'active')
+      .maybeSingle();
     await supabase.from('reads').upsert(
       {
         reader_id: user.id,
         chapter_id: chapterId,
         progress_pct: 100,
         completed_at: new Date().toISOString(),
+        is_subscriber: !!sub,
       },
       { onConflict: 'reader_id,chapter_id' }
     );

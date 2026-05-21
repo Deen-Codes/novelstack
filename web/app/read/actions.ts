@@ -7,7 +7,7 @@ import { revalidatePath } from 'next/cache';
 // Revenue fields default to 0 — the ad-network server callback reconciles
 // the real amount later (see monetization.md / Flagged for Deen).
 export async function recordAdUnlock(chapterId: string) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -24,11 +24,20 @@ export async function recordAdUnlock(chapterId: string) {
 
 // Marks a chapter as read so the Library can show "continue reading".
 export async function markProgress(chapterId: string) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return;
+
+  // Snapshot whether the reader is a subscriber at read time — this is what
+  // drives the writer-payout pool split, so it must be recorded per read.
+  const { data: sub } = await supabase
+    .from('subscriptions')
+    .select('id')
+    .eq('reader_id', user.id)
+    .eq('status', 'active')
+    .maybeSingle();
 
   await supabase.from('reads').upsert(
     {
@@ -36,6 +45,7 @@ export async function markProgress(chapterId: string) {
       chapter_id: chapterId,
       progress_pct: 100,
       completed_at: new Date().toISOString(),
+      is_subscriber: !!sub,
     },
     { onConflict: 'reader_id,chapter_id' }
   );

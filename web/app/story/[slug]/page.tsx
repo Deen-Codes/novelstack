@@ -25,9 +25,10 @@ async function getStory(slug: string): Promise<StoryWithAuthor | null> {
 export async function generateMetadata({
   params,
 }: {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
-  const story = await getStory(params.slug);
+  const { slug } = await params;
+  const story = await getStory(slug);
   if (!story) return { title: 'Story not found — NovelStack' };
 
   const desc = story.description ?? `Read ${story.title} free on NovelStack.`;
@@ -46,8 +47,9 @@ export async function generateMetadata({
   };
 }
 
-export default async function StoryPage({ params }: { params: { slug: string } }) {
-  const story = await getStory(params.slug);
+export default async function StoryPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const story = await getStory(slug);
 
   if (!story) {
     return (
@@ -64,11 +66,12 @@ export default async function StoryPage({ params }: { params: { slug: string } }
     .from('chapters')
     .select('*')
     .eq('story_id', story.id)
+    .not('published_at', 'is', null)
     .order('number');
   const chapters = (chapterData ?? []) as Chapter[];
 
   // Current user + whether they've bookmarked this story.
-  const ssr = createClient();
+  const ssr = await createClient();
   const {
     data: { user },
   } = await ssr.auth.getUser();

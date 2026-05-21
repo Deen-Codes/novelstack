@@ -20,9 +20,9 @@ function chip(active: boolean) {
 export default async function Home({
   searchParams,
 }: {
-  searchParams: { genre?: string };
+  searchParams: Promise<{ genre?: string }>;
 }) {
-  const genre = searchParams.genre;
+  const { genre } = await searchParams;
   const feed = await getFeed(genre);
 
   return (

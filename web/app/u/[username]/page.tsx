@@ -8,20 +8,22 @@ import { ReportButton } from '@/components/ReportButton';
 import { TipButton } from '@/components/TipButton';
 import type { Story, User } from '@/lib/types';
 
-export async function generateMetadata({ params }: { params: { username: string } }) {
-  return { title: `@${params.username} — NovelStack` };
+export async function generateMetadata({ params }: { params: Promise<{ username: string }> }) {
+  const { username } = await params;
+  return { title: `@${username} — NovelStack` };
 }
 
 export default async function ProfilePage({
   params,
 }: {
-  params: { username: string };
+  params: Promise<{ username: string }>;
 }) {
-  const supabase = createClient();
+  const supabase = await createClient();
+  const { username } = await params;
   const { data: profileData } = await supabase
     .from('users')
     .select('*')
-    .eq('username', params.username)
+    .eq('username', username)
     .single();
   const profile = profileData as User | null;
   if (!profile) notFound();

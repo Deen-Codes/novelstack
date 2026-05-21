@@ -8,7 +8,7 @@ import type { User } from '@/lib/types';
 export const metadata = { title: 'Settings — NovelStack' };
 
 export default async function Settings() {
-  const supabase = createClient();
+  const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -48,6 +48,18 @@ export default async function Settings() {
               rows={3}
               className="w-full border border-border-soft rounded-lg px-3.5 py-2.5 text-[15px] bg-white"
             />
+          </div>
+          <div>
+            <label className="text-[13px] text-ink-muted block mb-1">Date of birth</label>
+            <input
+              name="date_of_birth"
+              type="date"
+              defaultValue={profile?.date_of_birth ?? ''}
+              className="w-full border border-border-soft rounded-lg px-3.5 py-2.5 text-[15px] bg-white"
+            />
+            <p className="text-[12px] text-ink-faint mt-1">
+              Used to confirm your age — mature (18+) stories stay hidden until this is set.
+            </p>
           </div>
           <button
             type="submit"

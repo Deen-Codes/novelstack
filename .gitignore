@@ -6,6 +6,11 @@ node_modules/
 out/
 next-env.d.ts
 
+# cloudflare / opennext build output
+.open-next/
+.wrangler/
+cloudflare-env.d.ts
+
 # expo / react native
 .expo/
 dist/

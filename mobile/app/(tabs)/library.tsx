@@ -56,20 +56,20 @@ export default function Library() {
 
     const { data: followData } = await supabase
       .from('follows')
-      .select('author:users!follows_author_id_fkey(id, username, display_name)')
+      .select('author:users!author_id(id, username, display_name)')
       .eq('follower_id', user.id);
     setFollowing(((followData ?? []) as any[]).map((f) => f.author).filter(Boolean));
 
     const { data: bmData } = await supabase
       .from('bookmarks')
-      .select('story:stories(id, title, cover_color, chapters(id, number))')
+      .select('story:stories(id, title, cover_color, chapters(id, number, published_at))')
       .eq('reader_id', user.id);
     setSaved(
       ((bmData ?? []) as any[])
         .map((b) => b.story)
         .filter(Boolean)
         .map((s: any) => {
-          const chs = (s.chapters ?? []).sort((a: any, x: any) => a.number - x.number);
+          const chs = (s.chapters ?? []).filter((c: any) => c.published_at).sort((a: any, x: any) => a.number - x.number);
           return {
             id: s.id,
             title: s.title,

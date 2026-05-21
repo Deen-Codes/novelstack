@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 // makes them 18+. Logged-out users and users with no DOB count as minors,
 // so mature (is_mature) content is hidden from them. (Q1 decision.)
 export async function viewerIsAdult(): Promise<boolean> {
-  const supabase = createClient();
+  const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();

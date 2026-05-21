@@ -15,7 +15,7 @@ const WEIGHTS = {
 export type FeedStory = Story & { _score: number; _reason: string };
 
 export async function getFeed(genreFilter?: string): Promise<FeedStory[]> {
-  const supabase = createClient();
+  const supabase = await createClient();
   const adult = await viewerIsAdult();
   const {
     data: { user },

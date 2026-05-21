@@ -33,7 +33,7 @@ export async function getFeed(genreFilter?: string): Promise<FeedStory[]> {
   let q = supabase
     .from('stories')
     .select(
-      'id, author_id, title, slug, genre, cover_color, total_reads, is_mature, published_at, author:users(display_name), chapters(id, number)'
+      'id, author_id, title, slug, genre, cover_color, total_reads, is_mature, published_at, author:users(display_name), chapters(id, number, published_at)'
     )
     .neq('status', 'draft')
     .order('published_at', { ascending: false })
@@ -89,7 +89,7 @@ export async function getFeed(genreFilter?: string): Promise<FeedStory[]> {
       ? 'New this week'
       : 'Popular on NovelStack';
 
-    const chs = (s.chapters ?? []).sort((a: any, b: any) => a.number - b.number);
+    const chs = (s.chapters ?? []).filter((c: any) => c.published_at).sort((a: any, b: any) => a.number - b.number);
     return {
       id: s.id,
       author_id: s.author_id,
