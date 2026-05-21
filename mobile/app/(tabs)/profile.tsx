@@ -19,6 +19,7 @@ type Profile = {
   display_name: string;
   bio: string | null;
   is_verified: boolean;
+  date_of_birth: string | null;
 };
 type Story = { id: string; title: string; cover_color: string; firstChapter: string | null };
 
@@ -33,6 +34,7 @@ export default function ProfileScreen() {
   const [editing, setEditing] = useState(false);
   const [displayName, setDisplayName] = useState('');
   const [bio, setBio] = useState('');
+  const [dob, setDob] = useState('');
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
@@ -48,7 +50,7 @@ export default function ProfileScreen() {
 
     const { data: p } = await supabase
       .from('users')
-      .select('id, username, display_name, bio, is_verified')
+      .select('id, username, display_name, bio, is_verified, date_of_birth')
       .eq('id', user.id)
       .single();
     const prof = p as Profile | null;
@@ -56,6 +58,7 @@ export default function ProfileScreen() {
     if (prof) {
       setDisplayName(prof.display_name);
       setBio(prof.bio ?? '');
+      setDob(prof.date_of_birth ?? '');
     }
 
     const { data: st } = await supabase
@@ -99,7 +102,12 @@ export default function ProfileScreen() {
     setBusy(true);
     await supabase
       .from('users')
-      .update({ display_name: displayName.trim() || profile.display_name, bio: bio.trim() })
+      .update({
+        display_name: displayName.trim() || profile.display_name,
+        bio: bio.trim(),
+        // Only write DOB when supplied — never clears a stored value.
+        ...(dob.trim() ? { date_of_birth: dob.trim() } : {}),
+      })
       .eq('id', profile.id);
     setBusy(false);
     setEditing(false);
@@ -168,6 +176,14 @@ export default function ProfileScreen() {
               placeholderTextColor={colors.inkFaint}
               multiline
               style={[styles.input, { height: 80, textAlignVertical: 'top' }]}
+            />
+            <TextInput
+              value={dob}
+              onChangeText={setDob}
+              placeholder="Date of birth — YYYY-MM-DD"
+              placeholderTextColor={colors.inkFaint}
+              autoCapitalize="none"
+              style={styles.input}
             />
             <View style={styles.formBtns}>
               <Pressable style={styles.ghostBtn} onPress={() => setEditing(false)}>

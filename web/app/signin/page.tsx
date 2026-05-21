@@ -5,10 +5,10 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 
 // Magic-link sign in — no passwords. Sign up and sign in are one flow.
-// The link lands on /auth/callback which exchanges it for a session.
+// We only ask for an email; the username is auto-generated and date of
+// birth is collected later (in Settings), only if it's missing.
 export default function SignIn() {
   const [email, setEmail] = useState('');
-  const [dob, setDob] = useState('');
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -20,10 +20,7 @@ export default function SignIn() {
     const supabase = createClient();
     const { error } = await supabase.auth.signInWithOtp({
       email,
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-        data: dob ? { date_of_birth: dob } : undefined,
-      },
+      options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
     });
     setLoading(false);
     if (error) setError(error.message);
@@ -56,15 +53,6 @@ export default function SignIn() {
             placeholder="you@email.com"
             className="w-full border border-border-soft rounded-lg px-3.5 py-2.5 text-[15px] bg-white"
           />
-          <label className="block text-[12px] text-ink-faint mt-3 mb-1">
-            Date of birth — new accounts only, used to age-gate mature content
-          </label>
-          <input
-            type="date"
-            value={dob}
-            onChange={(e) => setDob(e.target.value)}
-            className="w-full border border-border-soft rounded-lg px-3.5 py-2.5 text-[15px] bg-white"
-          />
           {error && <p className="text-[13px] text-signal mt-2">{error}</p>}
           <button
             onClick={sendLink}
@@ -73,6 +61,10 @@ export default function SignIn() {
           >
             {loading ? 'Sending…' : 'Email me a link'}
           </button>
+          <p className="text-[12px] text-ink-faint mt-4">
+            New here? You'll get a username automatically — change it any time in
+            Settings. Mature stories stay hidden until you add your date of birth.
+          </p>
         </div>
       )}
     </main>

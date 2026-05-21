@@ -6,20 +6,13 @@ import { colors, spacing, radius } from '@/theme/tokens';
 
 // Magic-link sign in — no passwords. The link opens back into the app
 // via novelstack://auth-callback (handled by app/auth-callback.tsx).
-// Date of birth is captured here and stored on the profile so mature
-// (18+) content can be age-gated (Q1 decision).
+// We only ask for an email; the username is auto-generated and date of
+// birth is collected later (in Profile), only if it's missing.
 export default function SignIn() {
   const [email, setEmail] = useState('');
-  const [dob, setDob] = useState(''); // YYYY-MM-DD
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  function validDob(s: string): boolean {
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return false;
-    const d = new Date(s);
-    return !isNaN(d.getTime()) && d < new Date();
-  }
 
   async function sendLink() {
     setError(null);
@@ -27,17 +20,10 @@ export default function SignIn() {
       setError('Enter your email.');
       return;
     }
-    if (!validDob(dob)) {
-      setError('Enter your date of birth as YYYY-MM-DD.');
-      return;
-    }
     setLoading(true);
     const { error: otpErr } = await supabase.auth.signInWithOtp({
       email: email.trim(),
-      options: {
-        emailRedirectTo: 'novelstack://auth-callback',
-        data: { date_of_birth: dob },
-      },
+      options: { emailRedirectTo: 'novelstack://auth-callback' },
     });
     setLoading(false);
     if (otpErr) {
@@ -74,19 +60,6 @@ export default function SignIn() {
               autoCapitalize="none"
               style={styles.input}
             />
-            <Text style={styles.label}>Date of birth</Text>
-            <TextInput
-              value={dob}
-              onChangeText={setDob}
-              placeholder="YYYY-MM-DD"
-              placeholderTextColor={colors.inkFaint}
-              keyboardType="numbers-and-punctuation"
-              autoCapitalize="none"
-              style={styles.input}
-            />
-            <Text style={styles.hint}>
-              Used to confirm your age — mature stories are 18+ only.
-            </Text>
             {!!error && <Text style={styles.error}>{error}</Text>}
             <Pressable
               style={[styles.btn, loading && { opacity: 0.6 }]}
@@ -95,6 +68,10 @@ export default function SignIn() {
             >
               <Text style={styles.btnText}>{loading ? 'Sending…' : 'Email me a link'}</Text>
             </Pressable>
+            <Text style={styles.hint}>
+              New here? You'll get a username automatically — change it any time in
+              Profile. Mature stories stay hidden until you add your date of birth.
+            </Text>
           </>
         )}
       </View>
@@ -109,9 +86,8 @@ const styles = StyleSheet.create({
   dot: { color: colors.signal },
   h1: { fontSize: 24, fontWeight: '500', color: colors.ink },
   sub: { fontSize: 14, color: colors.inkMuted, marginTop: spacing.sm, lineHeight: 21 },
-  label: { fontSize: 13, color: colors.inkMuted, marginTop: spacing.md, marginBottom: 4 },
   input: {
-    marginTop: spacing.sm,
+    marginTop: spacing.lg,
     borderWidth: 1,
     borderColor: colors.borderSoft,
     borderRadius: radius.md,
@@ -121,7 +97,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     color: colors.ink,
   },
-  hint: { fontSize: 12, color: colors.inkFaint, marginTop: 6, lineHeight: 17 },
   error: { fontSize: 13, color: colors.signal, marginTop: spacing.sm },
   btn: {
     marginTop: spacing.md,
@@ -131,4 +106,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   btnText: { color: colors.paper, fontSize: 14, fontWeight: '500' },
+  hint: { fontSize: 12, color: colors.inkFaint, marginTop: spacing.lg, lineHeight: 17 },
 });
