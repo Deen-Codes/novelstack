@@ -143,7 +143,7 @@ export default function Search() {
               <Pressable
                 key={s.id}
                 style={styles.row}
-                onPress={() => s.firstChapter && router.push(`/read/${s.firstChapter}`)}
+                onPress={() => router.push(`/story/${s.id}`)}
               >
                 <View style={[styles.cover, { backgroundColor: s.cover_color }]} />
                 <View style={styles.rowText}>

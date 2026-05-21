@@ -14,6 +14,7 @@ export default function RootLayout() {
       >
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="read/[id]" />
+        <Stack.Screen name="story/[id]" />
         <Stack.Screen name="write/[storyId]" />
         <Stack.Screen name="signin" />
         <Stack.Screen name="auth-callback" />

@@ -211,7 +211,7 @@ export default function ProfileScreen() {
               <Pressable
                 key={s.id}
                 style={styles.gridItem}
-                onPress={() => s.firstChapter && router.push(`/read/${s.firstChapter}`)}
+                onPress={() => router.push(`/story/${s.id}`)}
               >
                 <View style={[styles.gridCover, { backgroundColor: s.cover_color }]} />
                 <Text style={styles.gridTitle}>{s.title}</Text>

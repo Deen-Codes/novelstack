@@ -25,7 +25,7 @@ export function Comments({ chapterId }: { chapterId: string }) {
       .select('id, content, created_at, user:users(display_name, username)')
       .eq('chapter_id', chapterId)
       .order('created_at', { ascending: false });
-    setComments((cs as CommentRow[]) ?? []);
+    setComments((cs as unknown as CommentRow[]) ?? []);
 
     const { count } = await supabase
       .from('likes')

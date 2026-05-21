@@ -57,7 +57,7 @@ export async function markProgress(chapterId: string) {
     .eq('id', chapterId)
     .single();
   if (ch) {
-    const row = ch as { story_id: string; story: { genre: string } | null };
+    const row = ch as unknown as { story_id: string; story: { genre: string } | null };
     await supabase.from('reading_events').insert({
       user_id: user.id,
       story_id: row.story_id,

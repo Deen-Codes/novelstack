@@ -9,7 +9,7 @@
 - **Audit done, bugs fixed** — critical: the `follows` query (broken FK embed that emptied "writers you follow") fixed on web + mobile. Also: published-only chapter lists, `reads.is_subscriber` now recorded for the payout split, sitemap fixed, DOB editor added to web Settings, fake landing-page stats replaced with honest figures.
 - **Nothing is compiled yet** — the sandbox can't `npm install`. First `npm run dev` / `npm run preview` is the first real build; expect a few first-build fixes (esp. from the Next 15 upgrade).
 - **Testing runbook:** `TESTING.md` — web local + Cloudflare preview, mobile Expo Go + dev build, plus a feature checklist.
-- **Biggest remaining gap:** mobile has no story-detail screen, so mobile users can't bookmark / follow / tip / report yet. Plus deferred: Stripe (subscriptions + payouts), real ad network, the ~100-account seed run. See the "What's left" section below.
+- **Mobile story-detail screen built** — mobile users can now bookmark, follow, tip and report from a real story page. Remaining feature gaps: Stripe (subscriptions + payouts) and a real ad network, plus the ~100-account seed run. See "What's left" below.
 
 ## What's left before MVP launch
 
@@ -19,8 +19,6 @@ Then `npm run preview` for the Cloudflare build. Then `npm install` +
 `npx expo start` in `mobile/`.
 
 **2 — Real feature gaps still to build:**
-- Mobile story-detail screen — mobile currently jumps straight into the reader,
-  so mobile users cannot bookmark, follow, tip or report. Biggest gap.
 - Subscriptions / NovelStack+ — no checkout, no billing page; nothing writes to
   the `subscriptions` table. Needs Stripe.
 - Writer payouts — the 70/30 pool split + payout runs are not built. Needs

@@ -1,0 +1,45 @@
+'use client';
+
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+
+// Scroll-triggered reveal — fades + rises a section into view once.
+// Pairs with the .ns-reveal / .ns-in CSS in globals.css. `delay` (ms)
+// staggers siblings for the cinematic, relaxed feel.
+export function Reveal({
+  children,
+  delay = 0,
+  className = '',
+}: {
+  children: ReactNode;
+  delay?: number;
+  className?: string;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [shown, setShown] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          setShown(true);
+          io.disconnect();
+        }
+      },
+      { threshold: 0.15, rootMargin: '0px 0px -8% 0px' }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
+  return (
+    <div
+      ref={ref}
+      className={`ns-reveal ${shown ? 'ns-in' : ''} ${className}`}
+      style={delay ? { transitionDelay: `${delay}ms` } : undefined}
+    >
+      {children}
+    </div>
+  );
+}

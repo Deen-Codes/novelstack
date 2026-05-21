@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { viewerIsAdult } from '@/lib/age';
 import { StoryCard } from '@/components/StoryCard';
+import { Reveal } from '@/components/Reveal';
 import type { Story } from '@/lib/types';
 
 // Honest, scale-independent facts — no fabricated user counts pre-launch.
@@ -49,7 +50,7 @@ export default async function Home() {
         </div>
       </nav>
 
-      <header className="max-w-6xl mx-auto px-6 pt-20 pb-14">
+      <header className="ns-hero max-w-6xl mx-auto px-6 pt-20 pb-14">
         <p className="text-[13px] text-signal font-medium mb-4">A new chapter for online fiction</p>
         <h1 className="font-serif text-6xl md:text-7xl font-medium tracking-tight leading-[1.02] max-w-2xl">
           Stories worth following.
@@ -70,15 +71,16 @@ export default async function Home() {
 
       <section className="border-y border-ink/10">
         <div className="max-w-6xl mx-auto px-6 py-10 grid grid-cols-2 md:grid-cols-4 gap-6">
-          {stats.map((s) => (
-            <div key={s.label}>
+          {stats.map((s, i) => (
+            <Reveal key={s.label} delay={i * 110}>
               <div className="font-serif text-4xl font-medium">{s.num}</div>
               <div className="text-[13px] text-ink-muted mt-1">{s.label}</div>
-            </div>
+            </Reveal>
           ))}
         </div>
       </section>
 
+      <Reveal>
       <section className="max-w-6xl mx-auto px-6 py-20">
         <p className="text-[13px] text-ink-muted mb-2">Trending this week</p>
         <h2 className="font-serif text-4xl font-medium tracking-tight mb-10">
@@ -96,7 +98,9 @@ export default async function Home() {
           </p>
         )}
       </section>
+      </Reveal>
 
+      <Reveal>
       <section className="bg-paper-soft">
         <div className="max-w-6xl mx-auto px-6 py-20">
           <p className="text-[13px] text-ink-muted mb-2">Why NovelStack</p>
@@ -113,7 +117,9 @@ export default async function Home() {
           </div>
         </div>
       </section>
+      </Reveal>
 
+      <Reveal>
       <section className="max-w-6xl mx-auto px-6 py-24 text-center">
         <h2 className="font-serif text-5xl font-medium tracking-tight mb-4">
           Your next chapter starts here.
@@ -130,6 +136,7 @@ export default async function Home() {
           </Link>
         </div>
       </section>
+      </Reveal>
 
       <footer className="border-t border-ink/10">
         <div className="max-w-6xl mx-auto px-6 py-10 text-[13px] text-ink-faint flex justify-between">

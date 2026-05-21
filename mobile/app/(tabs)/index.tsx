@@ -63,7 +63,7 @@ export default function Home() {
             <Pressable
               key={story.id}
               style={styles.row}
-              onPress={() => story.firstChapter && router.push(`/read/${story.firstChapter}`)}
+              onPress={() => router.push(`/story/${story.id}`)}
             >
               <View style={[styles.cover, { backgroundColor: story.cover_color }]}>
                 <Text style={styles.coverTitle}>{story.title}</Text>

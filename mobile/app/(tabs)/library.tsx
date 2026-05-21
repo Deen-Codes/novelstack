@@ -162,7 +162,7 @@ export default function Library() {
               <Pressable
                 key={s.id}
                 style={styles.gridItem}
-                onPress={() => s.firstChapter && router.push(`/read/${s.firstChapter}`)}
+                onPress={() => router.push(`/story/${s.id}`)}
               >
                 <View style={[styles.gridCover, { backgroundColor: s.coverColor }]} />
                 <Text style={styles.gridTitle}>{s.title}</Text>
