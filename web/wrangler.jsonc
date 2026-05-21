@@ -11,6 +11,13 @@
     "directory": ".open-next/assets",
     "binding": "ASSETS"
   },
+  // Custom domains. Because novelstack.app is in this Cloudflare account,
+  // `wrangler deploy` attaches the domain and creates its DNS automatically —
+  // no dashboard step needed. SSL provisions within a few minutes.
+  "routes": [
+    { "pattern": "novelstack.app", "custom_domain": true },
+    { "pattern": "www.novelstack.app", "custom_domain": true }
+  ],
   "observability": {
     "enabled": true
   }
