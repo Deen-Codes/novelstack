@@ -13,6 +13,7 @@ import { router } from 'expo-router';
 import { colors, spacing, radius } from '@/theme/tokens';
 import { supabase } from '@/lib/supabase';
 import { viewerIsAdult } from '@/lib/age';
+import { GENRES } from '@/lib/genres';
 
 type StoryHit = {
   id: string;
@@ -23,8 +24,6 @@ type StoryHit = {
   firstChapter: string | null;
 };
 type WriterHit = { id: string; username: string; display_name: string };
-
-const GENRES = ['romance', 'fantasy', 'scifi', 'thriller', 'mystery', 'horror'];
 
 export default function Search() {
   const [q, setQ] = useState('');
@@ -105,14 +104,14 @@ export default function Search() {
         <View style={styles.chips}>
           {GENRES.map((g) => (
             <Pressable
-              key={g}
+              key={g.value}
               style={styles.chip}
               onPress={() => {
                 setQ('');
-                run('', g);
+                run('', g.value);
               }}
             >
-              <Text style={styles.chipText}>{g}</Text>
+              <Text style={styles.chipText}>{g.label}</Text>
             </Pressable>
           ))}
         </View>

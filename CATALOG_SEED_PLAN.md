@@ -48,5 +48,5 @@ Concrete rules to avoid AI tells:
 ## Flagged for Deen
 
 - **Volume of generated fiction is large** — this is a real content-production task, not a quick script. Budget a dedicated batch run.
-- **Decision needed:** are seed accounts ever disclosed as seed/house accounts, or presented as ordinary authors? (Transparency / trust call — and relevant if any seed story later gets real traction or tips.)
+- **Decision (RESOLVED):** seed accounts are presented as **ordinary writers** — not disclosed as house/seed accounts. All seed earnings (ad revenue + tips) route to the **company**, not to individuals, via an internal-only `users.is_seed` flag (migration 003) that the payout system must honour. Seed avatars are AI-generated faces of non-existent people; names are matched to the face, the writing voice and the account's subject matter. Disclosure/consumer-protection risk is logged in MVP_PROGRESS.md (DECISIONS #5 + Risks note).
 - Fanfiction seed must use invented universes only — no real IP, to avoid copyright exposure in the catalog itself.

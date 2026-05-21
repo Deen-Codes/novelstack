@@ -1,13 +1,9 @@
 import Link from 'next/link';
 import { AppHeader } from '@/components/AppHeader';
 import { getFeed } from '@/lib/feed';
+import { GENRES } from '@/lib/genres';
 
 export const metadata = { title: 'Home — NovelStack' };
-
-const GENRES = [
-  'romance', 'fantasy', 'scifi', 'thriller', 'mystery',
-  'drama', 'horror', 'poetry', 'fanfiction',
-];
 
 function chip(active: boolean) {
   return `text-[13px] px-3.5 py-1.5 rounded-full border capitalize ${
@@ -34,8 +30,8 @@ export default async function Home({
             For you
           </Link>
           {GENRES.map((g) => (
-            <Link key={g} href={`/browse?genre=${g}`} className={chip(genre === g)}>
-              {g}
+            <Link key={g.value} href={`/browse?genre=${g.value}`} className={chip(genre === g.value)}>
+              {g.label}
             </Link>
           ))}
         </div>

@@ -12,6 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import { colors, spacing, radius } from '@/theme/tokens';
 import { supabase } from '@/lib/supabase';
+import { GENRES } from '@/lib/genres';
 
 type Story = {
   id: string;
@@ -20,8 +21,6 @@ type Story = {
   status: string;
   chapterCount: number;
 };
-
-const GENRES = ['romance', 'fantasy', 'scifi', 'thriller', 'mystery', 'drama', 'horror', 'other'];
 
 function slugify(s: string) {
   return s
@@ -151,11 +150,13 @@ export default function Write() {
             <View style={styles.chips}>
               {GENRES.map((g) => (
                 <Pressable
-                  key={g}
-                  style={[styles.chip, genre === g && styles.chipActive]}
-                  onPress={() => setGenre(g)}
+                  key={g.value}
+                  style={[styles.chip, genre === g.value && styles.chipActive]}
+                  onPress={() => setGenre(g.value)}
                 >
-                  <Text style={[styles.chipText, genre === g && styles.chipTextActive]}>{g}</Text>
+                  <Text style={[styles.chipText, genre === g.value && styles.chipTextActive]}>
+                    {g.label}
+                  </Text>
                 </Pressable>
               ))}
             </View>

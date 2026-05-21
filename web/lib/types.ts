@@ -2,8 +2,11 @@
 // `supabase gen types typescript` once the schema is deployed.
 
 export type StoryGenre =
-  | 'romance' | 'fantasy' | 'scifi' | 'thriller' | 'mystery'
-  | 'drama' | 'horror' | 'poetry' | 'fanfiction' | 'other';
+  | 'romance' | 'fantasy' | 'scifi' | 'thriller' | 'mystery' | 'crime'
+  | 'horror' | 'paranormal' | 'werewolf' | 'vampire' | 'young_adult'
+  | 'teen_fiction' | 'contemporary' | 'historical' | 'adventure' | 'action'
+  | 'dystopian' | 'drama' | 'lgbtq' | 'humor' | 'fanfiction' | 'poetry'
+  | 'short_story' | 'nonfiction' | 'other';
 
 export type StoryStatus = 'draft' | 'ongoing' | 'complete' | 'paused';
 

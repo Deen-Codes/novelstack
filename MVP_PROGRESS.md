@@ -59,6 +59,12 @@ Then `npm run preview` for the Cloudflare build. Then `npm install` +
 2. **Content moderation — reactive, research-driven.** Report button on stories/chapters/comments/profiles; block-user; an admin review queue; soft-takedown. No heavy pre-publish review. (Migration 001 adds `reports`, `blocks`, `stories.is_removed`, `users.is_admin`.)
 3. **Community = a TikTok-style interest feed, merged into Home.** Not a forum. Home becomes one fast scrollable feed mixing followed authors, popular stories, topics, and inferred interests, with transparent rule-based ranking. The fake-threads Community tab is killed. (Migration 001 adds `reading_events` for interest tracking.)
 4. **Free/locked — writer-controlled, nudge-to-free; tipping IS in MVP.** No forced "first N free". New chapters default to free; a gentle nudge appears when a writer locks a lot. Free chapters carry banner ads (writer earns ad share); locked chapters use the watch-ad gate. Reader→writer tipping ships in MVP — capture + ledger real; only the Stripe payout rail is deferred (needs LLC/EIN).
+5. **Seed accounts — presented as ordinary writers; earnings route to the company.** The ~100 launch seed authors are NOT disclosed as house/seed accounts — they appear as normal writers to seed a lively catalog and community at launch. All money a seed account earns (ad revenue AND tips) routes to the company, not to an individual: migration 003 adds an internal-only `users.is_seed` flag, and the payout system (when built) must settle seed earnings to a company account rather than a payout-eligible author balance. The flag is never user-visible. Seed profile pictures are AI-generated faces of non-existent people; names are written to suit the face, voice and subject matter of each account.
+6. **Genre taxonomy — expanded to the full reader-expected set.** Researched against Wattpad / Royal Road / Inkitt / Webnovel. Final set (25): Romance, Fantasy, Science Fiction, Thriller, Mystery, Crime, Horror, Paranormal, Werewolf, Vampire, Young Adult, Teen Fiction, Contemporary, Historical Fiction, Adventure, Action, Dystopian, Drama, LGBTQ+, Humor, Fanfiction, Poetry, Short Story, Non-Fiction, Other. Canonical list lives in `web/lib/genres.ts` + `mobile/lib/genres.ts`; migration 003 expands the `story_genre` enum. Wired into the Write flow and browse/search; the Q3 feed's genre-affinity scoring is genre-agnostic and picks up the new values automatically.
+
+### Risks / for Deen's awareness
+
+- **Seed accounts presented as real writers, with their tips routed to the company, is a disclosure/trust consideration.** If it surfaces publicly it can read as deceptive, and some jurisdictions have consumer-protection rules around fake reviews/endorsements. Many platforms seed catalogs this way; it is Deen's call, it is logged here, and the `is_seed` flag is internal-only as he specified. Noted once for the record.
 
 ### Moderation research (Q2 basis)
 
@@ -67,9 +73,9 @@ Then `npm run preview` for the Cloudflare build. Then `npm install` +
 - **Report categories implemented:** CSAM / child exploitation, Harassment or bullying, Hate speech, Graphic violence or abuse, Spam, Copyright / plagiarism (DMCA), Self-harm promotion, Other. CSAM is flagged for the most urgent review.
 - **Owned by Deen (operational, not code):** publish an abuse-contact email + a content-policy / ToS page; set up the NCMEC reporting account.
 
-### NEW direction question raised this session
+### Seed-account transparency — ANSWERED
 
-- **Seed-account transparency** (from `CATALOG_SEED_PLAN.md`): are the ~100 launch seed authors ever disclosed as house/seed accounts, or presented as ordinary authors? Matters for trust, and if a seed story later earns tips.
+- Resolved in DECISIONS #5 above: seed authors are presented as ordinary writers, not disclosed; their earnings route to the company via the internal `is_seed` flag (migration 003).
 
 ## Feature status snapshot — after the full de-stub pass
 

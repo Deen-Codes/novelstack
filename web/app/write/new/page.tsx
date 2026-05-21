@@ -1,12 +1,8 @@
 import { createStory } from '../actions';
 import { AppHeader } from '@/components/AppHeader';
+import { GENRES } from '@/lib/genres';
 
 export const metadata = { title: 'New story — NovelStack' };
-
-const GENRES = [
-  'romance', 'fantasy', 'scifi', 'thriller', 'mystery',
-  'drama', 'horror', 'poetry', 'fanfiction', 'other',
-];
 
 export default function NewStory() {
   return (
@@ -30,7 +26,7 @@ export default function NewStory() {
               className="w-full border border-border-soft rounded-lg px-3.5 py-2.5 text-[15px] bg-white capitalize"
             >
               {GENRES.map((g) => (
-                <option key={g} value={g}>{g}</option>
+                <option key={g.value} value={g.value}>{g.label}</option>
               ))}
             </select>
           </div>
