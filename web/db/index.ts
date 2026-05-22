@@ -12,7 +12,14 @@ const globalForDb = globalThis as unknown as {
   __novelstackSql?: ReturnType<typeof postgres>;
 };
 
-const sql = globalForDb.__novelstackSql ?? postgres(connectionString, { prepare: false });
+// Render PostgreSQL requires SSL. Plain `postgres()` would connect without it
+// and be rejected — so enable SSL for any non-local connection.
+const sql =
+  globalForDb.__novelstackSql ??
+  postgres(connectionString, {
+    prepare: false,
+    ssl: connectionString.includes('localhost') ? false : 'require',
+  });
 if (process.env.NODE_ENV !== 'production') globalForDb.__novelstackSql = sql;
 
 export const db = drizzle(sql, { schema });
