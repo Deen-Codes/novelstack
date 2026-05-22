@@ -183,7 +183,7 @@ ALTER TABLE "tips" ADD CONSTRAINT "tips_recipient_id_users_id_fk" FOREIGN KEY ("
 ALTER TABLE "tips" ADD CONSTRAINT "tips_story_id_stories_id_fk" FOREIGN KEY ("story_id") REFERENCES "public"."stories"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 CREATE INDEX "idx_auth_tokens_email" ON "auth_tokens" USING btree ("email");--> statement-breakpoint
 CREATE INDEX "idx_chapters_story_number" ON "chapters" USING btree ("story_id","number");--> statement-breakpoint
-CREATE INDEX "idx_reads_reader_chapter" ON "reads" USING btree ("reader_id","chapter_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "idx_reads_reader_chapter" ON "reads" USING btree ("reader_id","chapter_id");--> statement-breakpoint
 CREATE INDEX "idx_sessions_user" ON "sessions" USING btree ("user_id");--> statement-breakpoint
 CREATE INDEX "idx_stories_genre_published" ON "stories" USING btree ("genre","published_at");--> statement-breakpoint
 CREATE INDEX "idx_stories_author" ON "stories" USING btree ("author_id");

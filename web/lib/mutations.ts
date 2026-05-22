@@ -1,0 +1,248 @@
+// NovelStack — write data layer (Drizzle over Render Postgres).
+// Every function takes the acting user's id and enforces ownership itself —
+// this is where the old Supabase row-level-security rules now live.
+import 'server-only';
+import { and, eq, sql } from 'drizzle-orm';
+import { randomBytes } from 'crypto';
+import { db } from '@/db';
+import {
+  stories,
+  chapters,
+  chapterContent,
+  bookmarks,
+  follows,
+  likes,
+  reads,
+  comments,
+  users,
+} from '@/db/schema';
+
+type Genre = typeof stories.$inferSelect.genre;
+type Status = typeof stories.$inferSelect.status;
+
+function slugify(title: string): string {
+  const base = title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 60) || 'story';
+  return `${base}-${randomBytes(3).toString('hex')}`;
+}
+
+function summarise(body: string) {
+  const words = body.trim().split(/\s+/).filter(Boolean);
+  return {
+    wordCount: words.length,
+    pageCount: Math.max(1, Math.ceil(words.length / 250)),
+    excerpt: words.slice(0, 60).join(' '),
+  };
+}
+
+// --- Social toggles — return the new state (true = on) ---------------------
+export async function toggleBookmark(userId: string, storyId: string): Promise<boolean> {
+  const [row] = await db
+    .select({ s: bookmarks.storyId })
+    .from(bookmarks)
+    .where(and(eq(bookmarks.readerId, userId), eq(bookmarks.storyId, storyId)))
+    .limit(1);
+  if (row) {
+    await db
+      .delete(bookmarks)
+      .where(and(eq(bookmarks.readerId, userId), eq(bookmarks.storyId, storyId)));
+    return false;
+  }
+  await db.insert(bookmarks).values({ readerId: userId, storyId });
+  return true;
+}
+
+export async function toggleFollow(userId: string, authorId: string): Promise<boolean> {
+  if (userId === authorId) return false;
+  const [row] = await db
+    .select({ a: follows.authorId })
+    .from(follows)
+    .where(and(eq(follows.followerId, userId), eq(follows.authorId, authorId)))
+    .limit(1);
+  if (row) {
+    await db
+      .delete(follows)
+      .where(and(eq(follows.followerId, userId), eq(follows.authorId, authorId)));
+    return false;
+  }
+  await db.insert(follows).values({ followerId: userId, authorId });
+  return true;
+}
+
+export async function toggleLike(userId: string, chapterId: string): Promise<boolean> {
+  const [row] = await db
+    .select({ c: likes.chapterId })
+    .from(likes)
+    .where(and(eq(likes.userId, userId), eq(likes.chapterId, chapterId)))
+    .limit(1);
+  if (row) {
+    await db.delete(likes).where(and(eq(likes.userId, userId), eq(likes.chapterId, chapterId)));
+    return false;
+  }
+  await db.insert(likes).values({ userId, chapterId });
+  return true;
+}
+
+// --- Reading progress — one row per reader+chapter, upserted ---------------
+export async function recordRead(
+  userId: string,
+  chapterId: string,
+  progressPct: number,
+  completed: boolean,
+): Promise<void> {
+  const completedAt = completed ? new Date() : null;
+  await db
+    .insert(reads)
+    .values({ readerId: userId, chapterId, progressPct, completedAt })
+    .onConflictDoUpdate({
+      target: [reads.readerId, reads.chapterId],
+      set: { progressPct, completedAt },
+    });
+}
+
+// --- Comments --------------------------------------------------------------
+export async function addComment(
+  userId: string,
+  chapterId: string,
+  content: string,
+  parentId?: string,
+) {
+  const text = content.trim();
+  if (!text) throw new Error('Comment is empty.');
+  const [row] = await db
+    .insert(comments)
+    .values({ userId, chapterId, content: text, parentId: parentId ?? null })
+    .returning();
+  return row;
+}
+
+// --- Stories (write flow) --------------------------------------------------
+export async function createStory(
+  authorId: string,
+  data: { title: string; description?: string; genre?: Genre; isMature?: boolean; coverColor?: string },
+) {
+  const [row] = await db
+    .insert(stories)
+    .values({
+      authorId,
+      title: data.title.trim() || 'Untitled story',
+      slug: slugify(data.title || 'untitled-story'),
+      description: data.description ?? null,
+      genre: data.genre ?? 'other',
+      isMature: data.isMature ?? false,
+      coverColor: data.coverColor ?? '#D85A30',
+      status: 'draft',
+    })
+    .returning();
+  return row;
+}
+
+// Updates a story only if it belongs to the acting user. Returns null if not.
+export async function updateStory(
+  authorId: string,
+  storyId: string,
+  patch: Partial<{ title: string; description: string; genre: Genre; isMature: boolean; coverColor: string }>,
+) {
+  const [row] = await db
+    .update(stories)
+    .set({ ...patch, updatedAt: new Date() })
+    .where(and(eq(stories.id, storyId), eq(stories.authorId, authorId)))
+    .returning();
+  return row ?? null;
+}
+
+export async function setStoryStatus(authorId: string, storyId: string, status: Status) {
+  const goingLive = status === 'ongoing' || status === 'complete';
+  const [row] = await db
+    .update(stories)
+    .set({
+      status,
+      updatedAt: new Date(),
+      ...(goingLive ? { publishedAt: sql`coalesce(${stories.publishedAt}, now())` } : {}),
+    })
+    .where(and(eq(stories.id, storyId), eq(stories.authorId, authorId)))
+    .returning();
+  return row ?? null;
+}
+
+// --- Chapters --------------------------------------------------------------
+async function ownsStory(authorId: string, storyId: string): Promise<boolean> {
+  const [row] = await db
+    .select({ id: stories.id })
+    .from(stories)
+    .where(and(eq(stories.id, storyId), eq(stories.authorId, authorId)))
+    .limit(1);
+  return !!row;
+}
+
+export async function createChapter(
+  authorId: string,
+  storyId: string,
+  data: { title: string; body: string; isFree?: boolean },
+) {
+  if (!(await ownsStory(authorId, storyId))) throw new Error('Not your story.');
+  const [{ max }] = await db
+    .select({ max: sql<number>`coalesce(max(${chapters.number}), 0)` })
+    .from(chapters)
+    .where(eq(chapters.storyId, storyId));
+  const { wordCount, pageCount, excerpt } = summarise(data.body);
+  const [chapter] = await db
+    .insert(chapters)
+    .values({
+      storyId,
+      number: Number(max) + 1,
+      title: data.title.trim() || `Chapter ${Number(max) + 1}`,
+      excerpt,
+      wordCount,
+      pageCount,
+      isFree: data.isFree ?? Number(max) < 3, // first 3 chapters free by default
+      publishedAt: new Date(),
+    })
+    .returning();
+  await db.insert(chapterContent).values({ chapterId: chapter.id, body: data.body });
+  return chapter;
+}
+
+export async function updateChapter(
+  authorId: string,
+  chapterId: string,
+  data: Partial<{ title: string; body: string; isFree: boolean }>,
+) {
+  const chapter = await db.query.chapters.findFirst({
+    where: eq(chapters.id, chapterId),
+    with: { story: true },
+  });
+  if (!chapter || chapter.story.authorId !== authorId) throw new Error('Not your chapter.');
+
+  const patch: Record<string, unknown> = { updatedAt: new Date() };
+  if (data.title !== undefined) patch.title = data.title.trim();
+  if (data.isFree !== undefined) patch.isFree = data.isFree;
+  if (data.body !== undefined) {
+    const { wordCount, pageCount, excerpt } = summarise(data.body);
+    patch.wordCount = wordCount;
+    patch.pageCount = pageCount;
+    patch.excerpt = excerpt;
+    await db
+      .insert(chapterContent)
+      .values({ chapterId, body: data.body })
+      .onConflictDoUpdate({ target: chapterContent.chapterId, set: { body: data.body } });
+  }
+  const [row] = await db.update(chapters).set(patch).where(eq(chapters.id, chapterId)).returning();
+  return row;
+}
+
+// --- Profile ---------------------------------------------------------------
+export async function updateProfile(
+  userId: string,
+  patch: Partial<{ displayName: string; username: string; bio: string; dateOfBirth: string }>,
+) {
+  const [row] = await db
+    .update(users)
+    .set({ ...patch, updatedAt: new Date() })
+    .where(eq(users.id, userId))
+    .returning();
+  return row ?? null;
+}

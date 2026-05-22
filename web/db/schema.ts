@@ -18,7 +18,9 @@ import {
   timestamp,
   primaryKey,
   index,
+  uniqueIndex,
 } from 'drizzle-orm/pg-core';
+import { relations } from 'drizzle-orm';
 
 // ============================================================
 // ENUMS
@@ -209,7 +211,7 @@ export const reads = pgTable(
     completedAt: timestamp('completed_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [index('idx_reads_reader_chapter').on(t.readerId, t.chapterId)],
+  (t) => [uniqueIndex('idx_reads_reader_chapter').on(t.readerId, t.chapterId)],
 );
 
 // ============================================================
@@ -287,3 +289,44 @@ export const payouts = pgTable('payouts', {
   stripePayoutId: text('stripe_payout_id'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
+
+// ============================================================
+// RELATIONS — let Drizzle's query API fetch nested data
+// (story.author, story.chapters, chapter.content, …)
+// ============================================================
+export const usersRelations = relations(users, ({ many }) => ({
+  stories: many(stories),
+}));
+
+export const storiesRelations = relations(stories, ({ one, many }) => ({
+  author: one(users, { fields: [stories.authorId], references: [users.id] }),
+  chapters: many(chapters),
+}));
+
+export const chaptersRelations = relations(chapters, ({ one, many }) => ({
+  story: one(stories, { fields: [chapters.storyId], references: [stories.id] }),
+  content: one(chapterContent, {
+    fields: [chapters.id],
+    references: [chapterContent.chapterId],
+  }),
+  comments: many(comments),
+}));
+
+export const chapterContentRelations = relations(chapterContent, ({ one }) => ({
+  chapter: one(chapters, { fields: [chapterContent.chapterId], references: [chapters.id] }),
+}));
+
+export const commentsRelations = relations(comments, ({ one }) => ({
+  user: one(users, { fields: [comments.userId], references: [users.id] }),
+  chapter: one(chapters, { fields: [comments.chapterId], references: [chapters.id] }),
+}));
+
+export const bookmarksRelations = relations(bookmarks, ({ one }) => ({
+  story: one(stories, { fields: [bookmarks.storyId], references: [stories.id] }),
+  reader: one(users, { fields: [bookmarks.readerId], references: [users.id] }),
+}));
+
+export const followsRelations = relations(follows, ({ one }) => ({
+  author: one(users, { fields: [follows.authorId], references: [users.id] }),
+  follower: one(users, { fields: [follows.followerId], references: [users.id] }),
+}));
