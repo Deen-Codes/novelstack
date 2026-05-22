@@ -1,36 +1,28 @@
 import Link from 'next/link';
 import { redirect, notFound } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
+import { eq } from 'drizzle-orm';
+import { db } from '@/db';
+import { chapters } from '@/db/schema';
+import { getSessionUser } from '@/lib/auth';
 import { AppHeader } from '@/components/AppHeader';
 import { saveChapter, publishChapter } from '../../../actions';
-import type { Chapter } from '@/lib/types';
 
 export default async function ChapterEditor({
   params,
 }: {
   params: Promise<{ storyId: string; chapterId: string }>;
 }) {
-  const supabase = await createClient();
   const { storyId, chapterId } = await params;
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getSessionUser();
   if (!user) redirect('/signin');
 
-  const { data: chapterData } = await supabase
-    .from('chapters')
-    .select('*, story:stories(author_id, title)')
-    .eq('id', chapterId)
-    .single();
-  const chapter = chapterData as (Chapter & { story: { author_id: string; title: string } }) | null;
-  if (!chapter || chapter.story.author_id !== user.id) notFound();
+  const chapter = await db.query.chapters.findFirst({
+    where: eq(chapters.id, chapterId),
+    with: { story: true, content: true },
+  });
+  if (!chapter || chapter.story.authorId !== user.id) notFound();
 
-  const { data: contentRow } = await supabase
-    .from('chapter_content')
-    .select('body')
-    .eq('chapter_id', chapter.id)
-    .single();
-  const body = contentRow?.body ?? '';
+  const body = chapter.content?.body ?? '';
 
   return (
     <>
@@ -72,10 +64,10 @@ export default async function ChapterEditor({
             type="submit"
             className="bg-signal text-paper px-5 py-2.5 rounded-full font-medium text-sm"
           >
-            {chapter.published_at ? 'Re-publish' : 'Publish chapter'}
+            {chapter.publishedAt ? 'Re-publish' : 'Publish chapter'}
           </button>
           <span className="text-[12px] text-ink-faint ml-3">
-            {chapter.is_free ? 'Free chapter' : 'Locked — readers watch an ad or subscribe'}
+            {chapter.isFree ? 'Free chapter' : 'Locked — readers watch an ad or subscribe'}
           </span>
         </form>
       </main>

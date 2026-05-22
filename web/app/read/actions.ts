@@ -1,68 +1,102 @@
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
+import { desc, eq, sql } from 'drizzle-orm';
+import { db } from '@/db';
+import { adUnlocks, comments, likes } from '@/db/schema';
+import { getSessionUser } from '@/lib/auth';
+import { recordRead, addComment, toggleLike as toggleLikeMutation } from '@/lib/mutations';
 
 // Records that a reader watched a rewarded ad to unlock a chapter.
 // Revenue fields default to 0 — the ad-network server callback reconciles
 // the real amount later (see monetization.md / Flagged for Deen).
 export async function recordAdUnlock(chapterId: string) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getSessionUser();
   if (!user) return { ok: false, error: 'sign_in_required' };
 
-  const { error } = await supabase
-    .from('ad_unlocks')
-    .insert({ reader_id: user.id, chapter_id: chapterId });
-  if (error) return { ok: false, error: error.message };
+  try {
+    await db.insert(adUnlocks).values({ readerId: user.id, chapterId });
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : 'unknown_error' };
+  }
 
   revalidatePath(`/read/${chapterId}`);
   return { ok: true };
 }
 
 // Marks a chapter as read so the Library can show "continue reading".
+// The genre-affinity signal that powered the home feed is now derived from
+// the `reads` table itself (see lib/queries.ts getFeed), so no separate
+// reading-events write is needed.
 export async function markProgress(chapterId: string) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getSessionUser();
   if (!user) return;
 
-  // Snapshot whether the reader is a subscriber at read time — this is what
-  // drives the writer-payout pool split, so it must be recorded per read.
-  const { data: sub } = await supabase
-    .from('subscriptions')
-    .select('id')
-    .eq('reader_id', user.id)
-    .eq('status', 'active')
-    .maybeSingle();
+  await recordRead(user.id, chapterId, 100, true);
+}
 
-  await supabase.from('reads').upsert(
-    {
-      reader_id: user.id,
-      chapter_id: chapterId,
-      progress_pct: 100,
-      completed_at: new Date().toISOString(),
-      is_subscriber: !!sub,
-    },
-    { onConflict: 'reader_id,chapter_id' }
-  );
+// --- Comments + likes (used by the client Comments component) --------------
+export type CommentView = {
+  id: string;
+  content: string;
+  createdAt: string;
+  author: { displayName: string; username: string } | null;
+};
 
-  // Interest tracking — powers the home feed's genre affinity (Q3).
-  const { data: ch } = await supabase
-    .from('chapters')
-    .select('story_id, story:stories(genre)')
-    .eq('id', chapterId)
-    .single();
-  if (ch) {
-    const row = ch as unknown as { story_id: string; story: { genre: string } | null };
-    await supabase.from('reading_events').insert({
-      user_id: user.id,
-      story_id: row.story_id,
-      genre: row.story?.genre ?? null,
-      event: 'read',
-    });
+export type CommentsState = {
+  comments: CommentView[];
+  likeCount: number;
+  liked: boolean;
+  userId: string | null;
+};
+
+export async function getCommentsState(chapterId: string): Promise<CommentsState> {
+  const user = await getSessionUser();
+
+  const rows = await db.query.comments.findMany({
+    where: eq(comments.chapterId, chapterId),
+    with: { user: true },
+    orderBy: [desc(comments.createdAt)],
+  });
+
+  const [{ count }] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(likes)
+    .where(eq(likes.chapterId, chapterId));
+
+  let liked = false;
+  if (user) {
+    const [row] = await db
+      .select({ c: likes.chapterId })
+      .from(likes)
+      .where(sql`${likes.chapterId} = ${chapterId} and ${likes.userId} = ${user.id}`)
+      .limit(1);
+    liked = !!row;
   }
+
+  return {
+    comments: rows.map((c) => ({
+      id: c.id,
+      content: c.content,
+      createdAt: c.createdAt.toISOString(),
+      author: c.user ? { displayName: c.user.displayName, username: c.user.username } : null,
+    })),
+    likeCount: Number(count) || 0,
+    liked,
+    userId: user?.id ?? null,
+  };
+}
+
+export async function postComment(chapterId: string, content: string) {
+  const user = await getSessionUser();
+  if (!user) return;
+  await addComment(user.id, chapterId, content);
+  revalidatePath(`/read/${chapterId}`);
+}
+
+export async function toggleChapterLike(chapterId: string) {
+  const user = await getSessionUser();
+  if (!user) return;
+  await toggleLikeMutation(user.id, chapterId);
+  revalidatePath(`/read/${chapterId}`);
 }

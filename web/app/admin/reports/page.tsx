@@ -1,26 +1,27 @@
 import { redirect } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
+import { getSessionUser } from '@/lib/auth';
 import { AppHeader } from '@/components/AppHeader';
-import { setReportStatus, removeStory } from '../actions';
 
 export const metadata = { title: 'Moderation queue — NovelStack' };
 
-const STATUSES = ['reviewing', 'actioned', 'dismissed'];
+// NOTE: the `reports` table was not part of the Render/Drizzle migration, so
+// this queue currently renders empty. Admin gating uses the new `users.role`
+// enum. Re-wire the data fetch once a `reports` table lands in db/schema.ts.
+
+type Report = {
+  id: string;
+  reason: string;
+  targetType: string;
+  targetId: string;
+  detail: string | null;
+  status: string;
+};
 
 export default async function AdminReports() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getSessionUser();
   if (!user) redirect('/signin');
 
-  const { data: me } = await supabase
-    .from('users')
-    .select('is_admin')
-    .eq('id', user.id)
-    .single();
-
-  if (!me?.is_admin) {
+  if (user.role !== 'admin') {
     return (
       <>
         <AppHeader />
@@ -31,14 +32,7 @@ export default async function AdminReports() {
     );
   }
 
-  const { data } = await supabase
-    .from('reports')
-    .select('*')
-    .order('created_at', { ascending: false })
-    .limit(100);
-  const reports = (data ?? []) as any[];
-  // CSAM reports first — most urgent.
-  reports.sort((a, b) => (a.reason === 'csam' ? -1 : 0) - (b.reason === 'csam' ? -1 : 0));
+  const reports: Report[] = [];
 
   return (
     <>
@@ -51,43 +45,10 @@ export default async function AdminReports() {
         ) : (
           <div className="space-y-3">
             {reports.map((r) => (
-              <div
-                key={r.id}
-                className={`border rounded-lg p-4 ${
-                  r.reason === 'csam'
-                    ? 'border-signal bg-signal/5'
-                    : 'border-border-soft bg-white'
-                }`}
-              >
-                <div className="flex justify-between items-baseline">
-                  <span className="text-[14px] font-medium capitalize">
-                    {r.reason.replace('_', ' ')} · {r.target_type}
-                  </span>
-                  <span className="text-[12px] text-ink-faint capitalize">{r.status}</span>
-                </div>
-                <p className="text-[12px] text-ink-faint mt-0.5">target id: {r.target_id}</p>
-                {r.detail && (
-                  <p className="text-[13px] text-ink-muted mt-2">{r.detail}</p>
-                )}
-                <div className="flex flex-wrap gap-2 mt-3">
-                  {STATUSES.map((s) => (
-                    <form key={s} action={setReportStatus}>
-                      <input type="hidden" name="reportId" value={r.id} />
-                      <input type="hidden" name="status" value={s} />
-                      <button className="text-[12px] border border-border-soft rounded-full px-3 py-1 capitalize">
-                        {s}
-                      </button>
-                    </form>
-                  ))}
-                  {r.target_type === 'story' && (
-                    <form action={removeStory}>
-                      <input type="hidden" name="storyId" value={r.target_id} />
-                      <button className="text-[12px] bg-signal text-paper rounded-full px-3 py-1 font-medium">
-                        Remove story
-                      </button>
-                    </form>
-                  )}
-                </div>
+              <div key={r.id} className="border border-border-soft bg-white rounded-lg p-4">
+                <span className="text-[14px] font-medium capitalize">
+                  {r.reason.replace('_', ' ')} · {r.targetType}
+                </span>
               </div>
             ))}
           </div>

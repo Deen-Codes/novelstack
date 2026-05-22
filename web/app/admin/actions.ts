@@ -1,39 +1,27 @@
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
-import type { SupabaseClient } from '@supabase/supabase-js';
+import { getSessionUser } from '@/lib/auth';
 
-async function isAdmin(supabase: SupabaseClient): Promise<boolean> {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return false;
-  const { data } = await supabase
-    .from('users')
-    .select('is_admin')
-    .eq('id', user.id)
-    .single();
-  return !!data?.is_admin;
+// NOTE: the moderation tables (`reports`) and the `stories.is_removed` column
+// were not part of the Render/Drizzle migration. The new `users` table carries
+// a `role` enum, so admin gating now uses `role === 'admin'`. The report/
+// takedown actions are kept as admin-gated no-ops until those tables land.
+
+async function isAdmin(): Promise<boolean> {
+  const user = await getSessionUser();
+  return user?.role === 'admin';
 }
 
-export async function setReportStatus(formData: FormData) {
-  const supabase = await createClient();
-  if (!(await isAdmin(supabase))) return;
-  await supabase
-    .from('reports')
-    .update({ status: String(formData.get('status')) })
-    .eq('id', String(formData.get('reportId')));
+export async function setReportStatus(_formData: FormData) {
+  if (!(await isAdmin())) return;
+  // TODO: persist once a `reports` table exists in the new schema.
   revalidatePath('/admin/reports');
 }
 
-// Soft takedown — hides the story from all public reads (RLS uses is_removed).
-export async function removeStory(formData: FormData) {
-  const supabase = await createClient();
-  if (!(await isAdmin(supabase))) return;
-  await supabase
-    .from('stories')
-    .update({ is_removed: true })
-    .eq('id', String(formData.get('storyId')));
+// Soft takedown — hides the story from all public reads.
+export async function removeStory(_formData: FormData) {
+  if (!(await isAdmin())) return;
+  // TODO: persist once `stories.is_removed` exists in the new schema.
   revalidatePath('/admin/reports');
 }

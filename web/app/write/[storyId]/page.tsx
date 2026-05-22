@@ -1,36 +1,30 @@
 import Link from 'next/link';
 import { redirect, notFound } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
+import { asc, eq } from 'drizzle-orm';
+import { db } from '@/db';
+import { stories, chapters as chaptersTable } from '@/db/schema';
+import { getSessionUser } from '@/lib/auth';
 import { AppHeader } from '@/components/AppHeader';
 import { createChapter, toggleChapterFree } from '../actions';
-import type { Story, Chapter } from '@/lib/types';
 
 export default async function ManageStory({
   params,
 }: {
   params: Promise<{ storyId: string }>;
 }) {
-  const supabase = await createClient();
   const { storyId } = await params;
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getSessionUser();
   if (!user) redirect('/signin');
 
-  const { data: storyData } = await supabase
-    .from('stories')
-    .select('*')
-    .eq('id', storyId)
-    .single();
-  const story = storyData as Story | null;
-  if (!story || story.author_id !== user.id) notFound();
+  const story = await db.query.stories.findFirst({
+    where: eq(stories.id, storyId),
+  });
+  if (!story || story.authorId !== user.id) notFound();
 
-  const { data: chapterData } = await supabase
-    .from('chapters')
-    .select('*')
-    .eq('story_id', story.id)
-    .order('number');
-  const chapters = (chapterData ?? []) as Chapter[];
+  const chapters = await db.query.chapters.findMany({
+    where: eq(chaptersTable.storyId, story.id),
+    orderBy: [asc(chaptersTable.number)],
+  });
 
   return (
     <>
@@ -64,16 +58,16 @@ export default async function ManageStory({
                   className="text-[15px] hover:text-signal"
                 >
                   {ch.number}. {ch.title}
-                  {!ch.published_at && (
+                  {!ch.publishedAt && (
                     <span className="text-[12px] text-ink-faint ml-2">Draft</span>
                   )}
                 </Link>
                 <form action={toggleChapterFree}>
                   <input type="hidden" name="chapterId" value={ch.id} />
                   <input type="hidden" name="storyId" value={story.id} />
-                  <input type="hidden" name="makeFree" value={(!ch.is_free).toString()} />
+                  <input type="hidden" name="makeFree" value={(!ch.isFree).toString()} />
                   <button className="text-[12px] text-ink-muted border border-border-soft rounded-full px-3 py-1">
-                    {ch.is_free ? 'Free' : 'Locked'}
+                    {ch.isFree ? 'Free' : 'Locked'}
                   </button>
                 </form>
               </div>

@@ -1,26 +1,15 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { createClient } from '@/lib/supabase/server';
+import { and, asc, eq, isNotNull } from 'drizzle-orm';
+import { db } from '@/db';
+import { chapters, subscriptions } from '@/db/schema';
+import { getSessionUser } from '@/lib/auth';
+import { getChapterForReader } from '@/lib/queries';
 import { Reader } from '@/components/Reader';
 import { Comments } from '@/components/Comments';
 import { ReportButton } from '@/components/ReportButton';
-import type { Chapter } from '@/lib/types';
 
 const BASE = 'https://novelstack.app';
-
-type ChapterWithStory = Chapter & {
-  story: { id: string; title: string; slug: string; author: { id: string; display_name: string } | null } | null;
-};
-
-async function getChapter(id: string): Promise<ChapterWithStory | null> {
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from('chapters')
-    .select('*, story:stories(id, title, slug, author:users!stories_author_id_fkey(id, display_name))')
-    .eq('id', id)
-    .single();
-  return (data as ChapterWithStory) ?? null;
-}
 
 // SEO: the chapter row is public, so this metadata is always crawlable —
 // even for locked chapters. The excerpt becomes the search-result preview.
@@ -30,9 +19,10 @@ export async function generateMetadata({
   params: Promise<{ chapterId: string }>;
 }): Promise<Metadata> {
   const { chapterId } = await params;
-  const chapter = await getChapter(chapterId);
+  const chapter = await getChapterForReader(chapterId);
   if (!chapter) return { title: 'Chapter — NovelStack' };
-  const desc = (chapter.excerpt || '').slice(0, 155) || `Read chapter ${chapter.number} on NovelStack.`;
+  const desc =
+    (chapter.excerpt || '').slice(0, 155) || `Read chapter ${chapter.number} on NovelStack.`;
   return {
     title: `${chapter.story?.title ?? 'Story'} — Ch. ${chapter.number}: ${chapter.title}`,
     description: desc,
@@ -46,66 +36,55 @@ export default async function ReadChapter({
 }: {
   params: Promise<{ chapterId: string }>;
 }) {
-  const supabase = await createClient();
   const { chapterId } = await params;
-  const chapter = await getChapter(chapterId);
+  const user = await getSessionUser();
+  const chapter = await getChapterForReader(chapterId, user?.id);
 
   if (!chapter) {
     return (
       <main className="max-w-xl mx-auto px-6 py-32 text-center">
-        <p className="text-ink-muted">Chapter not found. Connect Supabase and seed the database.</p>
+        <p className="text-ink-muted">Chapter not found.</p>
         <Link href="/" className="text-signal text-sm mt-4 inline-block">Back home</Link>
       </main>
     );
   }
 
-  // Full body — RLS-gated table. null when the viewer is not entitled.
-  const { data: contentRow } = await supabase
-    .from('chapter_content')
-    .select('body')
-    .eq('chapter_id', chapter.id)
-    .single();
-  const body = contentRow?.body ?? null;
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // getChapterForReader returns the body only when the viewer may read it.
+  const body = chapter.locked ? null : chapter.body;
 
   // Free chapters carry a banner ad — unless the viewer is on NovelStack+.
   let isSubscriber = false;
   if (user) {
-    const { data: sub } = await supabase
-      .from('subscriptions')
-      .select('id')
-      .eq('reader_id', user.id)
-      .eq('status', 'active')
-      .maybeSingle();
+    const [sub] = await db
+      .select({ id: subscriptions.id })
+      .from(subscriptions)
+      .where(and(eq(subscriptions.readerId, user.id), eq(subscriptions.status, 'active')))
+      .limit(1);
     isSubscriber = !!sub;
   }
-  const showAd = chapter.is_free && !isSubscriber;
+  const showAd = chapter.isFree && !isSubscriber;
 
   // Prev / next within the story (published chapters only).
   let prevId: string | null = null;
   let nextId: string | null = null;
-  if (chapter.story) {
-    const { data: sibs } = await supabase
-      .from('chapters')
-      .select('id, number')
-      .eq('story_id', chapter.story.id)
-      .not('published_at', 'is', null)
-      .order('number');
-    const list = (sibs ?? []) as { id: string; number: number }[];
-    const idx = list.findIndex((c) => c.id === chapter.id);
-    if (idx > 0) prevId = list[idx - 1].id;
-    if (idx >= 0 && idx < list.length - 1) nextId = list[idx + 1].id;
-  }
+  const sibs = await db
+    .select({ id: chapters.id, number: chapters.number })
+    .from(chapters)
+    .where(and(eq(chapters.storyId, chapter.storyId), isNotNull(chapters.publishedAt)))
+    .orderBy(asc(chapters.number));
+  const idx = sibs.findIndex((c) => c.id === chapter.id);
+  if (idx > 0) prevId = sibs[idx - 1].id;
+  if (idx >= 0 && idx < sibs.length - 1) nextId = sibs[idx + 1].id;
 
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'Article',
     headline: `${chapter.story?.title ?? ''}: ${chapter.title}`,
-    author: { '@type': 'Person', name: chapter.story?.author?.display_name ?? 'NovelStack writer' },
-    isAccessibleForFree: chapter.is_free,
+    author: {
+      '@type': 'Person',
+      name: chapter.story?.author?.displayName ?? 'NovelStack writer',
+    },
+    isAccessibleForFree: chapter.isFree,
     url: `${BASE}/read/${chapter.id}`,
   };
 

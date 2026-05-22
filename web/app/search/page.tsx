@@ -1,6 +1,9 @@
 import Link from 'next/link';
-import { createClient } from '@/lib/supabase/server';
-import { viewerIsAdult } from '@/lib/age';
+import { ilike, or } from 'drizzle-orm';
+import { db } from '@/db';
+import { users } from '@/db/schema';
+import { getSessionUser } from '@/lib/auth';
+import { searchStories, isAdult } from '@/lib/queries';
 import { AppHeader } from '@/components/AppHeader';
 import { StoryCard } from '@/components/StoryCard';
 import type { Story, User } from '@/lib/types';
@@ -14,34 +17,25 @@ export default async function Search({
 }) {
   const { q: qParam } = await searchParams;
   const raw = (qParam ?? '').trim();
-  // Strip characters that would break a PostgREST .or() filter string.
-  const q = raw.replace(/[(),{}]/g, ' ').trim();
+  const q = raw;
 
   let stories: Story[] = [];
   let writers: User[] = [];
 
   if (q) {
-    const supabase = await createClient();
-    const adult = await viewerIsAdult();
+    const user = await getSessionUser();
+    const adult = isAdult(user?.dateOfBirth);
 
-    // Stories — title, description, genre, and tags.
-    const storyQuery = supabase
-      .from('stories')
-      .select('*, author:users!stories_author_id_fkey(id, username, display_name, is_verified)')
-      .neq('status', 'draft')
-      .or(`title.ilike.%${q}%,description.ilike.%${q}%,genre.ilike.%${q}%,tags.cs.{${q}}`)
-      .limit(24);
-    if (!adult) storyQuery.eq('is_mature', false);
-    const { data: storyData } = await storyQuery;
-    stories = (storyData ?? []) as Story[];
+    // Stories — title, description, genre.
+    stories = await searchStories(q, adult);
 
     // Writers — by display name or username.
-    const { data: writerData } = await supabase
-      .from('users')
-      .select('id, username, display_name, bio, avatar_url, is_verified')
-      .or(`display_name.ilike.%${q}%,username.ilike.%${q}%`)
+    const t = `%${q}%`;
+    writers = await db
+      .select()
+      .from(users)
+      .where(or(ilike(users.displayName, t), ilike(users.username, t)))
       .limit(8);
-    writers = (writerData ?? []) as User[];
   }
 
   return (
@@ -70,12 +64,12 @@ export default async function Search({
                   className="flex items-center gap-3 border border-border-soft rounded-lg p-3 bg-white"
                 >
                   <div className="w-9 h-9 rounded-full bg-signal/10 text-signal flex items-center justify-center font-medium text-sm">
-                    {w.display_name.slice(0, 1).toUpperCase()}
+                    {w.displayName.slice(0, 1).toUpperCase()}
                   </div>
                   <div className="min-w-0">
                     <div className="text-[14px] font-medium truncate">
-                      {w.display_name}
-                      {w.is_verified && <span className="text-signal"> ✓</span>}
+                      {w.displayName}
+                      {w.isVerified && <span className="text-signal"> ✓</span>}
                     </div>
                     <div className="text-[12px] text-ink-faint truncate">@{w.username}</div>
                   </div>

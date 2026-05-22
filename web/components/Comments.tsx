@@ -1,73 +1,41 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { createClient } from '@/lib/supabase/client';
+import {
+  getCommentsState,
+  postComment,
+  toggleChapterLike,
+  type CommentView,
+} from '@/app/read/actions';
 import { ReportButton } from './ReportButton';
 
-type CommentRow = {
-  id: string;
-  content: string;
-  created_at: string;
-  user: { display_name: string; username: string } | null;
-};
-
 export function Comments({ chapterId }: { chapterId: string }) {
-  const [comments, setComments] = useState<CommentRow[]>([]);
+  const [comments, setComments] = useState<CommentView[]>([]);
   const [text, setText] = useState('');
   const [userId, setUserId] = useState<string | null>(null);
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
 
   const load = useCallback(async () => {
-    const supabase = createClient();
-    const { data: cs } = await supabase
-      .from('comments')
-      .select('id, content, created_at, user:users(display_name, username)')
-      .eq('chapter_id', chapterId)
-      .order('created_at', { ascending: false });
-    setComments((cs as unknown as CommentRow[]) ?? []);
-
-    const { count } = await supabase
-      .from('likes')
-      .select('*', { count: 'exact', head: true })
-      .eq('chapter_id', chapterId);
-    setLikeCount(count ?? 0);
-
-    const { data: { user } } = await supabase.auth.getUser();
-    setUserId(user?.id ?? null);
-    if (user) {
-      const { data: myLike } = await supabase
-        .from('likes')
-        .select('user_id')
-        .eq('chapter_id', chapterId)
-        .eq('user_id', user.id)
-        .maybeSingle();
-      setLiked(!!myLike);
-    }
+    const state = await getCommentsState(chapterId);
+    setComments(state.comments);
+    setLikeCount(state.likeCount);
+    setLiked(state.liked);
+    setUserId(state.userId);
   }, [chapterId]);
 
   useEffect(() => { load(); }, [load]);
 
   async function post() {
     if (!text.trim() || !userId) return;
-    const supabase = createClient();
-    await supabase.from('comments').insert({
-      chapter_id: chapterId,
-      user_id: userId,
-      content: text.trim(),
-    });
+    await postComment(chapterId, text.trim());
     setText('');
     load();
   }
 
   async function toggleLike() {
     if (!userId) return;
-    const supabase = createClient();
-    if (liked) {
-      await supabase.from('likes').delete().eq('chapter_id', chapterId).eq('user_id', userId);
-    } else {
-      await supabase.from('likes').insert({ chapter_id: chapterId, user_id: userId });
-    }
+    await toggleChapterLike(chapterId);
     load();
   }
 
@@ -107,7 +75,7 @@ export function Comments({ chapterId }: { chapterId: string }) {
       <div className="space-y-4">
         {comments.map((c) => (
           <div key={c.id} className="border-b border-border-soft pb-3">
-            <p className="text-[13px] font-medium">{c.user?.display_name ?? 'Reader'}</p>
+            <p className="text-[13px] font-medium">{c.author?.displayName ?? 'Reader'}</p>
             <p className="text-[14px] text-ink-muted mt-0.5">{c.content}</p>
             <div className="mt-1">
               <ReportButton targetType="comment" targetId={c.id} signedIn={!!userId} />

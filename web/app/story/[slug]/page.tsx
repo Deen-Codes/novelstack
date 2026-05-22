@@ -1,25 +1,12 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { supabase } from '@/lib/supabase';
-import { createClient } from '@/lib/supabase/server';
-import { viewerIsAdult } from '@/lib/age';
+import { getSessionUser } from '@/lib/auth';
+import { getStoryBySlug, getSavedStories, isAdult } from '@/lib/queries';
 import { BookmarkButton } from '@/components/BookmarkButton';
 import { ReportButton } from '@/components/ReportButton';
 import { TipButton } from '@/components/TipButton';
-import type { Story, Chapter, User } from '@/lib/types';
 
 const BASE = 'https://novelstack.app';
-
-type StoryWithAuthor = Story & { author: User | null };
-
-async function getStory(slug: string): Promise<StoryWithAuthor | null> {
-  const { data } = await supabase
-    .from('stories')
-    .select('*, author:users!stories_author_id_fkey(*)')
-    .eq('slug', slug)
-    .single();
-  return (data as StoryWithAuthor) ?? null;
-}
 
 // SEO: server-rendered metadata so Google can index and deep-link to this book.
 export async function generateMetadata({
@@ -28,12 +15,12 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const story = await getStory(slug);
+  const story = await getStoryBySlug(slug);
   if (!story) return { title: 'Story not found — NovelStack' };
 
   const desc = story.description ?? `Read ${story.title} free on NovelStack.`;
   return {
-    title: `${story.title} by ${story.author?.display_name ?? 'a NovelStack writer'}`,
+    title: `${story.title} by ${story.author?.displayName ?? 'a NovelStack writer'}`,
     description: desc,
     alternates: { canonical: `${BASE}/story/${story.slug}` },
     openGraph: {
@@ -41,7 +28,7 @@ export async function generateMetadata({
       description: desc,
       type: 'book',
       url: `${BASE}/story/${story.slug}`,
-      images: story.cover_url ? [{ url: story.cover_url }] : [],
+      images: story.coverUrl ? [{ url: story.coverUrl }] : [],
     },
     twitter: { card: 'summary_large_image', title: story.title, description: desc },
   };
@@ -49,46 +36,31 @@ export async function generateMetadata({
 
 export default async function StoryPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const story = await getStory(slug);
+  const story = await getStoryBySlug(slug);
 
   if (!story) {
     return (
       <main className="max-w-2xl mx-auto px-6 py-32 text-center">
-        <p className="text-ink-muted">
-          Story not found. Connect Supabase and seed the database to see real stories here.
-        </p>
+        <p className="text-ink-muted">Story not found.</p>
         <Link href="/" className="text-signal text-sm mt-4 inline-block">Back home</Link>
       </main>
     );
   }
 
-  const { data: chapterData } = await supabase
-    .from('chapters')
-    .select('*')
-    .eq('story_id', story.id)
-    .not('published_at', 'is', null)
-    .order('number');
-  const chapters = (chapterData ?? []) as Chapter[];
+  // Only published chapters are shown.
+  const chapters = story.chapters.filter((ch) => ch.publishedAt !== null);
 
   // Current user + whether they've bookmarked this story.
-  const ssr = await createClient();
-  const {
-    data: { user },
-  } = await ssr.auth.getUser();
+  const user = await getSessionUser();
   let bookmarked = false;
   if (user) {
-    const { data: bm } = await ssr
-      .from('bookmarks')
-      .select('story_id')
-      .eq('reader_id', user.id)
-      .eq('story_id', story.id)
-      .maybeSingle();
-    bookmarked = !!bm;
+    const saved = await getSavedStories(user.id);
+    bookmarked = saved.some((s) => s.id === story.id);
   }
 
   // Q1 age-gate: mature stories are blocked for under-18s and logged-out visitors.
-  const adult = await viewerIsAdult();
-  if (story.is_mature && !adult) {
+  const adult = isAdult(user?.dateOfBirth);
+  if (story.isMature && !adult) {
     return (
       <main className="max-w-xl mx-auto px-6 py-32 text-center">
         <p className="text-ink-muted">
@@ -107,10 +79,10 @@ export default async function StoryPage({ params }: { params: Promise<{ slug: st
     '@context': 'https://schema.org',
     '@type': 'Book',
     name: story.title,
-    author: { '@type': 'Person', name: story.author?.display_name ?? 'NovelStack writer' },
+    author: { '@type': 'Person', name: story.author?.displayName ?? 'NovelStack writer' },
     description: story.description ?? undefined,
     url: `${BASE}/story/${story.slug}`,
-    image: story.cover_url ?? undefined,
+    image: story.coverUrl ?? undefined,
     genre: story.genre,
   };
 
@@ -128,7 +100,7 @@ export default async function StoryPage({ params }: { params: Promise<{ slug: st
       <div className="flex flex-col sm:flex-row gap-6 mt-10">
         <div
           className="w-32 sm:w-36 shrink-0 aspect-[3/4] rounded-xl"
-          style={{ background: story.cover_color }}
+          style={{ background: story.coverColor ?? '#D85A30' }}
         />
         <div>
           <span className="text-[12px] text-signal font-medium capitalize">{story.genre}</span>
@@ -137,7 +109,7 @@ export default async function StoryPage({ params }: { params: Promise<{ slug: st
             by{' '}
             {story.author?.username ? (
               <Link href={`/u/${story.author.username}`} className="text-signal">
-                {story.author.display_name}
+                {story.author.displayName}
               </Link>
             ) : (
               'a NovelStack writer'
@@ -151,7 +123,7 @@ export default async function StoryPage({ params }: { params: Promise<{ slug: st
               initial={bookmarked}
               signedIn={!!user}
             />
-            <TipButton recipientId={story.author_id} storyId={story.id} signedIn={!!user} />
+            <TipButton recipientId={story.authorId} storyId={story.id} signedIn={!!user} />
             <ReportButton targetType="story" targetId={story.id} signedIn={!!user} />
           </div>
         </div>
@@ -169,7 +141,7 @@ export default async function StoryPage({ params }: { params: Promise<{ slug: st
               {ch.number}. {ch.title}
             </span>
             <span className="text-[12px] text-ink-faint">
-              {ch.is_free ? 'Free' : 'Ad or NovelStack+'}
+              {ch.isFree ? 'Free' : 'Ad or NovelStack+'}
             </span>
           </Link>
         ))}

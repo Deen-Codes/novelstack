@@ -1,21 +1,16 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
+import { getSessionUser } from '@/lib/auth';
 import { AppHeader } from '@/components/AppHeader';
 import { updateProfile } from './actions';
-import type { User } from '@/lib/types';
 
 export const metadata = { title: 'Settings — NovelStack' };
 
 export default async function Settings() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getSessionUser();
   if (!user) redirect('/signin');
 
-  const { data } = await supabase.from('users').select('*').eq('id', user.id).single();
-  const profile = data as User | null;
+  const profile = user;
 
   return (
     <>
@@ -27,8 +22,8 @@ export default async function Settings() {
           <div>
             <label className="text-[13px] text-ink-muted block mb-1">Display name</label>
             <input
-              name="display_name"
-              defaultValue={profile?.display_name ?? ''}
+              name="displayName"
+              defaultValue={profile?.displayName ?? ''}
               className="w-full border border-border-soft rounded-lg px-3.5 py-2.5 text-[15px] bg-white"
             />
           </div>
@@ -52,9 +47,9 @@ export default async function Settings() {
           <div>
             <label className="text-[13px] text-ink-muted block mb-1">Date of birth</label>
             <input
-              name="date_of_birth"
+              name="dateOfBirth"
               type="date"
-              defaultValue={profile?.date_of_birth ?? ''}
+              defaultValue={profile?.dateOfBirth ?? ''}
               className="w-full border border-border-soft rounded-lg px-3.5 py-2.5 text-[15px] bg-white"
             />
             <p className="text-[12px] text-ink-faint mt-1">

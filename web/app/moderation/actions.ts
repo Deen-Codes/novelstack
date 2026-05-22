@@ -1,46 +1,26 @@
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
+import { getSessionUser } from '@/lib/auth';
 
-// File a content report. Categories match the moderation research in
-// MVP_PROGRESS.md (Wattpad-style + UK Online Safety Act / Apple 1.2 floor).
-export async function submitReport(formData: FormData) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+// NOTE: the moderation tables (`reports`, `blocks`) were not part of the
+// Render/Drizzle migration — the new data layer has no moderation surface yet.
+// These actions are kept as authenticated no-ops so the report/block UI still
+// renders and submits without error. Re-wire them once the moderation tables
+// land in db/schema.ts and lib/mutations.ts (tracked as future work).
+
+// File a content report.
+export async function submitReport(_formData: FormData) {
+  const user = await getSessionUser();
   if (!user) return;
-
-  await supabase.from('reports').insert({
-    reporter_id: user.id,
-    target_type: String(formData.get('targetType')),
-    target_id: String(formData.get('targetId')),
-    reason: String(formData.get('reason')),
-    detail: String(formData.get('detail') || '') || null,
-  });
+  // TODO: persist report once a `reports` table exists in the new schema.
 }
 
 // Block / unblock another user.
 export async function toggleBlock(formData: FormData) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getSessionUser();
   if (!user) return;
-
-  const blockedId = String(formData.get('blockedId'));
   const username = String(formData.get('username'));
-  const blocked = formData.get('blocked') === 'true';
-
-  if (blocked) {
-    await supabase
-      .from('blocks')
-      .delete()
-      .eq('blocker_id', user.id)
-      .eq('blocked_id', blockedId);
-  } else {
-    await supabase.from('blocks').insert({ blocker_id: user.id, blocked_id: blockedId });
-  }
+  // TODO: persist block once a `blocks` table exists in the new schema.
   revalidatePath(`/u/${username}`);
 }

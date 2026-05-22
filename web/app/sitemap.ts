@@ -1,18 +1,20 @@
 import type { MetadataRoute } from 'next';
-import { supabase } from '@/lib/supabase';
+import { ne } from 'drizzle-orm';
+import { db } from '@/db';
+import { stories } from '@/db/schema';
 
 const BASE = 'https://novelstack.app';
 
 // Lists every public story so Google can crawl and deep-link to books.
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const { data } = await supabase
-    .from('stories')
-    .select('slug, updated_at')
-    .neq('status', 'draft');
+  const rows = await db
+    .select({ slug: stories.slug, updatedAt: stories.updatedAt })
+    .from(stories)
+    .where(ne(stories.status, 'draft'));
 
-  const storyUrls: MetadataRoute.Sitemap = (data ?? []).map((s: { slug: string; updated_at: string }) => ({
+  const storyUrls: MetadataRoute.Sitemap = rows.map((s) => ({
     url: `${BASE}/story/${s.slug}`,
-    lastModified: s.updated_at,
+    lastModified: s.updatedAt,
     changeFrequency: 'daily',
     priority: 0.8,
   }));

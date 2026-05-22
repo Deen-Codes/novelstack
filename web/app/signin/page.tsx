@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { createClient } from '@/lib/supabase/client';
 
 // Magic-link sign in — no passwords. Sign up and sign in are one flow.
 // We only ask for an email; the username is auto-generated and date of
@@ -17,14 +16,19 @@ export default function SignIn() {
     if (!email) return;
     setLoading(true);
     setError('');
-    const supabase = createClient();
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
-    });
-    setLoading(false);
-    if (error) setError(error.message);
-    else setSent(true);
+    try {
+      const res = await fetch('/api/auth/request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      setLoading(false);
+      if (!res.ok) setError('Something went wrong. Please try again.');
+      else setSent(true);
+    } catch {
+      setLoading(false);
+      setError('Something went wrong. Please try again.');
+    }
   }
 
   return (

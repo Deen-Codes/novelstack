@@ -1,12 +1,9 @@
 import Link from 'next/link';
-import { createClient } from '@/lib/supabase/server';
+import { getSessionUser } from '@/lib/auth';
 
 // Shared top nav for app pages. Shows different links for signed-in users.
 export async function AppHeader() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getSessionUser();
 
   return (
     <nav className="border-b border-ink/10 bg-paper/90 backdrop-blur sticky top-0 z-50">

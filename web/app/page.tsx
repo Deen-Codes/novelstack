@@ -2,8 +2,15 @@ import Link from 'next/link';
 import { AppHeader } from '@/components/AppHeader';
 import { CollapsibleSidebar } from '@/components/CollapsibleSidebar';
 import { SidebarNav } from '@/components/SidebarNav';
-import { getFeed, type FeedStory } from '@/lib/feed';
-import { createClient } from '@/lib/supabase/server';
+import { getSessionUser } from '@/lib/auth';
+import {
+  getFeed,
+  getSavedStories,
+  getMyStories,
+  getFollowing,
+  isAdult,
+  type FeedStory,
+} from '@/lib/queries';
 import { GENRES, genreLabel } from '@/lib/genres';
 
 export const metadata = { title: 'NovelStack — Stories worth following' };
@@ -22,11 +29,9 @@ export default async function Home({
   const genre = sp.genre;
   const query = sp.q?.trim() || undefined;
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getSessionUser();
   const signedIn = !!user;
+  const adult = isAdult(user?.dateOfBirth);
 
   let view: View = 'feed';
   if (signedIn && (sp.view === 'saved' || sp.view === 'writing' || sp.view === 'following')) {
@@ -34,41 +39,18 @@ export default async function Home({
   }
 
   let feed: FeedStory[] = [];
-  let saved: { story: { id: string; title: string; slug: string; cover_color: string } | null }[] = [];
-  let myStories: {
-    id: string;
-    title: string;
-    slug: string;
-    status: string;
-    cover_color: string;
-    total_reads: number;
-  }[] = [];
-  let following: {
-    author: { id: string; username: string; display_name: string; bio: string | null } | null;
-  }[] = [];
+  let saved: Awaited<ReturnType<typeof getSavedStories>> = [];
+  let myStories: Awaited<ReturnType<typeof getMyStories>> = [];
+  let following: Awaited<ReturnType<typeof getFollowing>> = [];
 
   if (view === 'feed') {
-    feed = await getFeed(genre, query);
+    feed = await getFeed({ genre, query, viewerId: user?.id, viewerIsAdult: adult });
   } else if (view === 'saved') {
-    const { data } = await supabase
-      .from('bookmarks')
-      .select('story:stories(id, title, slug, cover_color)')
-      .eq('reader_id', user!.id)
-      .order('created_at', { ascending: false });
-    saved = (data ?? []) as unknown as typeof saved;
+    saved = await getSavedStories(user!.id);
   } else if (view === 'writing') {
-    const { data } = await supabase
-      .from('stories')
-      .select('id, title, slug, status, cover_color, total_reads')
-      .eq('author_id', user!.id)
-      .order('updated_at', { ascending: false });
-    myStories = (data ?? []) as unknown as typeof myStories;
+    myStories = await getMyStories(user!.id);
   } else if (view === 'following') {
-    const { data } = await supabase
-      .from('follows')
-      .select('author:users!author_id(id, username, display_name, bio)')
-      .eq('follower_id', user!.id);
-    following = (data ?? []) as unknown as typeof following;
+    following = await getFollowing(user!.id);
   }
 
   const heading =
@@ -126,7 +108,7 @@ export default async function Home({
             {view === 'feed' && <FeedView feed={feed} />}
             {view === 'saved' && <SavedView saved={saved} />}
             {view === 'writing' && <WritingView stories={myStories} />}
-            {view === 'following' && <FollowingView following={following} />}
+            {view === 'following' && <FollowingView authors={following} />}
           </div>
         </main>
       </div>
@@ -151,7 +133,7 @@ function FeedView({ feed }: { feed: FeedStory[] }) {
         <Link key={s.id} href={`/story/${s.slug}`} className="flex gap-4 group">
           <div
             className="w-20 shrink-0 aspect-[3/4] rounded-lg transition-transform group-hover:-translate-y-1"
-            style={{ background: s.cover_color }}
+            style={{ background: s.coverColor ?? '#D85A30' }}
           />
           <div className="min-w-0">
             <p className="text-[11px] text-signal font-medium">{s._reason}</p>
@@ -159,8 +141,8 @@ function FeedView({ feed }: { feed: FeedStory[] }) {
               {s.title}
             </h2>
             <p className="text-[13px] text-ink-muted">
-              {s.author?.display_name ?? 'A writer'} ·{' '}
-              {(s.total_reads ?? 0).toLocaleString()} reads
+              {s.author?.displayName ?? 'A writer'} ·{' '}
+              {(s.totalReads ?? 0).toLocaleString()} reads
             </p>
             {s.description && (
               <p className="text-[13px] text-ink-faint mt-1 line-clamp-2">{s.description}</p>
@@ -172,7 +154,7 @@ function FeedView({ feed }: { feed: FeedStory[] }) {
   );
 }
 
-function SavedView({ saved }: { saved: { story: { id: string; title: string; slug: string; cover_color: string } | null }[] }) {
+function SavedView({ saved }: { saved: Awaited<ReturnType<typeof getSavedStories>> }) {
   if (saved.length === 0) {
     return (
       <p className="text-ink-muted text-[15px]">
@@ -182,17 +164,15 @@ function SavedView({ saved }: { saved: { story: { id: string; title: string; slu
   }
   return (
     <div className="grid grid-cols-3 sm:grid-cols-4 gap-4">
-      {saved.map((b) =>
-        b.story ? (
-          <Link key={b.story.id} href={`/story/${b.story.slug}`} className="group">
-            <div
-              className="aspect-[3/4] rounded-[10px] transition-transform group-hover:-translate-y-1"
-              style={{ background: b.story.cover_color }}
-            />
-            <div className="text-[13px] font-medium mt-2 leading-tight">{b.story.title}</div>
-          </Link>
-        ) : null,
-      )}
+      {saved.map((s) => (
+        <Link key={s.id} href={`/story/${s.slug}`} className="group">
+          <div
+            className="aspect-[3/4] rounded-[10px] transition-transform group-hover:-translate-y-1"
+            style={{ background: s.coverColor ?? '#D85A30' }}
+          />
+          <div className="text-[13px] font-medium mt-2 leading-tight">{s.title}</div>
+        </Link>
+      ))}
     </div>
   );
 }
@@ -200,7 +180,7 @@ function SavedView({ saved }: { saved: { story: { id: string; title: string; slu
 function WritingView({
   stories,
 }: {
-  stories: { id: string; title: string; slug: string; status: string; cover_color: string; total_reads: number }[];
+  stories: Awaited<ReturnType<typeof getMyStories>>;
 }) {
   if (stories.length === 0) {
     return (
@@ -220,11 +200,11 @@ function WritingView({
           href={`/write/${s.id}`}
           className="flex items-center gap-3 border border-border-soft rounded-xl p-3 bg-white group"
         >
-          <div className="w-11 h-14 rounded shrink-0" style={{ background: s.cover_color }} />
+          <div className="w-11 h-14 rounded shrink-0" style={{ background: s.coverColor ?? '#D85A30' }} />
           <div className="min-w-0 flex-1">
             <div className="font-medium text-[15px] group-hover:text-signal">{s.title}</div>
             <div className="text-[12px] text-ink-faint">
-              {(s.total_reads ?? 0).toLocaleString()} reads
+              {(s.totalReads ?? 0).toLocaleString()} reads
             </div>
           </div>
           <span className="text-[11px] capitalize px-2 py-1 rounded-full bg-paper-soft text-ink-muted">
@@ -237,11 +217,11 @@ function WritingView({
 }
 
 function FollowingView({
-  following,
+  authors,
 }: {
-  following: { author: { id: string; username: string; display_name: string; bio: string | null } | null }[];
+  authors: Awaited<ReturnType<typeof getFollowing>>;
 }) {
-  if (following.length === 0) {
+  if (authors.length === 0) {
     return (
       <p className="text-ink-muted text-[15px]">
         You’re not following anyone yet. Follow writers from their profile to keep up with new
@@ -251,27 +231,25 @@ function FollowingView({
   }
   return (
     <div className="space-y-3">
-      {following.map((f) =>
-        f.author ? (
-          <Link
-            key={f.author.id}
-            href={`/u/${f.author.username}`}
-            className="flex items-center gap-3 border border-border-soft rounded-xl p-3 bg-white group"
-          >
-            <div className="w-10 h-10 rounded-full bg-signal/10 text-signal flex items-center justify-center font-medium">
-              {(f.author.display_name ?? '?').slice(0, 1).toUpperCase()}
+      {authors.map((a) => (
+        <Link
+          key={a.id}
+          href={`/u/${a.username}`}
+          className="flex items-center gap-3 border border-border-soft rounded-xl p-3 bg-white group"
+        >
+          <div className="w-10 h-10 rounded-full bg-signal/10 text-signal flex items-center justify-center font-medium">
+            {(a.displayName ?? '?').slice(0, 1).toUpperCase()}
+          </div>
+          <div className="min-w-0">
+            <div className="font-medium text-[15px] group-hover:text-signal">
+              {a.displayName}
             </div>
-            <div className="min-w-0">
-              <div className="font-medium text-[15px] group-hover:text-signal">
-                {f.author.display_name}
-              </div>
-              {f.author.bio && (
-                <div className="text-[12px] text-ink-faint line-clamp-1">{f.author.bio}</div>
-              )}
-            </div>
-          </Link>
-        ) : null,
-      )}
+            {a.bio && (
+              <div className="text-[12px] text-ink-faint line-clamp-1">{a.bio}</div>
+            )}
+          </div>
+        </Link>
+      ))}
     </div>
   );
 }

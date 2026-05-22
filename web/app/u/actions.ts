@@ -1,27 +1,16 @@
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
+import { getSessionUser } from '@/lib/auth';
+import { toggleFollow as toggleFollowMutation } from '@/lib/mutations';
 
 export async function toggleFollow(formData: FormData) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getSessionUser();
   if (!user) return;
 
   const authorId = String(formData.get('authorId'));
   const username = String(formData.get('username'));
-  const following = formData.get('following') === 'true';
 
-  if (following) {
-    await supabase
-      .from('follows')
-      .delete()
-      .eq('follower_id', user.id)
-      .eq('author_id', authorId);
-  } else {
-    await supabase.from('follows').insert({ follower_id: user.id, author_id: authorId });
-  }
+  await toggleFollowMutation(user.id, authorId);
   revalidatePath(`/u/${username}`);
 }

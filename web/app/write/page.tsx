@@ -1,24 +1,16 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
+import { getSessionUser } from '@/lib/auth';
+import { getMyStories } from '@/lib/queries';
 import { AppHeader } from '@/components/AppHeader';
-import type { Story } from '@/lib/types';
 
 export const metadata = { title: 'Your stories — NovelStack' };
 
 export default async function WriterDashboard() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getSessionUser();
   if (!user) redirect('/signin');
 
-  const { data } = await supabase
-    .from('stories')
-    .select('*')
-    .eq('author_id', user.id)
-    .order('created_at', { ascending: false });
-  const stories = (data ?? []) as Story[];
+  const stories = await getMyStories(user.id);
 
   return (
     <>

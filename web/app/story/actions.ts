@@ -1,28 +1,18 @@
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
+import { getSessionUser } from '@/lib/auth';
+import { toggleBookmark as toggleBookmarkMutation } from '@/lib/mutations';
 
 // Add or remove a story from the reader's saved list.
 export async function toggleBookmark(
   storyId: string,
   slug: string,
-  currentlyBookmarked: boolean
+  _currentlyBookmarked: boolean
 ) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getSessionUser();
   if (!user) return;
 
-  if (currentlyBookmarked) {
-    await supabase
-      .from('bookmarks')
-      .delete()
-      .eq('reader_id', user.id)
-      .eq('story_id', storyId);
-  } else {
-    await supabase.from('bookmarks').insert({ reader_id: user.id, story_id: storyId });
-  }
+  await toggleBookmarkMutation(user.id, storyId);
   revalidatePath(`/story/${slug}`);
 }
