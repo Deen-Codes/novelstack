@@ -14,7 +14,7 @@ const WEIGHTS = {
 
 export type FeedStory = Story & { _score: number; _reason: string };
 
-export async function getFeed(genreFilter?: string): Promise<FeedStory[]> {
+export async function getFeed(genreFilter?: string, query?: string): Promise<FeedStory[]> {
   const supabase = await createClient();
   const adult = await viewerIsAdult();
   const {
@@ -30,6 +30,10 @@ export async function getFeed(genreFilter?: string): Promise<FeedStory[]> {
     .limit(80);
   if (!adult) q = q.eq('is_mature', false);
   if (genreFilter) q = q.eq('genre', genreFilter);
+  if (query && query.trim()) {
+    const term = query.trim();
+    q = q.or(`title.ilike.%${term}%,description.ilike.%${term}%`);
+  }
   const { data } = await q;
   const stories = (data ?? []) as Story[];
 

@@ -19,7 +19,6 @@ export async function AppHeader() {
             sign-in affordance for logged-out visitors. Full links at md+. */}
         <div className="flex items-center gap-5 text-sm text-ink-muted">
           <Link href="/" className="hidden md:inline hover:text-ink">Home</Link>
-          <Link href="/search" className="hidden md:inline hover:text-ink">Search</Link>
           {user ? (
             <>
               <Link href="/write" className="hidden md:inline hover:text-ink">Write</Link>
