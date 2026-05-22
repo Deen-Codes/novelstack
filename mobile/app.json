@@ -15,7 +15,16 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "app.novelstack",
-      "buildNumber": "1"
+      "buildNumber": "1",
+      "infoPlist": {
+        "LSApplicationQueriesSchemes": [
+          "message",
+          "googlegmail",
+          "ms-outlook",
+          "ymail",
+          "readdle-spark"
+        ]
+      }
     },
     "android": {
       "package": "app.novelstack",

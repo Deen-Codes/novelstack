@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { View, Text, TextInput, Pressable, StyleSheet } from 'react-native';
+import { useEffect, useState } from 'react';
+import { View, Text, TextInput, Pressable, StyleSheet, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
 import { colors, spacing, radius } from '@/theme/tokens';
@@ -7,11 +7,38 @@ import { colors, spacing, radius } from '@/theme/tokens';
 // Magic-link sign in — no passwords. The link opens back into the app
 // via novelstack://auth-callback (handled by app/auth-callback.tsx).
 // Sign up and sign in are one flow: a first-time email gets the same link.
+
+type MailApp = { key: string; name: string; scheme: string; domains: string[] };
+
+// Mail apps we can hand the reader off to. `domains` lets us guess which one
+// matches their address so the right app is offered first. The schemes are
+// declared in app.json → ios.infoPlist.LSApplicationQueriesSchemes so that
+// canOpenURL can detect which apps are actually installed.
+const MAIL_APPS: MailApp[] = [
+  { key: 'apple', name: 'Mail', scheme: 'message://', domains: ['icloud.com', 'me.com', 'mac.com'] },
+  { key: 'gmail', name: 'Gmail', scheme: 'googlegmail://', domains: ['gmail.com', 'googlemail.com'] },
+  {
+    key: 'outlook',
+    name: 'Outlook',
+    scheme: 'ms-outlook://',
+    domains: ['outlook.com', 'hotmail.com', 'hotmail.co.uk', 'live.com', 'live.co.uk', 'msn.com'],
+  },
+  { key: 'yahoo', name: 'Yahoo Mail', scheme: 'ymail://', domains: ['yahoo.com', 'yahoo.co.uk', 'ymail.com', 'rocketmail.com'] },
+  { key: 'spark', name: 'Spark', scheme: 'readdle-spark://', domains: [] },
+];
+
+function suggestedAppKey(email: string): string | null {
+  const domain = email.split('@')[1]?.toLowerCase().trim();
+  if (!domain) return null;
+  return MAIL_APPS.find((a) => a.domains.includes(domain))?.key ?? null;
+}
+
 export default function SignIn() {
   const [email, setEmail] = useState('');
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [mailApps, setMailApps] = useState<MailApp[]>([]);
 
   async function sendLink() {
     setError(null);
@@ -32,6 +59,43 @@ export default function SignIn() {
     setSent(true);
   }
 
+  // Once the link is sent, work out which mail apps are installed so we can
+  // offer one-tap shortcuts, with the reader's likely provider first.
+  useEffect(() => {
+    if (!sent) return;
+    let cancelled = false;
+    (async () => {
+      const found: MailApp[] = [];
+      for (const app of MAIL_APPS) {
+        try {
+          if (await Linking.canOpenURL(app.scheme)) found.push(app);
+        } catch {
+          // scheme not detectable — skip
+        }
+      }
+      // Apple Mail is a system app; offer it even if the probe came back false.
+      if (!found.some((a) => a.key === 'apple')) found.unshift(MAIL_APPS[0]);
+
+      const suggested = suggestedAppKey(email);
+      if (suggested) {
+        const i = found.findIndex((a) => a.key === suggested);
+        if (i > 0) found.unshift(found.splice(i, 1)[0]);
+      }
+      if (!cancelled) setMailApps(found);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [sent, email]);
+
+  async function openMailApp(app: MailApp) {
+    try {
+      await Linking.openURL(app.scheme);
+    } catch {
+      setError(`Couldn't open ${app.name}. Open it from your home screen instead.`);
+    }
+  }
+
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.body}>
@@ -43,10 +107,32 @@ export default function SignIn() {
           <>
             <Text style={styles.h1}>Check your email</Text>
             <Text style={styles.sub}>
-              We sent a sign-in link to {email}. Open it on this phone and tap it —
+              We sent a sign-in link to {email}. Open it on this phone and tap the link —
               it&apos;ll bring you straight back into the app, signed in.
             </Text>
-            <Pressable onPress={() => { setSent(false); setError(null); }}>
+
+            <View style={styles.mailList}>
+              {mailApps.map((app, i) => (
+                <Pressable
+                  key={app.key}
+                  style={i === 0 ? styles.btn : styles.btnOutline}
+                  onPress={() => openMailApp(app)}
+                >
+                  <Text style={i === 0 ? styles.btnText : styles.btnOutlineText}>
+                    Open {app.name}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+
+            {!!error && <Text style={styles.error}>{error}</Text>}
+
+            <Pressable
+              onPress={() => {
+                setSent(false);
+                setError(null);
+              }}
+            >
               <Text style={styles.link}>Use a different email or resend</Text>
             </Pressable>
           </>
@@ -101,15 +187,26 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     color: colors.ink,
   },
-  error: { fontSize: 13, color: colors.signal, marginTop: spacing.sm },
+  error: { fontSize: 13, color: colors.signal, marginTop: spacing.md },
+  mailList: { marginTop: spacing.lg },
   btn: {
-    marginTop: spacing.md,
+    marginTop: spacing.sm,
     backgroundColor: colors.signal,
     paddingVertical: 13,
     borderRadius: radius.pill,
     alignItems: 'center',
   },
   btnText: { color: colors.paper, fontSize: 14, fontWeight: '500' },
+  btnOutline: {
+    marginTop: spacing.sm,
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.borderSoft,
+    paddingVertical: 13,
+    borderRadius: radius.pill,
+    alignItems: 'center',
+  },
+  btnOutlineText: { color: colors.ink, fontSize: 14, fontWeight: '500' },
   link: {
     fontSize: 13,
     color: colors.inkMuted,
