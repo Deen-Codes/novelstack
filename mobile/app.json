@@ -22,7 +22,10 @@
           "googlegmail",
           "ms-outlook",
           "ymail",
-          "readdle-spark"
+          "protonmail",
+          "fastmail",
+          "readdle-spark",
+          "airmail"
         ]
       }
     },

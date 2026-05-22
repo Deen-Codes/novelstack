@@ -21,10 +21,21 @@ const MAIL_APPS: MailApp[] = [
     key: 'outlook',
     name: 'Outlook',
     scheme: 'ms-outlook://',
-    domains: ['outlook.com', 'hotmail.com', 'hotmail.co.uk', 'live.com', 'live.co.uk', 'msn.com'],
+    domains: [
+      'outlook.com', 'outlook.co.uk', 'hotmail.com', 'hotmail.co.uk', 'hotmail.fr',
+      'live.com', 'live.co.uk', 'msn.com',
+    ],
   },
-  { key: 'yahoo', name: 'Yahoo Mail', scheme: 'ymail://', domains: ['yahoo.com', 'yahoo.co.uk', 'ymail.com', 'rocketmail.com'] },
+  {
+    key: 'yahoo',
+    name: 'Yahoo Mail',
+    scheme: 'ymail://',
+    domains: ['yahoo.com', 'yahoo.co.uk', 'yahoo.fr', 'ymail.com', 'rocketmail.com', 'aol.com'],
+  },
+  { key: 'proton', name: 'Proton Mail', scheme: 'protonmail://', domains: ['proton.me', 'protonmail.com', 'pm.me'] },
+  { key: 'fastmail', name: 'Fastmail', scheme: 'fastmail://', domains: ['fastmail.com', 'fastmail.fm'] },
   { key: 'spark', name: 'Spark', scheme: 'readdle-spark://', domains: [] },
+  { key: 'airmail', name: 'Airmail', scheme: 'airmail://', domains: [] },
 ];
 
 function suggestedAppKey(email: string): string | null {
