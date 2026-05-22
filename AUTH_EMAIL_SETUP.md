@@ -2,17 +2,15 @@
 
 Two things, both done in the Supabase dashboard (no rebuild needed for these).
 
-## 1. Brand the sign-in email — and add the code (required)
+## 1. Brand the sign-in email (cosmetic)
 
-This step is **required**, not cosmetic: the iPhone app now signs in with the
-6-digit code (`{{ .Token }}`), and Supabase's default template only includes
-the link, not the code. Sign-in on the app will not work until you paste this.
+To use the NovelStack design instead of the plain default:
 
 Supabase dashboard → **Authentication → Emails → Templates → Magic Link** →
 paste the markup from `email-templates/magic-link.html` (everything below the
 comment block) into the message body. Set the subject to:
 
-> Your NovelStack sign-in code
+> Your NovelStack sign-in link
 
 Do the same for the **Confirm signup** template so first-time sign-ups match.
 
@@ -30,15 +28,25 @@ verify `novelstack.app`, create an SMTP credential, paste host/port/user/pass,
 and set the sender name to `NovelStack`. After that the email shows as
 "NovelStack <hello@novelstack.app>".
 
-## 2. Sign-in checklist (fixes most magic-link failures)
+## 2. Redirect URL — THIS is what makes the app magic link work
+
+This is the fix for "the link doesn't sign me in on the app".
+
+For the magic link to come back into the NovelStack app, Supabase has to be
+told that `novelstack://auth-callback` is an allowed destination. If it isn't,
+Supabase silently ignores it and sends the link to the **Site URL** (the
+website) instead — so tapping the email link opens novelstack.app in Safari,
+and the app never gets signed in.
 
 Supabase dashboard → **Authentication → URL Configuration**:
 
 - **Site URL:** `https://novelstack.app`
 - **Redirect URLs** — all three must be present:
+  - `novelstack://auth-callback`   ← **required for the iPhone app**
   - `https://novelstack.app/auth/callback`
   - `https://novelstack.app/**`
-  - `novelstack://auth-callback`   ← the mobile app's deep link
+
+Click **Save**. No rebuild needed for this — it takes effect immediately.
 
 Supabase → **Authentication → Sign In / Providers → Email**:
 
@@ -48,9 +56,10 @@ Supabase → **Authentication → Sign In / Providers → Email**:
 
 ## Notes
 
-- The app's primary sign-in is the **6-digit code** — typed in, no deep link,
-  no browser. The magic link still works as a fallback for anyone who taps it.
-- The code / link is one-time and expires after 60 minutes. Email scanners that
-  pre-open links can consume the link — the code is unaffected, so prefer it.
-- The mobile `auth-callback` screen (link fallback) retries once automatically
-  on a transient network error.
+- The link is one-time and expires after 60 minutes. Email scanners that
+  pre-open links can consume it — if a link looks "already used", request a
+  fresh one.
+- Open the email **on the iPhone itself** and tap the link there, so iOS can
+  hand off to the app.
+- The mobile `auth-callback` screen retries once automatically on a transient
+  network error, and handles both the PKCE (`?code=`) and token (`#`) returns.
