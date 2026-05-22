@@ -89,6 +89,9 @@ export default function AuthCallback() {
           <>
             <ActivityIndicator color={colors.signal} />
             <Text style={styles.sub}>Signing you in…</Text>
+            <Pressable onPress={() => router.replace('/signin')}>
+              <Text style={styles.link}>Taking too long? Back to sign in</Text>
+            </Pressable>
           </>
         )}
       </View>
@@ -101,6 +104,12 @@ const styles = StyleSheet.create({
   body: { flex: 1, padding: spacing.xl, justifyContent: 'center', alignItems: 'center' },
   h1: { fontSize: 22, fontWeight: '500', color: colors.ink },
   sub: { fontSize: 14, color: colors.inkMuted, marginTop: spacing.md, textAlign: 'center', lineHeight: 21 },
+  link: {
+    fontSize: 13,
+    color: colors.inkMuted,
+    marginTop: spacing.lg,
+    textDecorationLine: 'underline',
+  },
   btn: {
     marginTop: spacing.lg,
     backgroundColor: colors.signal,

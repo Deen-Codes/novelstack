@@ -43,7 +43,7 @@
     "plugins": ["expo-router"],
     "experiments": { "typedRoutes": true },
     "extra": {
-      "apiBaseUrl": "https://novelstack.app"
+      "apiBaseUrl": "https://novelstack.onrender.com"
     }
   }
 }

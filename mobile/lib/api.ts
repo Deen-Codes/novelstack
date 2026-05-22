@@ -10,6 +10,9 @@ const BASE_URL: string =
 
 const SESSION_KEY = 'novelstack_session';
 
+// Requests fail fast rather than hanging on a stalled connection.
+const REQUEST_TIMEOUT_MS = 15000;
+
 // In-memory cache of the JWT so we don't hit AsyncStorage on every request.
 let cachedToken: string | null = null;
 let loaded = false;
@@ -48,7 +51,19 @@ async function request<T>(path: string, init: RequestInit): Promise<T> {
   if (init.body) headers['Content-Type'] = 'application/json';
   if (token) headers.Authorization = `Bearer ${token}`;
 
-  const res = await fetch(`${BASE_URL}${path}`, { ...init, headers });
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  let res: Response;
+  try {
+    res = await fetch(`${BASE_URL}${path}`, { ...init, headers, signal: controller.signal });
+  } catch (e) {
+    if (controller.signal.aborted) {
+      throw new Error("Couldn't reach NovelStack — check your connection and try again.");
+    }
+    throw e;
+  } finally {
+    clearTimeout(timer);
+  }
 
   let data: unknown = null;
   const text = await res.text();

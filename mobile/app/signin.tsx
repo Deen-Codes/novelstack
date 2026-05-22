@@ -1,8 +1,15 @@
 import { useEffect, useState } from 'react';
 import { View, Text, TextInput, Pressable, StyleSheet, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
 import { apiSend } from '@/lib/api';
 import { colors, spacing, radius } from '@/theme/tokens';
+
+// Always leaves the reader a way out of the sign-in screen.
+function goBack() {
+  if (router.canGoBack()) router.back();
+  else router.replace('/(tabs)');
+}
 
 // Magic-link sign in — no passwords. The link opens back into the app
 // via novelstack://auth-callback (handled by app/auth-callback.tsx).
@@ -111,6 +118,9 @@ export default function SignIn() {
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.body}>
+        <Pressable onPress={goBack} hitSlop={12} style={styles.backRow}>
+          <Text style={styles.back}>‹ Back</Text>
+        </Pressable>
         <Text style={styles.logo}>
           novelstack<Text style={styles.dot}>.</Text>
         </Text>
@@ -184,6 +194,8 @@ export default function SignIn() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.paper },
   body: { flex: 1, padding: spacing.xl, justifyContent: 'center' },
+  backRow: { position: 'absolute', top: spacing.lg, left: spacing.xl },
+  back: { fontSize: 15, color: colors.inkMuted },
   logo: { fontSize: 22, fontWeight: '500', color: colors.ink, marginBottom: spacing.xl },
   dot: { color: colors.signal },
   h1: { fontSize: 24, fontWeight: '500', color: colors.ink },
