@@ -10,75 +10,30 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import { colors, spacing, radius } from '@/theme/tokens';
-import { supabase } from '@/lib/supabase';
-
-type Read = {
-  chapterId: string;
-  storyTitle: string;
-  coverColor: string;
-  label: string;
-};
-type Writer = { id: string; username: string; display_name: string };
-type Saved = { id: string; title: string; coverColor: string; firstChapter: string | null };
+import { apiGet } from '@/lib/api';
+import { getSessionToken } from '@/lib/api';
+import type { Shelf } from '@/lib/types';
 
 export default function Library() {
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
-  const [reads, setReads] = useState<Read[]>([]);
-  const [following, setFollowing] = useState<Writer[]>([]);
-  const [saved, setSaved] = useState<Saved[]>([]);
+  const [shelf, setShelf] = useState<Shelf | null>(null);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
+    const token = await getSessionToken();
+    if (!token) {
       setSignedIn(false);
       setLoading(false);
       return;
     }
-    setSignedIn(true);
-
-    const { data: readsData } = await supabase
-      .from('reads')
-      .select('chapter_id, created_at, chapter:chapters(number, title, story:stories(title, cover_color))')
-      .eq('reader_id', user.id)
-      .order('created_at', { ascending: false })
-      .limit(8);
-    setReads(
-      ((readsData ?? []) as any[]).map((r) => ({
-        chapterId: r.chapter_id,
-        storyTitle: r.chapter?.story?.title ?? 'Story',
-        coverColor: r.chapter?.story?.cover_color ?? '#D85A30',
-        label: `Chapter ${r.chapter?.number} · ${r.chapter?.title ?? ''}`,
-      }))
-    );
-
-    const { data: followData } = await supabase
-      .from('follows')
-      .select('author:users!author_id(id, username, display_name)')
-      .eq('follower_id', user.id);
-    setFollowing(((followData ?? []) as any[]).map((f) => f.author).filter(Boolean));
-
-    const { data: bmData } = await supabase
-      .from('bookmarks')
-      .select('story:stories(id, title, cover_color, chapters(id, number, published_at))')
-      .eq('reader_id', user.id);
-    setSaved(
-      ((bmData ?? []) as any[])
-        .map((b) => b.story)
-        .filter(Boolean)
-        .map((s: any) => {
-          const chs = (s.chapters ?? []).filter((c: any) => c.published_at).sort((a: any, x: any) => a.number - x.number);
-          return {
-            id: s.id,
-            title: s.title,
-            coverColor: s.cover_color ?? '#4F4AAA',
-            firstChapter: chs[0]?.id ?? null,
-          };
-        })
-    );
-
+    try {
+      const data = await apiGet<Shelf>('/api/me/shelf');
+      setShelf(data);
+      setSignedIn(true);
+    } catch {
+      // 401 (or any error) — treat as signed out.
+      setSignedIn(false);
+    }
     setLoading(false);
   }, []);
 
@@ -86,7 +41,7 @@ export default function Library() {
     useCallback(() => {
       setLoading(true);
       load();
-    }, [load])
+    }, [load]),
   );
 
   if (loading) {
@@ -113,29 +68,13 @@ export default function Library() {
     );
   }
 
+  const following = shelf?.following ?? [];
+  const saved = shelf?.saved ?? [];
+
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <ScrollView contentContainerStyle={styles.scroll}>
         <Text style={styles.h1}>Your library</Text>
-
-        <Text style={styles.section}>Continue reading</Text>
-        {reads.length === 0 ? (
-          <Text style={styles.empty}>Stories you open show up here so you can pick up where you left off.</Text>
-        ) : (
-          reads.map((r) => (
-            <Pressable
-              key={r.chapterId}
-              style={styles.readRow}
-              onPress={() => router.push(`/read/${r.chapterId}`)}
-            >
-              <View style={[styles.miniCover, { backgroundColor: r.coverColor }]} />
-              <View style={{ flex: 1 }}>
-                <Text style={styles.rowTitle}>{r.storyTitle}</Text>
-                <Text style={styles.meta}>{r.label}</Text>
-              </View>
-            </Pressable>
-          ))
-        )}
 
         <Text style={styles.section}>Writers you follow</Text>
         {following.length === 0 ? (
@@ -145,9 +84,11 @@ export default function Library() {
             {following.map((w) => (
               <View key={w.id} style={styles.writerChip}>
                 <View style={styles.avatar}>
-                  <Text style={styles.avatarText}>{w.display_name.slice(0, 1).toUpperCase()}</Text>
+                  <Text style={styles.avatarText}>
+                    {w.displayName.slice(0, 1).toUpperCase()}
+                  </Text>
                 </View>
-                <Text style={styles.chipText}>{w.display_name}</Text>
+                <Text style={styles.chipText}>{w.displayName}</Text>
               </View>
             ))}
           </View>
@@ -162,9 +103,11 @@ export default function Library() {
               <Pressable
                 key={s.id}
                 style={styles.gridItem}
-                onPress={() => router.push(`/story/${s.id}`)}
+                onPress={() => router.push(`/story/${s.slug}`)}
               >
-                <View style={[styles.gridCover, { backgroundColor: s.coverColor }]} />
+                <View
+                  style={[styles.gridCover, { backgroundColor: s.coverColor ?? '#4F4AAA' }]}
+                />
                 <Text style={styles.gridTitle}>{s.title}</Text>
               </Pressable>
             ))}
@@ -183,17 +126,6 @@ const styles = StyleSheet.create({
   sub: { fontSize: 14, color: colors.inkMuted, marginTop: spacing.sm, lineHeight: 21 },
   section: { fontSize: 16, fontWeight: '500', color: colors.ink, marginTop: spacing.xl, marginBottom: spacing.md },
   empty: { fontSize: 13, color: colors.inkMuted, lineHeight: 20 },
-  readRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingVertical: spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.borderSoft,
-  },
-  miniCover: { width: 36, height: 48, borderRadius: radius.sm },
-  rowTitle: { fontSize: 15, fontWeight: '500', color: colors.ink },
-  meta: { fontSize: 12, color: colors.inkFaint, marginTop: 2 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   writerChip: {
     flexDirection: 'row',

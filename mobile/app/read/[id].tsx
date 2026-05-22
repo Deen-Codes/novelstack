@@ -3,101 +3,79 @@ import { ScrollView, View, Text, Pressable, ActivityIndicator, StyleSheet } from
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
 import { colors, spacing, radius } from '@/theme/tokens';
-import { supabase } from '@/lib/supabase';
+import { apiGet, apiSend } from '@/lib/api';
+import { getCurrentUser } from '@/lib/auth';
+import type { ChapterDetail, StoryDetail } from '@/lib/types';
 
 // Mirrors the web reader: full body if entitled, otherwise the excerpt
-// preview + a (simulated) rewarded-ad gate. Records reading progress and
-// a reading_event so the Home feed's genre affinity stays current (Q3),
-// and offers prev/next navigation within the story.
+// preview + a (simulated) rewarded-ad gate. Records reading progress so the
+// Home feed's genre affinity stays current, and offers prev/next navigation.
 export default function Reader() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const [chapter, setChapter] = useState<any>(null);
-  const [body, setBody] = useState<string | null>(null);
+  const [chapter, setChapter] = useState<ChapterDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [unlocking, setUnlocking] = useState(false);
   const [prevId, setPrevId] = useState<string | null>(null);
   const [nextId, setNextId] = useState<string | null>(null);
 
-  async function markProgress(chapterId: string, storyId: string, genre: string | null) {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+  // Records a completed read for the signed-in viewer. The API uses this to
+  // keep the discovery feed's genre affinity fresh.
+  async function markProgress(chapterId: string) {
+    const user = await getCurrentUser();
     if (!user) return;
-    // Snapshot subscriber status — it drives the writer-payout pool split.
-    const { data: sub } = await supabase
-      .from('subscriptions')
-      .select('id')
-      .eq('reader_id', user.id)
-      .eq('status', 'active')
-      .maybeSingle();
-    await supabase.from('reads').upsert(
-      {
-        reader_id: user.id,
-        chapter_id: chapterId,
-        progress_pct: 100,
-        completed_at: new Date().toISOString(),
-        is_subscriber: !!sub,
-      },
-      { onConflict: 'reader_id,chapter_id' }
-    );
-    await supabase.from('reading_events').insert({
-      user_id: user.id,
-      story_id: storyId,
-      genre,
-      event: 'read',
-    });
+    try {
+      await apiSend('/api/reads', 'POST', {
+        chapterId,
+        progressPct: 100,
+        completed: true,
+      });
+    } catch {
+      // Progress is best-effort — ignore failures.
+    }
   }
 
   async function load() {
     setLoading(true);
-    const { data: ch } = await supabase
-      .from('chapters')
-      .select('*, story:stories(id, title, genre)')
-      .eq('id', id)
-      .single();
+    let ch: ChapterDetail;
+    try {
+      ch = await apiGet<ChapterDetail>(`/api/chapters/${id}`);
+    } catch {
+      setChapter(null);
+      setLoading(false);
+      return;
+    }
     setChapter(ch);
 
-    const { data: content } = await supabase
-      .from('chapter_content')
-      .select('body')
-      .eq('chapter_id', id)
-      .single();
-    const fullBody = (content as { body: string } | null)?.body ?? null;
-    setBody(fullBody);
-
     // Prev / next within the story (published chapters only).
-    if (ch?.story?.id) {
-      const { data: sibs } = await supabase
-        .from('chapters')
-        .select('id, number')
-        .eq('story_id', ch.story.id)
-        .not('published_at', 'is', null)
-        .order('number');
-      const list = (sibs ?? []) as { id: string; number: number }[];
+    try {
+      const story = await apiGet<StoryDetail>(`/api/stories/${ch.story.slug}`);
+      const list = story.chapters
+        .filter((c) => c.publishedAt)
+        .sort((a, b) => a.number - b.number);
       const idx = list.findIndex((c) => c.id === id);
       setPrevId(idx > 0 ? list[idx - 1].id : null);
       setNextId(idx >= 0 && idx < list.length - 1 ? list[idx + 1].id : null);
-
-      // Entitled read → record progress + interest signal.
-      if (fullBody) markProgress(String(id), ch.story.id, ch.story.genre ?? null);
+    } catch {
+      setPrevId(null);
+      setNextId(null);
     }
+
+    // Entitled read → record progress + interest signal.
+    if (!ch.locked && ch.body) markProgress(String(id));
     setLoading(false);
   }
 
   useEffect(() => {
     load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   async function watchAd() {
     setUnlocking(true);
     await new Promise((r) => setTimeout(r, 2000)); // simulated rewarded ad
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (user) {
-      await supabase.from('ad_unlocks').insert({ reader_id: user.id, chapter_id: id });
-      await load();
-    }
+    // The ad-unlock endpoint is not part of the current API; re-fetch so the
+    // chapter reflects any entitlement the viewer already has.
+    await load();
     setUnlocking(false);
   }
 
@@ -109,7 +87,7 @@ export default function Reader() {
     );
   }
 
-  const locked = !body;
+  const locked = !chapter || chapter.locked || !chapter.body;
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -121,11 +99,11 @@ export default function Reader() {
         <Text style={styles.story}>{chapter?.story?.title ?? ''}</Text>
         <Text style={styles.ch}>Chapter {chapter?.number ?? ''}</Text>
         <Text style={styles.title}>{chapter?.title ?? 'Chapter'}</Text>
-        <Text style={styles.body}>{locked ? chapter?.excerpt : body}</Text>
+        <Text style={styles.body}>{locked ? chapter?.excerpt : chapter?.body}</Text>
 
         {locked && (
           <View style={styles.endCard}>
-            <Text style={styles.endText}>That's the preview — keep reading:</Text>
+            <Text style={styles.endText}>That&apos;s the preview — keep reading:</Text>
             <Pressable
               style={[styles.adBtn, unlocking && { opacity: 0.6 }]}
               onPress={watchAd}

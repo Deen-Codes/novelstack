@@ -11,71 +11,35 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { colors, spacing, radius } from '@/theme/tokens';
-import { supabase } from '@/lib/supabase';
-import { viewerIsAdult } from '@/lib/age';
+import { apiGet } from '@/lib/api';
 import { GENRES } from '@/lib/genres';
-
-type StoryHit = {
-  id: string;
-  title: string;
-  genre: string;
-  cover_color: string;
-  author: string;
-  firstChapter: string | null;
-};
-type WriterHit = { id: string; username: string; display_name: string };
+import type { Story } from '@/lib/types';
 
 export default function Search() {
   const [q, setQ] = useState('');
-  const [stories, setStories] = useState<StoryHit[]>([]);
-  const [writers, setWriters] = useState<WriterHit[]>([]);
+  const [stories, setStories] = useState<Story[]>([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Text search hits /api/search; a genre chip hits /api/feed?genre= since
+  // that endpoint does server-side genre filtering and age-gating.
   async function run(term: string, genre?: string) {
     if (!term.trim() && !genre) {
       setStories([]);
-      setWriters([]);
       setSearched(false);
       return;
     }
     setLoading(true);
-    const adult = await viewerIsAdult();
-
-    let sq = supabase
-      .from('stories')
-      .select('id, title, genre, cover_color, is_mature, author:users!stories_author_id_fkey(display_name), chapters(id, number, published_at)')
-      .neq('status', 'draft')
-      .limit(25);
-    if (!adult) sq = sq.eq('is_mature', false);
-    if (genre) sq = sq.eq('genre', genre);
-    if (term.trim()) sq = sq.ilike('title', `%${term.trim()}%`);
-
-    const wq = term.trim()
-      ? supabase
-          .from('users')
-          .select('id, username, display_name')
-          .or(`display_name.ilike.%${term.trim()}%,username.ilike.%${term.trim()}%`)
-          .limit(15)
-      : Promise.resolve({ data: [] as any[] });
-
-    const [{ data: sd }, { data: wd }] = await Promise.all([sq, wq as any]);
-
-    setStories(
-      ((sd ?? []) as any[]).map((s) => {
-        const chs = (s.chapters ?? []).filter((c: any) => c.published_at).sort((a: any, b: any) => a.number - b.number);
-        return {
-          id: s.id,
-          title: s.title,
-          genre: s.genre,
-          cover_color: s.cover_color ?? '#D85A30',
-          author: s.author?.display_name ?? 'Unknown',
-          firstChapter: chs[0]?.id ?? null,
-        };
-      })
-    );
-    setWriters((wd ?? []) as WriterHit[]);
+    try {
+      const path = genre
+        ? `/api/feed?genre=${encodeURIComponent(genre)}`
+        : `/api/search?q=${encodeURIComponent(term.trim())}`;
+      const results = await apiGet<Story[]>(path);
+      setStories(results);
+    } catch {
+      setStories([]);
+    }
     setSearched(true);
     setLoading(false);
   }
@@ -95,7 +59,7 @@ export default function Search() {
         <TextInput
           value={q}
           onChangeText={setQ}
-          placeholder="Titles and writers…"
+          placeholder="Search story titles…"
           placeholderTextColor={colors.inkFaint}
           autoCapitalize="none"
           style={styles.input}
@@ -118,23 +82,6 @@ export default function Search() {
 
         {loading && <ActivityIndicator color={colors.signal} style={{ marginTop: spacing.lg }} />}
 
-        {!loading && searched && writers.length > 0 && (
-          <>
-            <Text style={styles.section}>Writers</Text>
-            {writers.map((w) => (
-              <Pressable key={w.id} style={styles.writerRow}>
-                <View style={styles.avatar}>
-                  <Text style={styles.avatarText}>{w.display_name.slice(0, 1).toUpperCase()}</Text>
-                </View>
-                <View>
-                  <Text style={styles.rowTitle}>{w.display_name}</Text>
-                  <Text style={styles.meta}>@{w.username}</Text>
-                </View>
-              </Pressable>
-            ))}
-          </>
-        )}
-
         {!loading && searched && stories.length > 0 && (
           <>
             <Text style={styles.section}>Stories</Text>
@@ -142,20 +89,20 @@ export default function Search() {
               <Pressable
                 key={s.id}
                 style={styles.row}
-                onPress={() => router.push(`/story/${s.id}`)}
+                onPress={() => router.push(`/story/${s.slug}`)}
               >
-                <View style={[styles.cover, { backgroundColor: s.cover_color }]} />
+                <View style={[styles.cover, { backgroundColor: s.coverColor ?? '#D85A30' }]} />
                 <View style={styles.rowText}>
                   <Text style={styles.genre}>{s.genre}</Text>
                   <Text style={styles.rowTitle}>{s.title}</Text>
-                  <Text style={styles.meta}>{s.author}</Text>
+                  <Text style={styles.meta}>{s.author?.displayName ?? 'Unknown'}</Text>
                 </View>
               </Pressable>
             ))}
           </>
         )}
 
-        {!loading && searched && stories.length === 0 && writers.length === 0 && (
+        {!loading && searched && stories.length === 0 && (
           <Text style={styles.empty}>No matches. Try a different word or genre.</Text>
         )}
       </ScrollView>
@@ -203,22 +150,5 @@ const styles = StyleSheet.create({
   genre: { fontSize: 11, color: colors.inkFaint, textTransform: 'capitalize' },
   rowTitle: { fontSize: 16, fontWeight: '500', color: colors.ink, marginTop: 2 },
   meta: { fontSize: 13, color: colors.inkMuted, marginTop: 2 },
-  writerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginBottom: spacing.md,
-  },
-  avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: radius.pill,
-    backgroundColor: colors.paperSoft,
-    borderWidth: 1,
-    borderColor: colors.borderSoft,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarText: { fontSize: 16, color: colors.signal, fontWeight: '500' },
   empty: { fontSize: 14, color: colors.inkMuted, marginTop: spacing.lg },
 });

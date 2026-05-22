@@ -11,7 +11,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import { colors, spacing, radius } from '@/theme/tokens';
-import { getFeed, type FeedStory } from '@/lib/feed';
+import { apiGet } from '@/lib/api';
+import type { FeedStory } from '@/lib/types';
 
 export default function Home() {
   const [stories, setStories] = useState<FeedStory[]>([]);
@@ -19,8 +20,12 @@ export default function Home() {
   const [refreshing, setRefreshing] = useState(false);
 
   const load = useCallback(async () => {
-    const feed = await getFeed();
-    setStories(feed);
+    try {
+      const feed = await apiGet<FeedStory[]>('/api/feed');
+      setStories(feed);
+    } catch {
+      setStories([]);
+    }
     setLoading(false);
   }, []);
 
@@ -63,16 +68,16 @@ export default function Home() {
             <Pressable
               key={story.id}
               style={styles.row}
-              onPress={() => router.push(`/story/${story.id}`)}
+              onPress={() => router.push(`/story/${story.slug}`)}
             >
-              <View style={[styles.cover, { backgroundColor: story.cover_color }]}>
+              <View style={[styles.cover, { backgroundColor: story.coverColor ?? '#D85A30' }]}>
                 <Text style={styles.coverTitle}>{story.title}</Text>
               </View>
               <View style={styles.rowText}>
                 <Text style={styles.reason}>{story._reason}</Text>
                 <Text style={styles.rowTitle}>{story.title}</Text>
                 <Text style={styles.author}>
-                  {story.author} · {story.genre}
+                  {story.author?.displayName ?? 'Unknown'} · {story.genre}
                 </Text>
               </View>
             </Pressable>

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { View, Text, TextInput, Pressable, StyleSheet, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { supabase } from '@/lib/supabase';
+import { apiSend } from '@/lib/api';
 import { colors, spacing, radius } from '@/theme/tokens';
 
 // Magic-link sign in — no passwords. The link opens back into the app
@@ -58,16 +58,17 @@ export default function SignIn() {
       return;
     }
     setLoading(true);
-    const { error: otpErr } = await supabase.auth.signInWithOtp({
-      email: email.trim(),
-      options: { emailRedirectTo: 'novelstack://auth-callback' },
-    });
-    setLoading(false);
-    if (otpErr) {
-      setError(otpErr.message);
-      return;
+    try {
+      await apiSend('/api/auth/request', 'POST', {
+        email: email.trim(),
+        platform: 'mobile',
+      });
+      setSent(true);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Couldn't send the link.");
+    } finally {
+      setLoading(false);
     }
-    setSent(true);
   }
 
   // Once the link is sent, work out which mail apps are installed so we can

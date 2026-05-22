@@ -3,13 +3,14 @@ import { View, Text, ActivityIndicator, Pressable, StyleSheet } from 'react-nati
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import * as Linking from 'expo-linking';
-import { supabase } from '@/lib/supabase';
+import { apiSend, setSessionToken } from '@/lib/api';
+import type { User } from '@/lib/types';
 import { colors, spacing, radius } from '@/theme/tokens';
 
 // Deep-link landing for the magic link. The email link points back at
-// novelstack://auth-callback — depending on Supabase's flow that arrives as
-// ?code=… (PKCE) or as #access_token=… in the fragment. We handle both,
-// retry once on a transient network failure, and only run the exchange once.
+// novelstack://auth-callback?token=… — we POST that token to /api/auth/verify,
+// store the returned session JWT, retry once on a transient network failure,
+// and only run the exchange once.
 
 function isNetworkError(msg: string) {
   return /network request failed|failed to fetch|network error/i.test(msg);
@@ -28,56 +29,47 @@ export default function AuthCallback() {
       try {
         const parsed = Linking.parse(url);
         const qp = parsed.queryParams ?? {};
-        const fragment = url.includes('#') ? url.split('#')[1] : '';
-        const hp = new URLSearchParams(fragment);
 
-        const errDesc = qp.error_description ?? hp.get('error_description');
+        const errDesc = qp.error_description ?? qp.error;
         if (errDesc) {
           setError(String(errDesc));
           return;
         }
 
-        // Implicit flow — tokens arrive in the URL fragment.
-        const accessToken = hp.get('access_token');
-        const refreshToken = hp.get('refresh_token');
-        if (accessToken && refreshToken) {
-          const { error: setErr } = await supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: refreshToken,
-          });
-          if (setErr) {
-            setError(setErr.message);
-            return;
+        // The magic link arrives as novelstack://auth-callback?token=…
+        const token = qp.token ? String(qp.token) : null;
+        if (!token) {
+          setError('No sign-in token in the link. Request a fresh one.');
+          return;
+        }
+
+        // Swap the one-time token for a session JWT. A network failure means
+        // the request never reached the server, so the token is still
+        // unused — safe to retry once.
+        const verify = () =>
+          apiSend<{ token: string; user: User }>('/api/auth/verify', 'POST', { token });
+        let result: { token: string; user: User };
+        try {
+          result = await verify();
+        } catch (e) {
+          const msg = e instanceof Error ? e.message : '';
+          if (isNetworkError(msg)) {
+            await new Promise((r) => setTimeout(r, 1500));
+            result = await verify();
+          } else {
+            throw e;
           }
-          router.replace('/(tabs)');
-          return;
         }
 
-        // PKCE flow — a one-time code we swap for a session.
-        const code = qp.code ? String(qp.code) : null;
-        if (!code) {
-          setError('No sign-in code in the link. Request a fresh one.');
-          return;
-        }
-
-        let { error: exErr } = await supabase.auth.exchangeCodeForSession(code);
-        // A network failure means the request never reached Supabase, so the
-        // one-time code is still unused — safe to try again once.
-        if (exErr && isNetworkError(exErr.message)) {
-          await new Promise((r) => setTimeout(r, 1500));
-          ({ error: exErr } = await supabase.auth.exchangeCodeForSession(code));
-        }
-        if (exErr) {
-          setError(
-            isNetworkError(exErr.message)
-              ? "Couldn't reach NovelStack. Check your connection and tap the link again."
-              : exErr.message,
-          );
-          return;
-        }
+        await setSessionToken(result.token);
         router.replace('/(tabs)');
       } catch (e) {
-        setError(e instanceof Error ? e.message : 'Something went wrong signing you in.');
+        const msg = e instanceof Error ? e.message : 'Something went wrong signing you in.';
+        setError(
+          isNetworkError(msg)
+            ? "Couldn't reach NovelStack. Check your connection and tap the link again."
+            : msg,
+        );
       }
     })();
   }, [url]);

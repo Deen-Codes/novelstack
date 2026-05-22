@@ -11,125 +11,142 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useFocusEffect, router } from 'expo-router';
 import { colors, spacing, radius } from '@/theme/tokens';
-import { supabase } from '@/lib/supabase';
-
-type Chapter = {
-  id: string;
-  number: number;
-  title: string;
-  is_free: boolean;
-  published_at: string | null;
-};
-
-function makeExcerpt(body: string) {
-  return body.trim().split(/\s+/).slice(0, 200).join(' ');
-}
+import { apiGet, apiSend } from '@/lib/api';
+import type { Shelf, Story, Chapter, StoryDetail, ChapterDetail } from '@/lib/types';
 
 export default function StoryWriter() {
   const { storyId } = useLocalSearchParams<{ storyId: string }>();
-  const [story, setStory] = useState<any>(null);
+  const [story, setStory] = useState<Story | null>(null);
   const [chapters, setChapters] = useState<Chapter[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [status, setStatus] = useState('');
 
-  // Inline editor state — which chapter is open + its draft fields.
+  // Inline editor state — which chapter is open + its draft fields. `null`
+  // means nothing open; 'new' means the create-chapter form.
   const [editing, setEditing] = useState<string | null>(null);
   const [draftTitle, setDraftTitle] = useState('');
   const [draftBody, setDraftBody] = useState('');
-  const [status, setStatus] = useState('');
+  const [draftFree, setDraftFree] = useState(true);
 
   const load = useCallback(async () => {
-    const { data: s } = await supabase
-      .from('stories')
-      .select('id, title, genre, status')
-      .eq('id', storyId)
-      .single();
-    setStory(s);
-    const { data: chs } = await supabase
-      .from('chapters')
-      .select('id, number, title, is_free, published_at')
-      .eq('story_id', storyId)
-      .order('number');
-    setChapters((chs ?? []) as Chapter[]);
+    // The shelf carries the full Story (incl. slug) for every story we own.
+    let mine: Story | undefined;
+    try {
+      const shelf = await apiGet<Shelf>('/api/me/shelf');
+      mine = shelf.writing.find((s) => s.id === storyId);
+    } catch {
+      mine = undefined;
+    }
+    if (!mine) {
+      setStory(null);
+      setLoading(false);
+      return;
+    }
+    setStory(mine);
+
+    // Chapters come from the public story-by-slug endpoint.
+    try {
+      const detail = await apiGet<StoryDetail>(`/api/stories/${mine.slug}`);
+      setChapters([...detail.chapters].sort((a, b) => a.number - b.number));
+    } catch {
+      setChapters([]);
+    }
     setLoading(false);
   }, [storyId]);
 
   useFocusEffect(
     useCallback(() => {
       load();
-    }, [load])
+    }, [load]),
   );
 
-  async function addChapter() {
+  // Opens the create-chapter form.
+  function openNew() {
+    setEditing('new');
+    setDraftTitle(`Chapter ${chapters.length + 1}`);
+    setDraftBody('');
+    setDraftFree(chapters.length < 3);
+    setStatus('');
+  }
+
+  // Opens an existing chapter — its body is fetched (authors can read it).
+  async function openEditor(ch: Chapter) {
+    setEditing(ch.id);
+    setDraftTitle(ch.title);
+    setDraftFree(ch.isFree);
+    setStatus('');
+    try {
+      const detail = await apiGet<ChapterDetail>(`/api/chapters/${ch.id}`);
+      setDraftBody(detail.body ?? '');
+    } catch {
+      setDraftBody('');
+    }
+  }
+
+  // Creating a chapter publishes it immediately (API behaviour).
+  async function createChapter() {
     if (busy) return;
     setBusy(true);
-    const number = chapters.length + 1;
-    const { data, error } = await supabase
-      .from('chapters')
-      .insert({ story_id: storyId, number, title: `Chapter ${number}`, is_free: number <= 3 })
-      .select('id')
-      .single();
-    if (!error && data) {
-      await supabase.from('chapter_content').insert({ chapter_id: data.id, body: '' });
+    setStatus('Publishing…');
+    try {
+      await apiSend<Chapter>(`/api/me/stories/${storyId}/chapters`, 'POST', {
+        title: draftTitle.trim() || `Chapter ${chapters.length + 1}`,
+        body: draftBody,
+        isFree: draftFree,
+      });
+      setStatus('Published');
+      setEditing(null);
       await load();
-      openEditor({ id: data.id, number, title: `Chapter ${number}`, is_free: number <= 3, published_at: null });
+    } catch (e) {
+      setStatus(e instanceof Error ? e.message : 'Could not publish.');
     }
     setBusy(false);
   }
 
-  async function openEditor(ch: Chapter) {
-    setEditing(ch.id);
-    setDraftTitle(ch.title);
-    setStatus('');
-    const { data } = await supabase
-      .from('chapter_content')
-      .select('body')
-      .eq('chapter_id', ch.id)
-      .single();
-    setDraftBody((data as { body: string } | null)?.body ?? '');
-  }
-
-  async function save(ch: Chapter) {
+  async function saveChapter(ch: Chapter) {
+    if (busy) return;
     setBusy(true);
     setStatus('Saving…');
-    const words = draftBody.trim() ? draftBody.trim().split(/\s+/).length : 0;
-    await supabase
-      .from('chapters')
-      .update({
+    try {
+      await apiSend<Chapter>(`/api/me/chapters/${ch.id}`, 'PATCH', {
         title: draftTitle.trim() || `Chapter ${ch.number}`,
-        excerpt: makeExcerpt(draftBody),
-        word_count: words,
-        page_count: Math.max(1, Math.round(words / 250)),
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', ch.id);
-    await supabase.from('chapter_content').upsert({ chapter_id: ch.id, body: draftBody });
-    setStatus('Saved');
+        body: draftBody,
+        isFree: draftFree,
+      });
+      setStatus('Saved');
+      await load();
+    } catch (e) {
+      setStatus(e instanceof Error ? e.message : 'Could not save.');
+    }
     setBusy(false);
-    await load();
   }
 
-  async function publish(ch: Chapter) {
-    setBusy(true);
-    await save(ch);
-    await supabase
-      .from('chapters')
-      .update({ published_at: new Date().toISOString() })
-      .eq('id', ch.id);
-    await supabase
-      .from('stories')
-      .update({ status: 'ongoing', published_at: new Date().toISOString() })
-      .eq('id', storyId)
-      .is('published_at', null);
-    setStatus('Published');
-    setBusy(false);
-    setEditing(null);
-    await load();
-  }
-
+  // Toggles whether a published chapter is free.
   async function toggleFree(ch: Chapter) {
-    await supabase.from('chapters').update({ is_free: !ch.is_free }).eq('id', ch.id);
-    await load();
+    try {
+      await apiSend<Chapter>(`/api/me/chapters/${ch.id}`, 'PATCH', { isFree: !ch.isFree });
+      await load();
+    } catch {
+      // Ignore — UI will reflect server state on next load.
+    }
+  }
+
+  // Marks the whole story as live (ongoing).
+  async function publishStory() {
+    if (busy || !story) return;
+    setBusy(true);
+    try {
+      const updated = await apiSend<Story>(
+        `/api/me/stories/${storyId}/status`,
+        'POST',
+        { status: 'ongoing' },
+      );
+      setStory(updated);
+    } catch {
+      // Ignore failure.
+    }
+    setBusy(false);
   }
 
   if (loading) {
@@ -140,22 +157,86 @@ export default function StoryWriter() {
     );
   }
 
+  if (!story) {
+    return (
+      <SafeAreaView style={styles.safe} edges={['top']}>
+        <View style={styles.scroll}>
+          <Pressable onPress={() => router.back()}>
+            <Text style={styles.back}>‹ Write</Text>
+          </Pressable>
+          <Text style={styles.empty}>Story not found, or it isn&apos;t yours.</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
         <Pressable onPress={() => router.back()}>
           <Text style={styles.back}>‹ Write</Text>
         </Pressable>
-        <Text style={styles.h1}>{story?.title ?? 'Story'}</Text>
+        <Text style={styles.h1}>{story.title}</Text>
         <Text style={styles.sub}>
-          {story?.genre} · {story?.status}
+          {story.genre} · {story.status}
         </Text>
 
-        <Pressable style={[styles.addBtn, busy && { opacity: 0.6 }]} onPress={addChapter} disabled={busy}>
+        {story.status === 'draft' && (
+          <Pressable
+            style={[styles.addBtn, busy && { opacity: 0.6 }]}
+            onPress={publishStory}
+            disabled={busy}
+          >
+            <Text style={styles.addBtnText}>Make story live</Text>
+          </Pressable>
+        )}
+
+        <Pressable style={[styles.addBtn, busy && { opacity: 0.6 }]} onPress={openNew} disabled={busy}>
           <Text style={styles.addBtnText}>+ New chapter</Text>
         </Pressable>
 
-        {chapters.length === 0 && (
+        {editing === 'new' && (
+          <View style={styles.card}>
+            <View style={styles.editor}>
+              <TextInput
+                value={draftTitle}
+                onChangeText={setDraftTitle}
+                placeholder="Chapter title"
+                placeholderTextColor={colors.inkFaint}
+                style={styles.input}
+              />
+              <TextInput
+                value={draftBody}
+                onChangeText={setDraftBody}
+                placeholder="Write your chapter…"
+                placeholderTextColor={colors.inkFaint}
+                multiline
+                style={[styles.input, styles.bodyInput]}
+              />
+              <Pressable style={styles.freeRow} onPress={() => setDraftFree(!draftFree)}>
+                <View style={[styles.checkbox, draftFree && styles.checkboxOn]}>
+                  {draftFree && <Text style={styles.checkMark}>✓</Text>}
+                </View>
+                <Text style={styles.freeText}>Free chapter (no ad/NovelStack+ gate)</Text>
+              </Pressable>
+              <View style={styles.editorBtns}>
+                <Pressable style={styles.ghostBtn} onPress={() => setEditing(null)}>
+                  <Text style={styles.ghostBtnText}>Cancel</Text>
+                </Pressable>
+                <Pressable
+                  style={[styles.addBtn, { flex: 1, marginTop: 0 }, busy && { opacity: 0.6 }]}
+                  onPress={createChapter}
+                  disabled={busy}
+                >
+                  <Text style={styles.addBtnText}>Publish chapter</Text>
+                </Pressable>
+              </View>
+              {!!status && <Text style={styles.status}>{status}</Text>}
+            </View>
+          </View>
+        )}
+
+        {chapters.length === 0 && editing !== 'new' && (
           <Text style={styles.empty}>No chapters yet. Add your first one above.</Text>
         )}
 
@@ -170,7 +251,7 @@ export default function StoryWriter() {
                   {ch.number}. {ch.title}
                 </Text>
                 <Text style={styles.cardMeta}>
-                  {ch.published_at ? 'Published' : 'Draft'} · {ch.is_free ? 'Free' : 'Locked'}
+                  {ch.publishedAt ? 'Published' : 'Draft'} · {ch.isFree ? 'Free' : 'Locked'}
                 </Text>
               </View>
               <Text style={styles.chevron}>{editing === ch.id ? '▾' : '›'}</Text>
@@ -194,27 +275,18 @@ export default function StoryWriter() {
                   style={[styles.input, styles.bodyInput]}
                 />
                 <Pressable style={styles.freeRow} onPress={() => toggleFree(ch)}>
-                  <View style={[styles.checkbox, ch.is_free && styles.checkboxOn]}>
-                    {ch.is_free && <Text style={styles.checkMark}>✓</Text>}
+                  <View style={[styles.checkbox, ch.isFree && styles.checkboxOn]}>
+                    {ch.isFree && <Text style={styles.checkMark}>✓</Text>}
                   </View>
                   <Text style={styles.freeText}>Free chapter (no ad/NovelStack+ gate)</Text>
                 </Pressable>
                 <View style={styles.editorBtns}>
                   <Pressable
-                    style={[styles.ghostBtn, busy && { opacity: 0.6 }]}
-                    onPress={() => save(ch)}
-                    disabled={busy}
-                  >
-                    <Text style={styles.ghostBtnText}>Save draft</Text>
-                  </Pressable>
-                  <Pressable
                     style={[styles.addBtn, { flex: 1, marginTop: 0 }, busy && { opacity: 0.6 }]}
-                    onPress={() => publish(ch)}
+                    onPress={() => saveChapter(ch)}
                     disabled={busy}
                   >
-                    <Text style={styles.addBtnText}>
-                      {ch.published_at ? 'Save & update' : 'Publish chapter'}
-                    </Text>
+                    <Text style={styles.addBtnText}>Save & update</Text>
                   </Pressable>
                 </View>
                 {!!status && <Text style={styles.status}>{status}</Text>}

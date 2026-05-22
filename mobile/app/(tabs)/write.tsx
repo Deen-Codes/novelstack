@@ -11,25 +11,9 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import { colors, spacing, radius } from '@/theme/tokens';
-import { supabase } from '@/lib/supabase';
+import { apiGet, apiSend, getSessionToken } from '@/lib/api';
 import { GENRES } from '@/lib/genres';
-
-type Story = {
-  id: string;
-  title: string;
-  genre: string;
-  status: string;
-  chapterCount: number;
-};
-
-function slugify(s: string) {
-  return s
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 60);
-}
+import type { Shelf, Story } from '@/lib/types';
 
 export default function Write() {
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
@@ -42,29 +26,19 @@ export default function Write() {
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
+    const token = await getSessionToken();
+    if (!token) {
       setSignedIn(false);
       setLoading(false);
       return;
     }
-    setSignedIn(true);
-    const { data } = await supabase
-      .from('stories')
-      .select('id, title, genre, status, chapters(id)')
-      .eq('author_id', user.id)
-      .order('updated_at', { ascending: false });
-    setStories(
-      ((data ?? []) as any[]).map((s) => ({
-        id: s.id,
-        title: s.title,
-        genre: s.genre,
-        status: s.status,
-        chapterCount: (s.chapters ?? []).length,
-      }))
-    );
+    try {
+      const shelf = await apiGet<Shelf>('/api/me/shelf');
+      setStories(shelf.writing);
+      setSignedIn(true);
+    } catch {
+      setSignedIn(false);
+    }
     setLoading(false);
   }, []);
 
@@ -72,38 +46,26 @@ export default function Write() {
     useCallback(() => {
       setLoading(true);
       load();
-    }, [load])
+    }, [load]),
   );
 
   async function createStory() {
     if (!title.trim() || busy) return;
     setBusy(true);
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
-      setBusy(false);
-      return;
-    }
-    const slug = `${slugify(title)}-${Math.random().toString(36).slice(2, 7)}`;
-    const { data, error } = await supabase
-      .from('stories')
-      .insert({
-        author_id: user.id,
+    try {
+      const story = await apiSend<Story>('/api/me/stories', 'POST', {
         title: title.trim(),
-        slug,
         description: desc.trim(),
         genre,
-        status: 'draft',
-      })
-      .select('id')
-      .single();
+      });
+      setTitle('');
+      setDesc('');
+      setCreating(false);
+      router.push(`/write/${story.id}`);
+    } catch {
+      // Leave the form open so the writer can retry.
+    }
     setBusy(false);
-    if (error || !data) return;
-    setTitle('');
-    setDesc('');
-    setCreating(false);
-    router.push(`/write/${data.id}`);
   }
 
   if (loading) {
@@ -191,9 +153,7 @@ export default function Write() {
             <Pressable key={s.id} style={styles.card} onPress={() => router.push(`/write/${s.id}`)}>
               <View style={{ flex: 1 }}>
                 <Text style={styles.cardTitle}>{s.title}</Text>
-                <Text style={styles.cardMeta}>
-                  {s.genre} · {s.chapterCount} chapter{s.chapterCount === 1 ? '' : 's'}
-                </Text>
+                <Text style={styles.cardMeta}>{s.genre}</Text>
               </View>
               <Text style={[styles.badge, s.status === 'draft' && styles.badgeDraft]}>
                 {s.status}

@@ -1,23 +1,25 @@
 import { useEffect, useState } from 'react';
-import type { Session } from '@supabase/supabase-js';
-import { supabase } from '@/lib/supabase';
+import { getCurrentUser } from '@/lib/auth';
+import type { User } from '@/lib/types';
 
-// App-wide auth state. Supabase persists the session in AsyncStorage
-// (configured in lib/supabase.ts), so it survives app restarts.
+// App-wide auth state. The session JWT is persisted in AsyncStorage
+// (see lib/api.ts), so it survives app restarts; this hook resolves it
+// to the current user via GET /api/auth/session.
 export function useAuth() {
-  const [session, setSession] = useState<Session | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
+    let cancelled = false;
+    getCurrentUser().then((u) => {
+      if (cancelled) return;
+      setUser(u);
       setLoading(false);
     });
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
-      setSession(s);
-    });
-    return () => sub.subscription.unsubscribe();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  return { session, user: session?.user ?? null, loading };
+  return { user, loading };
 }

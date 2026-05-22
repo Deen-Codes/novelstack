@@ -11,23 +11,14 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import { colors, spacing, radius } from '@/theme/tokens';
-import { supabase } from '@/lib/supabase';
-
-type Profile = {
-  id: string;
-  username: string;
-  display_name: string;
-  bio: string | null;
-  is_verified: boolean;
-  date_of_birth: string | null;
-};
-type Story = { id: string; title: string; cover_color: string; firstChapter: string | null };
+import { apiGet, apiSend, getSessionToken } from '@/lib/api';
+import { getCurrentUser, signOut as clearSessionAuth } from '@/lib/auth';
+import type { User, Shelf, Story } from '@/lib/types';
 
 export default function ProfileScreen() {
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
-  const [profile, setProfile] = useState<Profile | null>(null);
+  const [profile, setProfile] = useState<User | null>(null);
   const [stories, setStories] = useState<Story[]>([]);
-  const [subscriber, setSubscriber] = useState(false);
   const [loading, setLoading] = useState(true);
 
   // Inline bio editor.
@@ -38,55 +29,31 @@ export default function ProfileScreen() {
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const token = await getSessionToken();
+    if (!token) {
+      setSignedIn(false);
+      setLoading(false);
+      return;
+    }
+    const user = await getCurrentUser();
     if (!user) {
       setSignedIn(false);
       setLoading(false);
       return;
     }
     setSignedIn(true);
+    setProfile(user);
+    setDisplayName(user.displayName);
+    setBio(user.bio ?? '');
+    setDob(user.dateOfBirth ?? '');
 
-    const { data: p } = await supabase
-      .from('users')
-      .select('id, username, display_name, bio, is_verified, date_of_birth')
-      .eq('id', user.id)
-      .single();
-    const prof = p as Profile | null;
-    setProfile(prof);
-    if (prof) {
-      setDisplayName(prof.display_name);
-      setBio(prof.bio ?? '');
-      setDob(prof.date_of_birth ?? '');
+    // Published stories come from the shelf's `writing` list.
+    try {
+      const shelf = await apiGet<Shelf>('/api/me/shelf');
+      setStories(shelf.writing.filter((s) => s.status !== 'draft'));
+    } catch {
+      setStories([]);
     }
-
-    const { data: st } = await supabase
-      .from('stories')
-      .select('id, title, cover_color, chapters(id, number, published_at)')
-      .eq('author_id', user.id)
-      .neq('status', 'draft')
-      .order('total_reads', { ascending: false });
-    setStories(
-      ((st ?? []) as any[]).map((s) => {
-        const chs = (s.chapters ?? []).filter((c: any) => c.published_at).sort((a: any, b: any) => a.number - b.number);
-        return {
-          id: s.id,
-          title: s.title,
-          cover_color: s.cover_color ?? '#4F4AAA',
-          firstChapter: chs[0]?.id ?? null,
-        };
-      })
-    );
-
-    const { data: sub } = await supabase
-      .from('subscriptions')
-      .select('id')
-      .eq('reader_id', user.id)
-      .eq('status', 'active')
-      .maybeSingle();
-    setSubscriber(!!sub);
-
     setLoading(false);
   }, []);
 
@@ -94,28 +61,30 @@ export default function ProfileScreen() {
     useCallback(() => {
       setLoading(true);
       load();
-    }, [load])
+    }, [load]),
   );
 
   async function saveProfile() {
     if (!profile || busy) return;
     setBusy(true);
-    await supabase
-      .from('users')
-      .update({
-        display_name: displayName.trim() || profile.display_name,
+    try {
+      const updated = await apiSend<User>('/api/me/profile', 'PATCH', {
+        displayName: displayName.trim() || profile.displayName,
         bio: bio.trim(),
         // Only write DOB when supplied — never clears a stored value.
-        ...(dob.trim() ? { date_of_birth: dob.trim() } : {}),
-      })
-      .eq('id', profile.id);
+        ...(dob.trim() ? { dateOfBirth: dob.trim() } : {}),
+      });
+      setProfile(updated);
+    } catch {
+      // Keep the editor open on failure.
+    }
     setBusy(false);
     setEditing(false);
     await load();
   }
 
   async function signOut() {
-    await supabase.auth.signOut();
+    await clearSessionAuth();
     setProfile(null);
     setSignedIn(false);
   }
@@ -148,13 +117,13 @@ export default function ProfileScreen() {
         <View style={styles.header}>
           <View style={styles.avatar}>
             <Text style={styles.avatarText}>
-              {(profile?.display_name ?? '?').slice(0, 1).toUpperCase()}
+              {(profile?.displayName ?? '?').slice(0, 1).toUpperCase()}
             </Text>
           </View>
           <View style={{ flex: 1 }}>
             <Text style={styles.name}>
-              {profile?.display_name}
-              {profile?.is_verified && <Text style={styles.tick}> ✓</Text>}
+              {profile?.displayName}
+              {profile?.isVerified && <Text style={styles.tick}> ✓</Text>}
             </Text>
             <Text style={styles.handle}>@{profile?.username}</Text>
           </View>
@@ -208,13 +177,9 @@ export default function ProfileScreen() {
         )}
 
         <View style={styles.plusCard}>
-          <Text style={styles.plusTitle}>
-            {subscriber ? 'NovelStack+ active' : 'NovelStack+'}
-          </Text>
+          <Text style={styles.plusTitle}>NovelStack+</Text>
           <Text style={styles.plusBody}>
-            {subscriber
-              ? 'Ad-free reading and every chapter unlocked. Thank you for supporting writers.'
-              : 'Ad-free reading, every chapter unlocked — $6.99/month. Manage billing on the web.'}
+            Ad-free reading, every chapter unlocked — $6.99/month. Manage billing on the web.
           </Text>
         </View>
 
@@ -227,9 +192,11 @@ export default function ProfileScreen() {
               <Pressable
                 key={s.id}
                 style={styles.gridItem}
-                onPress={() => router.push(`/story/${s.id}`)}
+                onPress={() => router.push(`/story/${s.slug}`)}
               >
-                <View style={[styles.gridCover, { backgroundColor: s.cover_color }]} />
+                <View
+                  style={[styles.gridCover, { backgroundColor: s.coverColor ?? '#4F4AAA' }]}
+                />
                 <Text style={styles.gridTitle}>{s.title}</Text>
               </Pressable>
             ))}

@@ -43,8 +43,7 @@
     "plugins": ["expo-router"],
     "experiments": { "typedRoutes": true },
     "extra": {
-      "supabaseUrl": "https://kgjstbfgqzxxtyjidapq.supabase.co",
-      "supabaseAnonKey": "sb_publishable_KU1-3JfXO5aD5z00GKQ2dw_0K8oR3am"
+      "apiBaseUrl": "https://novelstack.app"
     }
   }
 }

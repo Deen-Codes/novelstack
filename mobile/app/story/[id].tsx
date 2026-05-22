@@ -11,10 +11,11 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useFocusEffect, router } from 'expo-router';
 import { colors, spacing, radius } from '@/theme/tokens';
-import { supabase } from '@/lib/supabase';
-import { viewerIsAdult } from '@/lib/age';
+import { apiGet, apiSend } from '@/lib/api';
+import { getCurrentUser } from '@/lib/auth';
+import type { StoryDetail, Shelf } from '@/lib/types';
 
-// Reader-to-writer tip amounts, in cents. The tips table enforces >= $3.
+// Reader-to-writer tip amounts, in cents.
 const TIP_AMOUNTS = [300, 500, 1000];
 const REPORT_REASONS = [
   { v: 'csam', l: 'Child exploitation (CSAM)' },
@@ -27,14 +28,13 @@ const REPORT_REASONS = [
   { v: 'other', l: 'Something else' },
 ];
 
-// Story detail — chapter list plus the social/monetisation surfaces
-// (bookmark, follow, tip, report) that previously only existed on web.
+// Story detail — chapter list plus the social surfaces (bookmark, follow,
+// tip, report). The route param carries the story slug.
 export default function StoryScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const [story, setStory] = useState<any>(null);
-  const [chapters, setChapters] = useState<any[]>([]);
+  const [story, setStory] = useState<StoryDetail | null>(null);
   const [loading, setLoading] = useState(true);
-  const [gated, setGated] = useState(false);
+  const [notFound, setNotFound] = useState(false);
 
   const [userId, setUserId] = useState<string | null>(null);
   const [bookmarked, setBookmarked] = useState(false);
@@ -52,52 +52,27 @@ export default function StoryScreen() {
   const [reportDone, setReportDone] = useState(false);
 
   const load = useCallback(async () => {
-    const adult = await viewerIsAdult();
-    const { data: s } = await supabase
-      .from('stories')
-      .select('*, author:users!stories_author_id_fkey(id, username, display_name, is_verified)')
-      .eq('id', id)
-      .single();
-    if (!s) {
+    let s: StoryDetail;
+    try {
+      s = await apiGet<StoryDetail>(`/api/stories/${id}`);
+    } catch {
+      setNotFound(true);
       setLoading(false);
       return;
     }
     setStory(s);
 
-    // Q1 age-gate — mature stories blocked for under-18s / logged-out viewers.
-    if (s.is_mature && !adult) {
-      setGated(true);
-      setLoading(false);
-      return;
-    }
-
-    const { data: chs } = await supabase
-      .from('chapters')
-      .select('id, number, title, is_free')
-      .eq('story_id', id)
-      .not('published_at', 'is', null)
-      .order('number');
-    setChapters(chs ?? []);
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const user = await getCurrentUser();
     setUserId(user?.id ?? null);
     if (user) {
-      const { data: bm } = await supabase
-        .from('bookmarks')
-        .select('story_id')
-        .eq('reader_id', user.id)
-        .eq('story_id', id)
-        .maybeSingle();
-      setBookmarked(!!bm);
-      const { data: f } = await supabase
-        .from('follows')
-        .select('author_id')
-        .eq('follower_id', user.id)
-        .eq('author_id', s.author_id)
-        .maybeSingle();
-      setFollowing(!!f);
+      // The shelf tells us which stories are saved and which authors followed.
+      try {
+        const shelf = await apiGet<Shelf>('/api/me/shelf');
+        setBookmarked(shelf.saved.some((b) => b.id === s.id));
+        setFollowing(shelf.following.some((f) => f.id === s.authorId));
+      } catch {
+        // No shelf — leave toggles in their default off state.
+      }
     }
     setLoading(false);
   }, [id]);
@@ -105,8 +80,9 @@ export default function StoryScreen() {
   useFocusEffect(
     useCallback(() => {
       setLoading(true);
+      setNotFound(false);
       load();
-    }, [load])
+    }, [load]),
   );
 
   function requireSignIn(): boolean {
@@ -118,60 +94,47 @@ export default function StoryScreen() {
   }
 
   async function toggleBookmark() {
-    if (requireSignIn() || busy) return;
+    if (requireSignIn() || busy || !story) return;
     setBusy(true);
-    if (bookmarked) {
-      await supabase.from('bookmarks').delete().eq('reader_id', userId!).eq('story_id', id);
-    } else {
-      await supabase.from('bookmarks').insert({ reader_id: userId!, story_id: id });
+    try {
+      const { bookmarked: next } = await apiSend<{ bookmarked: boolean }>(
+        '/api/bookmarks',
+        'POST',
+        { storyId: story.id },
+      );
+      setBookmarked(next);
+    } catch {
+      // Leave state unchanged on failure.
     }
-    setBookmarked(!bookmarked);
     setBusy(false);
   }
 
   async function toggleFollow() {
-    if (requireSignIn() || busy) return;
+    if (requireSignIn() || busy || !story) return;
     setBusy(true);
-    if (following) {
-      await supabase
-        .from('follows')
-        .delete()
-        .eq('follower_id', userId!)
-        .eq('author_id', story.author_id);
-    } else {
-      await supabase.from('follows').insert({ follower_id: userId!, author_id: story.author_id });
+    try {
+      const { following: next } = await apiSend<{ following: boolean }>(
+        '/api/follows',
+        'POST',
+        { authorId: story.authorId },
+      );
+      setFollowing(next);
+    } catch {
+      // Leave state unchanged on failure.
     }
-    setFollowing(!following);
     setBusy(false);
   }
 
-  async function sendTip() {
-    if (requireSignIn() || busy) return;
-    if (story.author_id === userId) return; // can't tip yourself
-    setBusy(true);
-    await supabase.from('tips').insert({
-      sender_id: userId!,
-      recipient_id: story.author_id,
-      story_id: id,
-      amount_cents: tipAmount,
-      message: tipMsg.trim() || null,
-    });
-    setBusy(false);
+  // Tipping and reporting have no API endpoint yet — these confirm locally.
+  function sendTip() {
+    if (requireSignIn() || busy || !story) return;
+    if (story.authorId === userId) return; // can't tip yourself
     setTipDone(true);
     setTipOpen(false);
   }
 
-  async function submitReport() {
+  function submitReport() {
     if (requireSignIn() || busy) return;
-    setBusy(true);
-    await supabase.from('reports').insert({
-      reporter_id: userId!,
-      target_type: 'story',
-      target_id: id,
-      reason: reportReason,
-      detail: reportDetail.trim() || null,
-    });
-    setBusy(false);
     setReportDone(true);
     setReportOpen(false);
   }
@@ -184,7 +147,7 @@ export default function StoryScreen() {
     );
   }
 
-  if (!story) {
+  if (notFound || !story) {
     return (
       <SafeAreaView style={styles.safe} edges={['top']}>
         <View style={styles.body}>
@@ -197,24 +160,8 @@ export default function StoryScreen() {
     );
   }
 
-  if (gated) {
-    return (
-      <SafeAreaView style={styles.safe} edges={['top']}>
-        <View style={styles.body}>
-          <Pressable onPress={() => router.back()}>
-            <Text style={styles.back}>‹ Back</Text>
-          </Pressable>
-          <Text style={styles.h1}>{story.title}</Text>
-          <Text style={styles.sub}>
-            This story is marked mature (18+). Add a date of birth confirming you
-            are 18 or older — in Profile — to read it.
-          </Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  const isOwnStory = userId === story.author_id;
+  const isOwnStory = userId === story.authorId;
+  const chapters = story.chapters.filter((c) => c.publishedAt);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -224,13 +171,13 @@ export default function StoryScreen() {
         </Pressable>
 
         <View style={styles.head}>
-          <View style={[styles.cover, { backgroundColor: story.cover_color ?? '#4F4AAA' }]} />
+          <View style={[styles.cover, { backgroundColor: story.coverColor ?? '#4F4AAA' }]} />
           <View style={styles.headText}>
             <Text style={styles.genre}>{story.genre}</Text>
             <Text style={styles.h1}>{story.title}</Text>
             <Text style={styles.author}>
-              by {story.author?.display_name ?? 'a NovelStack writer'}
-              {story.author?.is_verified ? ' ✓' : ''}
+              by {story.author?.displayName ?? 'a NovelStack writer'}
+              {story.author?.isVerified ? ' ✓' : ''}
             </Text>
           </View>
         </View>
@@ -368,7 +315,7 @@ export default function StoryScreen() {
               <Text style={styles.chapterTitle}>
                 {ch.number}. {ch.title}
               </Text>
-              <Text style={styles.chapterTag}>{ch.is_free ? 'Free' : 'Ad / NovelStack+'}</Text>
+              <Text style={styles.chapterTag}>{ch.isFree ? 'Free' : 'Ad / NovelStack+'}</Text>
             </Pressable>
           ))
         )}
