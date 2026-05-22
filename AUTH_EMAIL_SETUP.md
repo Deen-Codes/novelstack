@@ -2,18 +2,19 @@
 
 Two things, both done in the Supabase dashboard (no rebuild needed for these).
 
-## 1. Brand the sign-in email
+## 1. Brand the sign-in email — and add the code (required)
 
-By default the email body is plain and generic. To use the NovelStack design:
+This step is **required**, not cosmetic: the iPhone app now signs in with the
+6-digit code (`{{ .Token }}`), and Supabase's default template only includes
+the link, not the code. Sign-in on the app will not work until you paste this.
 
 Supabase dashboard → **Authentication → Emails → Templates → Magic Link** →
 paste the markup from `email-templates/magic-link.html` (everything below the
 comment block) into the message body. Set the subject to:
 
-> Your NovelStack sign-in link
+> Your NovelStack sign-in code
 
-Do the same for the **Confirm signup** template so first-time sign-ups match —
-it uses the same `{{ .ConfirmationURL }}` variable, so the file works as-is.
+Do the same for the **Confirm signup** template so first-time sign-ups match.
 
 ### The sender still says "Supabase"
 
@@ -47,8 +48,9 @@ Supabase → **Authentication → Sign In / Providers → Email**:
 
 ## Notes
 
-- The magic link is one-time and expires after 60 minutes. Email scanners that
-  pre-open links can consume it — if a link looks "already used", request a
-  fresh one.
-- The mobile `auth-callback` screen now retries once automatically on a
-  transient network error, so a flaky tap should self-recover.
+- The app's primary sign-in is the **6-digit code** — typed in, no deep link,
+  no browser. The magic link still works as a fallback for anyone who taps it.
+- The code / link is one-time and expires after 60 minutes. Email scanners that
+  pre-open links can consume the link — the code is unaffected, so prefer it.
+- The mobile `auth-callback` screen (link fallback) retries once automatically
+  on a transient network error.

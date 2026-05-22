@@ -1,20 +1,23 @@
 import { useState } from 'react';
 import { View, Text, TextInput, Pressable, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { colors, spacing, radius } from '@/theme/tokens';
 
-// Magic-link sign in — no passwords. The link opens back into the app
-// via novelstack://auth-callback (handled by app/auth-callback.tsx).
-// We only ask for an email; the username is auto-generated and date of
-// birth is collected later (in Profile), only if it's missing.
+// Sign in / sign up — one flow, no passwords. Supabase emails a 6-digit code;
+// the reader types it in here. This is deliberately code-based rather than a
+// tappable deep link: no browser hand-off, no URL scheme, nothing that can
+// break between the email app and NovelStack. The magic link still works as a
+// fallback (app/auth-callback.tsx) for anyone who taps it instead.
 export default function SignIn() {
   const [email, setEmail] = useState('');
+  const [code, setCode] = useState('');
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function sendLink() {
+  async function sendCode() {
     setError(null);
     if (!email.trim()) {
       setError('Enter your email.');
@@ -33,6 +36,31 @@ export default function SignIn() {
     setSent(true);
   }
 
+  async function verifyCode() {
+    setError(null);
+    const token = code.replace(/\s/g, '');
+    if (token.length < 6) {
+      setError('Enter the 6-digit code from your email.');
+      return;
+    }
+    setLoading(true);
+    const { error: vErr } = await supabase.auth.verifyOtp({
+      email: email.trim(),
+      token,
+      type: 'email',
+    });
+    setLoading(false);
+    if (vErr) {
+      setError(
+        /expired|invalid/i.test(vErr.message)
+          ? 'That code is wrong or expired. Request a fresh one.'
+          : vErr.message,
+      );
+      return;
+    }
+    router.replace('/(tabs)');
+  }
+
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.body}>
@@ -42,15 +70,36 @@ export default function SignIn() {
 
         {sent ? (
           <>
-            <Text style={styles.h1}>Check your email</Text>
+            <Text style={styles.h1}>Enter your code</Text>
             <Text style={styles.sub}>
-              We sent a sign-in link to {email}. Tap it and you're in.
+              We emailed a 6-digit code to {email}. Type it in below — it works whether
+              you&apos;re new here or coming back.
             </Text>
+            <TextInput
+              value={code}
+              onChangeText={(t) => setCode(t.replace(/[^0-9]/g, '').slice(0, 6))}
+              placeholder="123456"
+              placeholderTextColor={colors.inkFaint}
+              keyboardType="number-pad"
+              maxLength={6}
+              style={[styles.input, styles.codeInput]}
+            />
+            {!!error && <Text style={styles.error}>{error}</Text>}
+            <Pressable
+              style={[styles.btn, loading && { opacity: 0.6 }]}
+              onPress={verifyCode}
+              disabled={loading}
+            >
+              <Text style={styles.btnText}>{loading ? 'Checking…' : 'Verify & sign in'}</Text>
+            </Pressable>
+            <Pressable onPress={() => { setSent(false); setCode(''); setError(null); }}>
+              <Text style={styles.link}>Use a different email or resend</Text>
+            </Pressable>
           </>
         ) : (
           <>
             <Text style={styles.h1}>Sign in to NovelStack</Text>
-            <Text style={styles.sub}>No password. We email you a one-time link.</Text>
+            <Text style={styles.sub}>No password. We email you a 6-digit code.</Text>
             <TextInput
               value={email}
               onChangeText={setEmail}
@@ -58,18 +107,19 @@ export default function SignIn() {
               placeholderTextColor={colors.inkFaint}
               keyboardType="email-address"
               autoCapitalize="none"
+              autoCorrect={false}
               style={styles.input}
             />
             {!!error && <Text style={styles.error}>{error}</Text>}
             <Pressable
               style={[styles.btn, loading && { opacity: 0.6 }]}
-              onPress={sendLink}
+              onPress={sendCode}
               disabled={loading}
             >
-              <Text style={styles.btnText}>{loading ? 'Sending…' : 'Email me a link'}</Text>
+              <Text style={styles.btnText}>{loading ? 'Sending…' : 'Email me a code'}</Text>
             </Pressable>
             <Text style={styles.hint}>
-              New here? You'll get a username automatically — change it any time in
+              New here? You&apos;ll get a username automatically — change it any time in
               Profile. Mature stories stay hidden until you add your date of birth.
             </Text>
           </>
@@ -97,6 +147,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     color: colors.ink,
   },
+  codeInput: {
+    fontSize: 24,
+    letterSpacing: 8,
+    textAlign: 'center',
+    fontWeight: '500',
+  },
   error: { fontSize: 13, color: colors.signal, marginTop: spacing.sm },
   btn: {
     marginTop: spacing.md,
@@ -106,5 +162,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   btnText: { color: colors.paper, fontSize: 14, fontWeight: '500' },
+  link: {
+    fontSize: 13,
+    color: colors.inkMuted,
+    marginTop: spacing.lg,
+    textAlign: 'center',
+    textDecorationLine: 'underline',
+  },
   hint: { fontSize: 12, color: colors.inkFaint, marginTop: spacing.lg, lineHeight: 17 },
 });
