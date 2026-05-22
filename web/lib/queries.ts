@@ -4,7 +4,7 @@
 import 'server-only';
 import { and, asc, desc, eq, ilike, ne, or, sql } from 'drizzle-orm';
 import { db } from '@/db';
-import { stories, chapters, chapterContent, bookmarks, follows, reads, subscriptions, adUnlocks } from '@/db/schema';
+import { stories, chapters, chapterContent, bookmarks, follows, reads, subscriptions, adUnlocks, comments } from '@/db/schema';
 
 // 18 is adult. Mature stories stay hidden until a date of birth proves it.
 export function isAdult(dateOfBirth: string | null | undefined): boolean {
@@ -195,6 +195,22 @@ export async function getAuthorByUsername(username: string) {
   return db.query.users.findFirst({
     where: (u, { eq: e }) => e(u.username, username),
     with: { stories: { where: ne(stories.status, 'draft'), orderBy: [desc(stories.totalReads)] } },
+  });
+}
+
+// ============================================================
+// COMMENTS
+// ============================================================
+// A chapter's comments, newest-first, each with its author.
+export async function getChapterComments(chapterId: string) {
+  return db.query.comments.findMany({
+    where: eq(comments.chapterId, chapterId),
+    with: {
+      user: {
+        columns: { id: true, username: true, displayName: true, avatarUrl: true },
+      },
+    },
+    orderBy: [desc(comments.createdAt)],
   });
 }
 
