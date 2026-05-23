@@ -1,0 +1,18 @@
+{
+  "slug": "cursed-coin-w1s3c5d1",
+  "authorUsername": "grayston_w1s3",
+  "title": "Cursed Coin",
+  "description": "Korga the sellsword has been paid in a coin that will not leave her purse. Spend it and it returns. Throw it in the river and it returns. The old woman who paid her with it said only this: the coin always comes home, and so, now, must its bearer.",
+  "genre": "action",
+  "tags": ["sword and sorcery", "curse", "antihero", "monsters", "adventure"],
+  "isMature": false,
+  "coverColor": "#5c4a2a",
+  "tier": "C",
+  "status": "ongoing",
+  "publishedDaysAgo": 480,
+  "popularity": "new",
+  "plannedChapters": 20,
+  "chapters": [
+    {"number": 1, "title": "Paid in Full", "isFree": true}
+  ]
+}

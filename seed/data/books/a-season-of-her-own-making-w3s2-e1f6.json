@@ -1,0 +1,20 @@
+{
+  "slug": "a-season-of-her-own-making-w3s2-e1f6",
+  "authorUsername": "clara_winwood_w3s2",
+  "title": "A Season of Her Own Making",
+  "description": "New York, 1898. Cornelia Vane has been raised to be sold well — a Gilded Age daughter, a fortune in a ballgown. But Cornelia has quietly been learning the family's railroad accounts, and she knows the marriage being arranged for her would save a man who deliberately ruined her father. She decides to ruin him first. A Gilded Age romance of ledgers, ballrooms, and a woman who refuses to be a transaction.",
+  "genre": "historical",
+  "tags": ["gilded-age", "arranged-marriage", "revenge", "slow-burn", "strong-heroine"],
+  "isMature": false,
+  "coverColor": "#5c4a6e",
+  "tier": "B",
+  "status": "ongoing",
+  "publishedDaysAgo": 380,
+  "popularity": "modest",
+  "plannedChapters": 30,
+  "chapters": [
+    {"number": 1, "title": "The Worth of a Daughter", "isFree": true},
+    {"number": 2, "title": "The Ledger Under the Embroidery", "isFree": true},
+    {"number": 3, "title": "An Introduction at the Astor Ball", "isFree": true}
+  ]
+}

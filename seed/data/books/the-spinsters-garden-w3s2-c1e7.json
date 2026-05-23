@@ -1,0 +1,18 @@
+{
+  "slug": "the-spinsters-garden-w3s2-c1e7",
+  "authorUsername": "harriet_dewall_w3s2",
+  "title": "The Spinster's Garden",
+  "description": "At forty-two, Miss Beatrice Loam has long since made her peace with a quiet life and a much-loved garden. Then a new neighbour takes the cottage across the lane — a retired naval surgeon who knows nothing of roses and is not too proud to ask. A gentle, slow Regency romance proving it is never too late for a first love.",
+  "genre": "historical",
+  "tags": ["regency", "later-in-life-romance", "slow-burn", "neighbours", "gentle", "feel-good"],
+  "isMature": false,
+  "coverColor": "#5a7a4a",
+  "tier": "C",
+  "status": "ongoing",
+  "publishedDaysAgo": 700,
+  "popularity": "new",
+  "plannedChapters": 22,
+  "chapters": [
+    {"number": 1, "title": "The Cottage Across the Lane", "isFree": true}
+  ]
+}

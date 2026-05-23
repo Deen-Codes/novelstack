@@ -1,0 +1,29 @@
+Eddo Sarn had serviced the same coolant line on Deck Nine for nineteen years, and on the morning everything came apart he noticed, for the first time, that the line was running warm.
+
+This should not have meant anything. A coolant line runs warm; that is most of what a coolant line does. But Eddo had a maintenance engineer's particular kind of memory, the kind that does not store facts so much as baselines, and the baseline for the Deck Nine coolant line was a specific exact coolness that he had felt under his palm ten thousand times. Today it was warmer than that. Not by much. By the amount a thing changes when the load on it has, very slowly, over a long time, increased.
+
+He stood in the service crawl with his hand flat on the pipe and thought about it the way he thought about everything, which was slowly and without drama, and he reached a conclusion he did not like.
+
+A coolant line ran warmer when the systems it cooled were working harder. The largest system the Deck Nine line served was the aft thrust assembly. And the aft thrust assembly, on the generation ship Calyx, was not supposed to be doing anything at all.
+
+The Calyx was a generation ship. Eddo had been born aboard her, as his parents had been, as their parents had been, in the long unhurried middle of a voyage that had begun before any of them and would end after all of them. The ship had spent the first stretch of her journey under acceleration, building toward her cruising speed, and then — generations ago, in a time none of the living had touched — she had cut her engines and settled into the long silent coast that would carry her the rest of the way. That was the design. That was the whole shape of a generation ship: a hard push at the start, a hard burn at the end to slow down, and in between, decades upon decades of falling free and quiet through the dark.
+
+The Calyx was supposed to be coasting. Eddo had been taught it as a child the way you are taught the shape of your own hand. The engines were cold. The engines had been cold for a hundred years and would stay cold until the deceleration burn, and the deceleration burn was not due in his lifetime or his children's.
+
+But the Deck Nine coolant line was warm, and a coolant line did not warm itself for company.
+
+Eddo did not panic. Eddo was not built for panic; it was one of the reasons he was good at his work and bad at parties. He climbed out of the service crawl, and he went, methodically, to the nearest accessible diagnostic port, and he did the thing a maintenance engineer is trained never to do without a work order, which was to ask the ship a question he had not been told he was allowed to ask.
+
+He asked the Calyx for her current acceleration.
+
+The number that came back was small. It was so small that for a moment Eddo's baseline-memory tried to file it as zero, as coast, as the quiet falling-free he had been taught was the truth of his whole world. But it was not zero. It was a small steady negative number, and a small steady negative number meant the ship was slowing down, was under thrust, was burning her aft assembly gently and continuously against the direction of travel.
+
+And the diagnostic port, when he asked it the next question — politely, the way you ask a thing you are afraid of — told him how long the Calyx had been decelerating.
+
+A hundred and four years.
+
+Eddo Sarn stood in the maintenance corridor of the only world he had ever known and held that number the way you hold something that has just turned out to be much heavier than it looked. A hundred and four years of deceleration that no one had told him about, that was not in any schedule, that the ship's own public displays still cheerfully described as the long quiet coast. Someone had known. Someone in command, generations of someones, had known the Calyx was slowing, and had decided that the people who lived aboard her should not.
+
+He thought about going to his shift supervisor. He thought about the work order he did not have. And then he thought about the one thing he had been not-quite-letting himself think about for the better part of a year — the thing the navigators in the observation gallery did not discuss, the thing Eddo had noticed and filed and left alone because filing-and-leaving-alone was how a quiet man stayed a quiet man.
+
+The stars outside the Calyx had started, very slowly, to look wrong.

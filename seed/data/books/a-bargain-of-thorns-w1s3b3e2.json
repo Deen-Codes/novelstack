@@ -1,0 +1,20 @@
+{
+  "slug": "a-bargain-of-thorns-w1s3b3e2",
+  "authorUsername": "lucia_okonkwo_w1s3",
+  "title": "A Bargain of Thorns",
+  "description": "To save her sister's life, Sefa signs her name in the ledger of the Thornwood Court and becomes the personal debt-keeper of its coldest lord. He wants a clever liar to outwit his rivals. She wants out. Neither of them planned on wanting each other.",
+  "genre": "fantasy",
+  "tags": ["romantasy", "enemies to lovers", "fae", "slow burn", "fae court", "bargain"],
+  "isMature": false,
+  "coverColor": "#5b2a4d",
+  "tier": "B",
+  "status": "ongoing",
+  "publishedDaysAgo": 360,
+  "popularity": "hit",
+  "plannedChapters": 32,
+  "chapters": [
+    {"number": 1, "title": "The Ledger", "isFree": true},
+    {"number": 2, "title": "Lord of Small Debts", "isFree": true},
+    {"number": 3, "title": "The Rules of the House", "isFree": true}
+  ]
+}

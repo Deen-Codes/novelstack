@@ -1,0 +1,20 @@
+{
+  "slug": "the-blackout-correspondent-w3s2-c4d8",
+  "authorUsername": "james_okafor_w3s2",
+  "title": "The Blackout Correspondent",
+  "description": "London, 1941. Iris Penhale codes intercepted German signals in a basement that does not officially exist. Daniel Roth photographs the bombed city for a newspaper that prints only what the censor permits. They meet because of a misfiled envelope, and what grows between them must be conducted in the dark — in the literal dark of the blackout, and in the deeper dark of two people forbidden to tell each other what they do. A slow-burn wartime romance.",
+  "genre": "historical",
+  "tags": ["wwii", "slow-burn", "wartime-romance", "forbidden", "secrets"],
+  "isMature": false,
+  "coverColor": "#2c3a4f",
+  "tier": "B",
+  "status": "ongoing",
+  "publishedDaysAgo": 600,
+  "popularity": "rising",
+  "plannedChapters": 32,
+  "chapters": [
+    {"number": 1, "title": "A Misfiled Envelope", "isFree": true},
+    {"number": 2, "title": "What the Censor Allows", "isFree": true},
+    {"number": 3, "title": "Tea at the Lyons Corner House", "isFree": true}
+  ]
+}

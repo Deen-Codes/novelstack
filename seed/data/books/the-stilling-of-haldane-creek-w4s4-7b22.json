@@ -1,0 +1,20 @@
+{
+  "slug": "the-stilling-of-haldane-creek-w4s4-7b22",
+  "authorUsername": "dale_v_corbin_w4s4",
+  "title": "The Stilling of Haldane Creek",
+  "description": "Every autumn the logging town of Haldane Creek holds the Quieting, and every autumn one family agrees, in writing, to keep their door open all night. Ranger Cole Brandt has come to find his missing brother, and nobody will tell him whose turn it is this year.",
+  "genre": "horror",
+  "tags": ["folk horror", "small-town wrongness", "missing person", "third person", "cult"],
+  "isMature": false,
+  "coverColor": "#3b2f1d",
+  "tier": "B",
+  "status": "ongoing",
+  "publishedDaysAgo": 600,
+  "popularity": "modest",
+  "plannedChapters": 24,
+  "chapters": [
+    {"number": 1, "title": "The Welcome Sign", "isFree": true},
+    {"number": 2, "title": "Whose Turn", "isFree": true},
+    {"number": 3, "title": "The Open Door", "isFree": true}
+  ]
+}

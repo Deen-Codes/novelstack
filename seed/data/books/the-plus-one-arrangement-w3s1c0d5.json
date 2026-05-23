@@ -1,0 +1,18 @@
+{
+  "slug": "the-plus-one-arrangement-w3s1c0d5",
+  "authorUsername": "becca_w3s1",
+  "title": "The Plus One Arrangement",
+  "description": "Lina needs a date for her ex's wedding and she needs it bad. Her grumpy neighbour Marco needs someone to convince his nan he's not lonely. They make a deal. They do not make a single other plan, which turns out to be a mistake.",
+  "genre": "romance",
+  "tags": ["fake dating", "grumpy-sunshine", "neighbours", "slow-burn", "humor"],
+  "isMature": false,
+  "coverColor": "#d96b7a",
+  "tier": "C",
+  "status": "ongoing",
+  "publishedDaysAgo": 22,
+  "popularity": "new",
+  "plannedChapters": 16,
+  "chapters": [
+    {"number": 1, "title": "The Knock on 4B", "isFree": true}
+  ]
+}

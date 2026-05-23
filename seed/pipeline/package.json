@@ -1,0 +1,13 @@
+{
+  "name": "novelstack-seed-pipeline",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Loads generated seed catalogue data into the Render Postgres database.",
+  "scripts": {
+    "load": "node load.mjs"
+  },
+  "dependencies": {
+    "postgres": "3.4.5"
+  }
+}

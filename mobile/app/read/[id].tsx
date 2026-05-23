@@ -18,19 +18,25 @@ export default function Reader() {
   const [prevId, setPrevId] = useState<string | null>(null);
   const [nextId, setNextId] = useState<string | null>(null);
 
-  // Records a completed read for the signed-in viewer. The API uses this to
-  // keep the discovery feed's genre affinity fresh.
-  async function markProgress(chapterId: string) {
+  // When a signed-in reader opens a chapter they can read: record progress
+  // (keeps the feed's genre affinity fresh) and auto-save the story to their
+  // library, so opening a book and reading a bit shelves it automatically.
+  async function recordOpen(ch: ChapterDetail) {
     const user = await getCurrentUser();
     if (!user) return;
     try {
       await apiSend('/api/reads', 'POST', {
-        chapterId,
+        chapterId: ch.id,
         progressPct: 100,
         completed: true,
       });
     } catch {
-      // Progress is best-effort — ignore failures.
+      // Best-effort — ignore failures.
+    }
+    try {
+      await apiSend('/api/bookmarks', 'POST', { storyId: ch.story.id, action: 'add' });
+    } catch {
+      // Best-effort — ignore failures.
     }
   }
 
@@ -60,8 +66,8 @@ export default function Reader() {
       setNextId(null);
     }
 
-    // Entitled read → record progress + interest signal.
-    if (!ch.locked && ch.body) markProgress(String(id));
+    // Entitled read → record progress, interest signal, and auto-save.
+    if (!ch.locked && ch.body) recordOpen(ch);
     setLoading(false);
   }
 

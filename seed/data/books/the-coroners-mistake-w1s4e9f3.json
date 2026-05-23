@@ -1,0 +1,18 @@
+{
+  "slug": "the-coroners-mistake-w1s4e9f3",
+  "authorUsername": "dch_blackwood_w1s4",
+  "title": "The Coroner's Mistake",
+  "description": "When a coroner signs off a drowning as accidental, retired detective Frank Odell knows the dead man couldn't swim a stroke and never went near water sober. Nobody wants the case reopened. Frank reopens it anyway. A stubborn, slow-dread crime novel about the cases that won't stay buried.",
+  "genre": "crime",
+  "tags": ["cold case", "detective", "small town secrets", "investigation", "noir"],
+  "isMature": false,
+  "coverColor": "#3a3326",
+  "tier": "C",
+  "status": "ongoing",
+  "publishedDaysAgo": 150,
+  "popularity": "modest",
+  "plannedChapters": 26,
+  "chapters": [
+    {"number": 1, "title": "A Man Who Couldn't Swim", "isFree": true}
+  ]
+}

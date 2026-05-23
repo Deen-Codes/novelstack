@@ -1,0 +1,18 @@
+{
+  "slug": "the-lighthouse-keepers-daughter-w4s4-1a0c",
+  "authorUsername": "wren_holloway_w4s4",
+  "title": "The Lighthouse Keeper's Daughter",
+  "description": "Six months after her father drowned, Nessa returns to the lighthouse to pack his things. The lamp has been dark since the coastguard automated it. So why, the first night, does it begin to turn?",
+  "genre": "paranormal",
+  "tags": ["ghosts", "grief", "first person", "atmospheric", "haunting"],
+  "isMature": false,
+  "coverColor": "#2b3c4a",
+  "tier": "C",
+  "status": "ongoing",
+  "publishedDaysAgo": 200,
+  "popularity": "new",
+  "plannedChapters": 12,
+  "chapters": [
+    {"number": 1, "title": "The Dark Lamp", "isFree": true}
+  ]
+}

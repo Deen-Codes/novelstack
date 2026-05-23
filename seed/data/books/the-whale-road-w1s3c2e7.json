@@ -1,0 +1,18 @@
+{
+  "slug": "the-whale-road-w1s3c2e7",
+  "authorUsername": "old_salt_finn_w1s3",
+  "title": "The Whale Road",
+  "description": "Old sailors say the deep ocean has roads, if you can read them, and that the longest road of all is walked by something too big to be a whale. When the trade-ship Gull's Mercy is becalmed for nine days, her cabin boy hears that road singing — and learns the ship has been promised to it.",
+  "genre": "adventure",
+  "tags": ["sea adventure", "sailing", "folklore", "monsters", "sword and sorcery"],
+  "isMature": false,
+  "coverColor": "#1f3a4d",
+  "tier": "C",
+  "status": "ongoing",
+  "publishedDaysAgo": 800,
+  "popularity": "modest",
+  "plannedChapters": 16,
+  "chapters": [
+    {"number": 1, "title": "Nine Days of Calm", "isFree": true}
+  ]
+}

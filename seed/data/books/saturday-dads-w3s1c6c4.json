@@ -1,0 +1,18 @@
+{
+  "slug": "saturday-dads-w3s1c6c4",
+  "authorUsername": "tomi_andrews_w3s1",
+  "title": "Saturday Dads",
+  "description": "Every Saturday morning, two single fathers end up on the same bench at the same kids' football practice, drinking the same bad coffee. Neither of them is looking for anything. Their daughters, however, have a plan, and an eight-year-old's plan is a force of nature.",
+  "genre": "romance",
+  "tags": ["single-parent romance", "lgbtq", "friends-to-lovers", "slow-burn", "found family"],
+  "isMature": false,
+  "coverColor": "#4a6b9c",
+  "tier": "C",
+  "status": "ongoing",
+  "publishedDaysAgo": 110,
+  "popularity": "modest",
+  "plannedChapters": 18,
+  "chapters": [
+    {"number": 1, "title": "The Bench", "isFree": true}
+  ]
+}

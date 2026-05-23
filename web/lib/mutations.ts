@@ -2,7 +2,7 @@
 // Every function takes the acting user's id and enforces ownership itself —
 // this is where the old Supabase row-level-security rules now live.
 import 'server-only';
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq, ne, sql } from 'drizzle-orm';
 import { randomBytes } from 'crypto';
 import { db } from '@/db';
 import {
@@ -53,6 +53,24 @@ export async function toggleBookmark(userId: string, storyId: string): Promise<b
   }
   await db.insert(bookmarks).values({ readerId: userId, storyId });
   return true;
+}
+
+// Idempotent bookmark set — used by "remove from saved" and by auto-save when
+// a reader opens a story. Unlike toggleBookmark this never flips an unintended
+// direction: add stays added, remove stays removed.
+export async function setBookmark(
+  userId: string,
+  storyId: string,
+  on: boolean,
+): Promise<boolean> {
+  if (on) {
+    await db.insert(bookmarks).values({ readerId: userId, storyId }).onConflictDoNothing();
+    return true;
+  }
+  await db
+    .delete(bookmarks)
+    .where(and(eq(bookmarks.readerId, userId), eq(bookmarks.storyId, storyId)));
+  return false;
 }
 
 export async function toggleFollow(userId: string, authorId: string): Promise<boolean> {
@@ -252,11 +270,33 @@ export async function updateChapter(
 // --- Profile ---------------------------------------------------------------
 export async function updateProfile(
   userId: string,
-  patch: Partial<{ displayName: string; username: string; bio: string; dateOfBirth: string }>,
+  patch: Partial<{
+    displayName: string;
+    username: string;
+    bio: string;
+    dateOfBirth: string;
+    avatarUrl: string;
+  }>,
 ) {
+  const next = { ...patch };
+  // Username changes: validate format and enforce uniqueness with a clean
+  // error rather than letting the raw DB constraint violation surface.
+  if (next.username !== undefined) {
+    const uname = next.username.trim().toLowerCase();
+    if (!/^[a-z0-9_]{3,24}$/.test(uname)) {
+      throw new Error('Username must be 3–24 characters — letters, numbers and underscores only.');
+    }
+    const [taken] = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(and(eq(users.username, uname), ne(users.id, userId)))
+      .limit(1);
+    if (taken) throw new Error('That username is already taken.');
+    next.username = uname;
+  }
   const [row] = await db
     .update(users)
-    .set({ ...patch, updatedAt: new Date() })
+    .set({ ...next, updatedAt: new Date() })
     .where(eq(users.id, userId))
     .returning();
   return row ?? null;

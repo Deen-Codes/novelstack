@@ -1,0 +1,18 @@
+{
+  "slug": "eight-guests-one-key-w1s4c1d5",
+  "authorUsername": "kit_harlan_w1s4",
+  "title": "Eight Guests, One Key",
+  "description": "A snowbound country house, a host found dead in a study locked from within, and eight guests who each swear they never left the drawing room. Insurance assessor Wren Calloway has until the thaw to explain the impossible. A fair-play locked-room mystery with every clue on the page.",
+  "genre": "mystery",
+  "tags": ["locked room", "whodunit", "fair play mystery", "country house", "amateur sleuth"],
+  "isMature": false,
+  "coverColor": "#5b4a35",
+  "tier": "C",
+  "status": "ongoing",
+  "publishedDaysAgo": 220,
+  "popularity": "modest",
+  "plannedChapters": 18,
+  "chapters": [
+    {"number": 1, "title": "The Thaw Clock", "isFree": true}
+  ]
+}

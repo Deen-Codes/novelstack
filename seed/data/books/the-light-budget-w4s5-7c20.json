@@ -1,0 +1,20 @@
+{
+  "slug": "the-light-budget-w4s5-7c20",
+  "authorUsername": "marisol_eng_w4s5",
+  "title": "The Light Budget",
+  "description": "A generation ship has enough fuel to slow down once. Halfway to a star that may already be dead, the ship's accountant discovers the original navigators lied about the numbers. Now she has eleven years to decide who gets told. Hard sci-fi about arithmetic, secrecy, and the long dark.",
+  "genre": "scifi",
+  "tags": ["generation ship", "hard scifi", "slow burn", "secrets", "space"],
+  "isMature": false,
+  "coverColor": "#101826",
+  "tier": "B",
+  "status": "ongoing",
+  "publishedDaysAgo": 420,
+  "popularity": "rising",
+  "plannedChapters": 32,
+  "chapters": [
+    {"number": 1, "title": "The Ledger", "isFree": true},
+    {"number": 2, "title": "Deceleration Margin", "isFree": true},
+    {"number": 3, "title": "The Founders' Round", "isFree": true}
+  ]
+}

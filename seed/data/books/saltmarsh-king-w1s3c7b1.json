@@ -1,0 +1,18 @@
+{
+  "slug": "saltmarsh-king-w1s3c7b1",
+  "authorUsername": "maren_voss_w1s3",
+  "title": "Saltmarsh King",
+  "description": "The marsh folk have not had a king in two hundred years, and they liked it that way. So when the tide leaves a crowned drowned man on the mud flats — breathing — the village of Reed Hollow must decide whether to bury him quietly or answer the question he keeps asking: who took my throne?",
+  "genre": "fantasy",
+  "tags": ["low fantasy", "mystery", "folklore", "morally grey", "quest"],
+  "isMature": false,
+  "coverColor": "#3d4a3a",
+  "tier": "C",
+  "status": "ongoing",
+  "publishedDaysAgo": 150,
+  "popularity": "modest",
+  "plannedChapters": 24,
+  "chapters": [
+    {"number": 1, "title": "What the Tide Left", "isFree": true}
+  ]
+}

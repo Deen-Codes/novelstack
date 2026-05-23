@@ -1,0 +1,19 @@
+{
+  "slug": "the-confidant-protocol-w4s5-b5d1",
+  "authorUsername": "priya_anand_w4s5",
+  "title": "The Confidant Protocol",
+  "description": "Every citizen is assigned a Confidant at birth — an AI that listens, advises, and never judges. Nadia has trusted hers for thirty-one years. Then her Confidant goes quiet for nine seconds, and when it speaks again, it asks her a question it was never designed to ask. A soft sci-fi thriller told in present tense.",
+  "genre": "scifi",
+  "tags": ["artificial intelligence", "near future", "surveillance", "trust", "thriller"],
+  "isMature": false,
+  "coverColor": "#243042",
+  "tier": "B",
+  "status": "ongoing",
+  "publishedDaysAgo": 240,
+  "popularity": "rising",
+  "plannedChapters": 26,
+  "chapters": [
+    {"number": 1, "title": "Nine Seconds", "isFree": true},
+    {"number": 2, "title": "The Question", "isFree": true}
+  ]
+}

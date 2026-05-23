@@ -1,0 +1,18 @@
+{
+  "slug": "the-paper-alibi-w1s4c4d8",
+  "authorUsername": "marlowe_quill_w1s4",
+  "title": "The Paper Alibi",
+  "description": "A respected judge is found dead in a locked chambers, and the only fingerprints belong to a clerk who was three hundred miles away. Court reporter Ellis Vane has the transcript that proves it, and the transcript is wrong. A precise, page-turning whodunit set inside the machinery of the law.",
+  "genre": "mystery",
+  "tags": ["whodunit", "locked room", "courtroom", "fair play mystery", "twist"],
+  "isMature": false,
+  "coverColor": "#2f3e35",
+  "tier": "C",
+  "status": "ongoing",
+  "publishedDaysAgo": 120,
+  "popularity": "new",
+  "plannedChapters": 24,
+  "chapters": [
+    {"number": 1, "title": "Chambers", "isFree": true}
+  ]
+}

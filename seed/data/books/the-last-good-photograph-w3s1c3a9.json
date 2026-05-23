@@ -1,0 +1,18 @@
+{
+  "slug": "the-last-good-photograph-w3s1c3a9",
+  "authorUsername": "tomi_andrews_w3s1",
+  "title": "The Last Good Photograph",
+  "description": "Wedding photographer Jules is hired to shoot a wedding and recognises the venue immediately: it's where she was supposed to marry Cassidy eight years ago, before they called it off. Then she finds out who the other photographer on the job is. Some pictures take a long time to develop.",
+  "genre": "romance",
+  "tags": ["second-chance", "wedding", "lgbtq", "slow-burn", "exes-to-lovers"],
+  "isMature": false,
+  "coverColor": "#5a8a8a",
+  "tier": "C",
+  "status": "ongoing",
+  "publishedDaysAgo": 190,
+  "popularity": "rising",
+  "plannedChapters": 22,
+  "chapters": [
+    {"number": 1, "title": "The Venue", "isFree": true}
+  ]
+}

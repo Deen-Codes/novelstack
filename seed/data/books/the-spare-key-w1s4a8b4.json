@@ -1,0 +1,18 @@
+{
+  "slug": "the-spare-key-w1s4a8b4",
+  "authorUsername": "priya_okafor_w1s4",
+  "title": "The Spare Key",
+  "description": "When Greta and her husband move into their dream house, the previous owner asks for just one favour: please don't change the locks. Greta agrees. It is the smallest, strangest promise, and within a month she understands exactly why he wanted it. A creeping domestic thriller about the things a house remembers.",
+  "genre": "thriller",
+  "tags": ["domestic suspense", "new house", "creeping dread", "marriage", "twist"],
+  "isMature": false,
+  "coverColor": "#4a5d4f",
+  "tier": "C",
+  "status": "ongoing",
+  "publishedDaysAgo": 70,
+  "popularity": "new",
+  "plannedChapters": 27,
+  "chapters": [
+    {"number": 1, "title": "Don't Change the Locks", "isFree": true}
+  ]
+}

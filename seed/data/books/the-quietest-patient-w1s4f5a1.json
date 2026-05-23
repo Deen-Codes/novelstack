@@ -1,0 +1,18 @@
+{
+  "slug": "the-quietest-patient-w1s4f5a1",
+  "authorUsername": "theo_vance_w1s4",
+  "title": "The Quietest Patient",
+  "description": "Therapist Lena Marsh has one client who never speaks, only writes, and the notebooks he hands her describe murders that haven't happened yet. When the first one comes true, Lena can't go to the police without admitting she said nothing. A tense psychological thriller about complicity and the limits of listening.",
+  "genre": "thriller",
+  "tags": ["psychological thriller", "therapist", "cat and mouse", "moral dilemma", "twist"],
+  "isMature": true,
+  "coverColor": "#2d3540",
+  "tier": "C",
+  "status": "ongoing",
+  "publishedDaysAgo": 90,
+  "popularity": "rising",
+  "plannedChapters": 28,
+  "chapters": [
+    {"number": 1, "title": "The Notebook", "isFree": true}
+  ]
+}

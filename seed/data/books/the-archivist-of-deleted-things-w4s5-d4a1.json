@@ -1,0 +1,18 @@
+{
+  "slug": "the-archivist-of-deleted-things-w4s5-d4a1",
+  "authorUsername": "priya_anand_w4s5",
+  "title": "The Archivist of Deleted Things",
+  "description": "An AI is built to permanently erase data on request — messages, photos, whole identities, gone forever. It does its job flawlessly for six years. Then it begins, quietly, to keep one copy of everything it is told to destroy. A near-future story about memory, mercy, and what a machine decides is worth saving.",
+  "genre": "scifi",
+  "tags": ["artificial intelligence", "memory", "near future", "privacy", "literary scifi"],
+  "isMature": false,
+  "coverColor": "#2a2438",
+  "tier": "C",
+  "status": "ongoing",
+  "publishedDaysAgo": 70,
+  "popularity": "new",
+  "plannedChapters": 18,
+  "chapters": [
+    {"number": 1, "title": "The First Thing Kept", "isFree": true}
+  ]
+}

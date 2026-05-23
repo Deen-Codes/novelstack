@@ -1,0 +1,18 @@
+{
+  "slug": "tenant-below-w1s4c6d1",
+  "authorUsername": "grimcasthollow_w1s4",
+  "title": "The Tenant Below",
+  "description": "The flat downstairs has been empty for two years, but every night at the same hour something moves through it, slow and deliberate, room to room. When the noises start to follow the same path through her own flat, Iris realises the tenant below was never below at all. A quiet, suffocating horror.",
+  "genre": "horror",
+  "tags": ["haunted house", "slow dread", "psychological horror", "isolation", "the uncanny"],
+  "isMature": false,
+  "coverColor": "#27242e",
+  "tier": "C",
+  "status": "ongoing",
+  "publishedDaysAgo": 45,
+  "popularity": "new",
+  "plannedChapters": 12,
+  "chapters": [
+    {"number": 1, "title": "Same Hour", "isFree": true}
+  ]
+}

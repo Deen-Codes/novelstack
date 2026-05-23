@@ -1,0 +1,19 @@
+{
+  "slug": "the-vault-of-borrowed-years-w1s3b8c4",
+  "authorUsername": "r_castellan_w1s3",
+  "title": "The Vault of Borrowed Years",
+  "description": "In the city of Sallow, banks store time instead of coin, and the rich live for centuries on hours bought from the poor. Mira Quill assembles a crew to rob the Grand Lending House — not for gold, but to put twelve stolen years back where they belong. The vault has never been cracked. It has also never been robbed by someone with nothing left to lose.",
+  "genre": "fantasy",
+  "tags": ["heist", "crew", "magic system", "morally grey", "caper", "revenge"],
+  "isMature": false,
+  "coverColor": "#7a5c1e",
+  "tier": "B",
+  "status": "ongoing",
+  "publishedDaysAgo": 540,
+  "popularity": "rising",
+  "plannedChapters": 28,
+  "chapters": [
+    {"number": 1, "title": "Time Is Money", "isFree": true},
+    {"number": 2, "title": "Assembling the Debt", "isFree": true}
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "slug": "the-paper-heart-of-mr-ashworth-w3s2-a3f1",
+  "authorUsername": "eleanor_thorne_w3s2",
+  "title": "The Paper Heart of Mr. Ashworth",
+  "description": "When penniless letter-writer Catherine Vane is hired to ghostwrite a cold banker's love letters to another woman, she does not expect to fall for the man on the page. She does not expect, either, that the man on the page is nothing like the man who pays her. A Regency romance of borrowed words and dangerous honesty.",
+  "genre": "historical",
+  "tags": ["regency", "slow-burn", "secret-identity", "forced-proximity", "epistolary"],
+  "isMature": false,
+  "coverColor": "#7a3b52",
+  "tier": "A",
+  "status": "complete",
+  "publishedDaysAgo": 760,
+  "popularity": "rising",
+  "plannedChapters": 10,
+  "chapters": [
+    {"number": 1, "title": "An Advertisement in the Gazette", "isFree": true},
+    {"number": 2, "title": "Terms of Employment", "isFree": true},
+    {"number": 3, "title": "The First Letter", "isFree": true},
+    {"number": 4, "title": "Miss Pellinore Replies", "isFree": false},
+    {"number": 5, "title": "A Walk in Berkeley Square", "isFree": false},
+    {"number": 6, "title": "What the Ink Confessed", "isFree": false},
+    {"number": 7, "title": "The Banker's House", "isFree": false},
+    {"number": 8, "title": "A Quarrel by Candlelight", "isFree": false},
+    {"number": 9, "title": "The Letter She Did Not Send", "isFree": false},
+    {"number": 10, "title": "Catherine Vane, In Her Own Hand", "isFree": false}
+  ]
+}

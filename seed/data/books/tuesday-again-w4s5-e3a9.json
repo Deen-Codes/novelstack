@@ -1,0 +1,18 @@
+{
+  "slug": "tuesday-again-w4s5-e3a9",
+  "authorUsername": "grant_voss_w4s5",
+  "title": "Tuesday, Again",
+  "description": "Marcus finds an old wristwatch in his late uncle's toolbox. When he winds it backwards, the day rewinds with it. At first it's a cheat code for a boring life. Then he tries to fix the one thing he can't, and learns the watch has rules he never agreed to. A time-loop story about second chances and their bill.",
+  "genre": "scifi",
+  "tags": ["time travel", "time loop", "second chances", "family", "mystery"],
+  "isMature": false,
+  "coverColor": "#34485e",
+  "tier": "C",
+  "status": "ongoing",
+  "publishedDaysAgo": 210,
+  "popularity": "new",
+  "plannedChapters": 22,
+  "chapters": [
+    {"number": 1, "title": "The Watch in the Toolbox", "isFree": true}
+  ]
+}

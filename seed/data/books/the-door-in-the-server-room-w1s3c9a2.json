@@ -1,0 +1,18 @@
+{
+  "slug": "the-door-in-the-server-room-w1s3c9a2",
+  "authorUsername": "pixelbard_w1s3",
+  "title": "The Door in the Server Room",
+  "description": "Mara just wanted to fix the school wifi. Instead she found a door behind the server racks that opens onto a kingdom that runs out of magic the same way her phone runs out of battery. And the kingdom thinks she's the engineer who can fix it.",
+  "genre": "fantasy",
+  "tags": ["portal fantasy", "young adult", "chosen one", "adventure", "magic"],
+  "isMature": false,
+  "coverColor": "#3b3b6e",
+  "tier": "C",
+  "status": "ongoing",
+  "publishedDaysAgo": 60,
+  "popularity": "new",
+  "plannedChapters": 18,
+  "chapters": [
+    {"number": 1, "title": "Low Battery", "isFree": true}
+  ]
+}

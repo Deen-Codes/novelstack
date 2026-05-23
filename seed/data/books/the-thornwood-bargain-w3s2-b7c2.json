@@ -1,0 +1,20 @@
+{
+  "slug": "the-thornwood-bargain-w3s2-b7c2",
+  "authorUsername": "mira_calderon_w3s2",
+  "title": "The Thornwood Bargain",
+  "description": "To save her drowning village, Wrenna trades the only thing the Autumn Court will accept — a year of her life, spent as the unwilling guest of the fae lord who let her people starve. But the Lord of Thornwood is not the monster the stories promised, and a year is exactly long enough to fall for an enemy. Enemies-to-lovers in a court of bargains, where every kindness has a price.",
+  "genre": "fantasy",
+  "tags": ["fae-court", "enemies-to-lovers", "slow-burn", "bargain", "romantasy"],
+  "isMature": false,
+  "coverColor": "#3d5a3a",
+  "tier": "B",
+  "status": "ongoing",
+  "publishedDaysAgo": 410,
+  "popularity": "hit",
+  "plannedChapters": 38,
+  "chapters": [
+    {"number": 1, "title": "The Price of Rain", "isFree": true},
+    {"number": 2, "title": "A Guest of Thornwood", "isFree": true},
+    {"number": 3, "title": "The Lord Who Does Not Sleep", "isFree": true}
+  ]
+}

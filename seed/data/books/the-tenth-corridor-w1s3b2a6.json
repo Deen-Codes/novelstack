@@ -1,0 +1,20 @@
+{
+  "slug": "the-tenth-corridor-w1s3b2a6",
+  "authorUsername": "nina_calderwood_w1s3",
+  "title": "The Tenth Corridor",
+  "description": "Brackenhall Academy has nine corridors and a strict rule against the tenth. When scholarship student Wren Halloway is assigned a dorm that should not exist, she discovers the school has been quietly hiding a class of students nobody is allowed to remember. Including, it seems, herself.",
+  "genre": "fantasy",
+  "tags": ["magic school", "found family", "mystery", "coming of age", "secrets"],
+  "isMature": false,
+  "coverColor": "#2c4636",
+  "tier": "B",
+  "status": "ongoing",
+  "publishedDaysAgo": 280,
+  "popularity": "rising",
+  "plannedChapters": 30,
+  "chapters": [
+    {"number": 1, "title": "Scholarship Girl", "isFree": true},
+    {"number": 2, "title": "A Room Off the Map", "isFree": true},
+    {"number": 3, "title": "The Students Nobody Recalls", "isFree": true}
+  ]
+}

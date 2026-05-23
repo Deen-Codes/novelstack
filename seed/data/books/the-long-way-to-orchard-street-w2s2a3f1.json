@@ -1,0 +1,27 @@
+{
+  "slug": "the-long-way-to-orchard-street-w2s2a3f1",
+  "authorUsername": "marisol_okafor_w2s2",
+  "title": "The Long Way to Orchard Street",
+  "description": "When her grandmother's bakery is left to her, Renata has ninety days to make it profitable or sell. The only person who knows the old recipes is Dani, the woman who broke Renata's heart at nineteen. Now they're flour-dusted strangers sharing a kitchen, and ninety days is either far too long or nowhere near enough.",
+  "genre": "lgbtq",
+  "tags": ["second chance", "f/f", "slow burn", "found family", "small business"],
+  "isMature": false,
+  "coverColor": "#c9683f",
+  "tier": "A",
+  "status": "complete",
+  "publishedDaysAgo": 1180,
+  "popularity": "rising",
+  "plannedChapters": 10,
+  "chapters": [
+    {"number": 1, "title": "The Will", "isFree": true},
+    {"number": 2, "title": "Proof", "isFree": true},
+    {"number": 3, "title": "The Recipe Box", "isFree": true},
+    {"number": 4, "title": "Closing Time", "isFree": false},
+    {"number": 5, "title": "Burnt Sugar", "isFree": false},
+    {"number": 6, "title": "The Saturday Crowd", "isFree": false},
+    {"number": 7, "title": "What She Kept", "isFree": false},
+    {"number": 8, "title": "Day Eighty", "isFree": false},
+    {"number": 9, "title": "Open", "isFree": false},
+    {"number": 10, "title": "The Long Way", "isFree": false}
+  ]
+}

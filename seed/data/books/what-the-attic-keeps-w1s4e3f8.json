@@ -1,0 +1,18 @@
+{
+  "slug": "what-the-attic-keeps-w1s4e3f8",
+  "authorUsername": "theo_vance_w1s4",
+  "title": "What the Attic Keeps",
+  "description": "After his mother's death, Daniel returns to the childhood home he hasn't entered in twenty years and finds the attic door painted shut from the inside. He has no memory of the room beyond it. He is about to learn why he made himself forget. A psychological thriller about buried memory and the rooms we seal.",
+  "genre": "thriller",
+  "tags": ["psychological thriller", "repressed memory", "family secrets", "unreliable narrator", "slow burn"],
+  "isMature": false,
+  "coverColor": "#403028",
+  "tier": "C",
+  "status": "ongoing",
+  "publishedDaysAgo": 180,
+  "popularity": "modest",
+  "plannedChapters": 25,
+  "chapters": [
+    {"number": 1, "title": "Painted Shut", "isFree": true}
+  ]
+}

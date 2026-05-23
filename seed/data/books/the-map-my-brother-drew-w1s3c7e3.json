@@ -1,0 +1,18 @@
+{
+  "slug": "the-map-my-brother-drew-w1s3c7e3",
+  "authorUsername": "nina_calderwood_w1s3",
+  "title": "The Map My Brother Drew",
+  "description": "After Theo disappeared, the only thing left in his room was a hand-drawn map of a forest that isn't on any atlas. His sister Junie always thought it was just a kid's drawing. Then the forest's edge appeared at the end of her street, and the map started filling in places she hadn't been yet.",
+  "genre": "fantasy",
+  "tags": ["portal fantasy", "missing person", "adventure", "siblings", "mystery"],
+  "isMature": false,
+  "coverColor": "#2e4540",
+  "tier": "C",
+  "status": "ongoing",
+  "publishedDaysAgo": 95,
+  "popularity": "new",
+  "plannedChapters": 20,
+  "chapters": [
+    {"number": 1, "title": "The Forest at the End of the Street", "isFree": true}
+  ]
+}

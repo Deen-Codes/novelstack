@@ -1,0 +1,20 @@
+{
+  "slug": "terms-and-conditions-w3s1b6e4",
+  "authorUsername": "sable_quinn_w3s1",
+  "title": "Terms and Conditions",
+  "description": "Wedding-planner Frankie despises Julian Marsh, the litigation lawyer who got her favourite venue shut down on a technicality. So when both of them need a fake partner for the same three-week stretch of family obligations, the contract they draft has nineteen clauses, two signatures, and absolutely no provision for what happens when they stop pretending.",
+  "genre": "romance",
+  "tags": ["fake dating", "enemies-to-lovers", "banter", "forced proximity", "slow-burn"],
+  "isMature": false,
+  "coverColor": "#a83e5b",
+  "tier": "B",
+  "status": "ongoing",
+  "publishedDaysAgo": 800,
+  "popularity": "rising",
+  "plannedChapters": 30,
+  "chapters": [
+    {"number": 1, "title": "The Man Who Closed The Orangery", "isFree": true},
+    {"number": 2, "title": "A Mutually Inconvenient Problem", "isFree": true},
+    {"number": 3, "title": "Nineteen Clauses", "isFree": true}
+  ]
+}

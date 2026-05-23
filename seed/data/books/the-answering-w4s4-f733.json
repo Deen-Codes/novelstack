@@ -1,0 +1,19 @@
+{
+  "slug": "the-answering-w4s4-f733",
+  "authorUsername": "sister_agnes_w4s4",
+  "title": "The Answering",
+  "description": "When a seminary closes, four students stay behind to deconsecrate the chapel. Brother Felix proposes one last act of devotion: to pray through the night, all of them, without stopping. By dawn the prayer is still going. None of them can make it stop, and none of them are sure, anymore, who is saying the words.",
+  "genre": "horror",
+  "tags": ["possession", "religious horror", "psychological horror", "third person", "dread"],
+  "isMature": true,
+  "coverColor": "#241a26",
+  "tier": "B",
+  "status": "ongoing",
+  "publishedDaysAgo": 540,
+  "popularity": "modest",
+  "plannedChapters": 16,
+  "chapters": [
+    {"number": 1, "title": "The Last Four", "isFree": true},
+    {"number": 2, "title": "The Vigil", "isFree": true}
+  ]
+}

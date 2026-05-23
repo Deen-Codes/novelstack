@@ -1,0 +1,18 @@
+{
+  "slug": "pawnbrokers-winter-w1s4d8e3",
+  "authorUsername": "sam_orlovsky_w1s4",
+  "title": "Pawnbroker's Winter",
+  "description": "Marek runs a pawn shop on Halloran Street and asks no questions, which is how a dead man's wedding ring ends up in his till and two sets of very dangerous people end up at his door. A gritty, street-level crime novel about debts, loyalty, and the things people sell when they've nothing left.",
+  "genre": "crime",
+  "tags": ["urban noir", "gritty crime", "antihero", "organised crime", "moral dilemma"],
+  "isMature": true,
+  "coverColor": "#33282a",
+  "tier": "C",
+  "status": "ongoing",
+  "publishedDaysAgo": 80,
+  "popularity": "new",
+  "plannedChapters": 24,
+  "chapters": [
+    {"number": 1, "title": "The Ring in the Till", "isFree": true}
+  ]
+}

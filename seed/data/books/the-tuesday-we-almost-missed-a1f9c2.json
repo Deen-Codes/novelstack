@@ -1,0 +1,18 @@
+{
+  "slug": "the-tuesday-we-almost-missed-a1f9c2",
+  "authorUsername": "elise_brennan_s0",
+  "title": "The Tuesday We Almost Missed",
+  "description": "Nora has caught the 8:14 train every weekday for three years and never once looked up. The morning she does, a stranger is holding her dropped book like it's the most important thing he'll touch all day. A slow-burn romance about timing, second chances, and the small ordinary moments that quietly rearrange a life.",
+  "genre": "romance",
+  "tags": ["slow burn", "contemporary romance", "strangers to lovers", "feel good", "second chances"],
+  "isMature": false,
+  "coverColor": "#B5654A",
+  "tier": "C",
+  "status": "ongoing",
+  "publishedDaysAgo": 36,
+  "popularity": "rising",
+  "plannedChapters": 24,
+  "chapters": [
+    { "number": 1, "title": "The 8:14", "isFree": true }
+  ]
+}

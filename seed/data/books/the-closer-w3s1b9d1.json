@@ -1,0 +1,20 @@
+{
+  "slug": "the-closer-w3s1b9d1",
+  "authorUsername": "colton_reyes_w3s1",
+  "title": "The Closer",
+  "description": "Mateo Salas threw the pitch that lost the championship and the city has not forgiven him in eleven months. Demoted to the minor-league club in the last town that still wants him, he meets the team's no-nonsense physiotherapist, Ruth, who treats his arm and refuses, flatly, to treat his ego. She doesn't care that he used to be famous. He's starting to care a great deal what she thinks.",
+  "genre": "romance",
+  "tags": ["sports romance", "second-chance", "slow-burn", "grumpy-sunshine", "redemption"],
+  "isMature": false,
+  "coverColor": "#2f6e4a",
+  "tier": "B",
+  "status": "ongoing",
+  "publishedDaysAgo": 410,
+  "popularity": "modest",
+  "plannedChapters": 28,
+  "chapters": [
+    {"number": 1, "title": "Triple-A", "isFree": true},
+    {"number": 2, "title": "The Treatment Room", "isFree": true},
+    {"number": 3, "title": "Eleven Months", "isFree": true}
+  ]
+}

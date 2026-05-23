@@ -1,0 +1,19 @@
+{
+  "slug": "the-debt-of-salt-and-ash-w3s2-d9e5",
+  "authorUsername": "anneliese_vorn_w3s2",
+  "title": "The Debt of Salt and Ash",
+  "description": "Saela's grandmother signed a contract with the Court of Cinders three generations ago, and the debt has at last come due in Saela's name. The collector is Vaire, the Court's coldest enforcer, sworn to escort her to a marriage of obligation she never agreed to. But contracts can be re-read, loopholes have teeth, and the man delivering her to her fate may be the only one willing to help her break it. Dark romantasy of binding magic and slow, dangerous trust.",
+  "genre": "fantasy",
+  "tags": ["dark-romantasy", "magic-bargain", "enemies-to-lovers", "arranged-marriage", "slow-burn", "morally-grey"],
+  "isMature": true,
+  "coverColor": "#4a2230",
+  "tier": "B",
+  "status": "ongoing",
+  "publishedDaysAgo": 300,
+  "popularity": "rising",
+  "plannedChapters": 40,
+  "chapters": [
+    {"number": 1, "title": "The Collector at the Door", "isFree": true},
+    {"number": 2, "title": "Three Generations of Ink", "isFree": true}
+  ]
+}

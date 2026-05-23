@@ -1,0 +1,20 @@
+{
+  "slug": "the-school-run-w1s4f2a7",
+  "authorUsername": "priya_okafor_w1s4",
+  "title": "The School Run",
+  "description": "Every morning the same four mothers wait at the same school gate, and every morning Marin tells herself the bruise on Claire's wrist means nothing. Then Claire stops coming, her husband says she's visiting family, and the group chat goes very quiet. A sharp domestic suspense about the violence we agree not to see.",
+  "genre": "thriller",
+  "tags": ["domestic suspense", "psychological thriller", "suburbia", "secrets", "twist"],
+  "isMature": false,
+  "coverColor": "#6b5d7a",
+  "tier": "B",
+  "status": "ongoing",
+  "publishedDaysAgo": 200,
+  "popularity": "rising",
+  "plannedChapters": 30,
+  "chapters": [
+    {"number": 1, "title": "The Gate", "isFree": true},
+    {"number": 2, "title": "Group Chat", "isFree": true},
+    {"number": 3, "title": "Visiting Family", "isFree": true}
+  ]
+}

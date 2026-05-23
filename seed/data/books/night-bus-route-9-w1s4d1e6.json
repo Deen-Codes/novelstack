@@ -1,0 +1,20 @@
+{
+  "slug": "night-bus-route-9-w1s4d1e6",
+  "authorUsername": "dch_blackwood_w1s4",
+  "title": "Night Bus, Route 9",
+  "description": "Every night the same passengers ride the last bus across the city, and DS Cole Maddox has started to notice that one of them gets off where there's nothing but the river. When a body surfaces near that stop, Maddox realises he's been sharing his commute with a killer for months. A grimy, atmospheric police procedural.",
+  "genre": "crime",
+  "tags": ["police procedural", "serial killer", "urban noir", "detective", "slow burn"],
+  "isMature": true,
+  "coverColor": "#1f2933",
+  "tier": "B",
+  "status": "ongoing",
+  "publishedDaysAgo": 410,
+  "popularity": "rising",
+  "plannedChapters": 32,
+  "chapters": [
+    {"number": 1, "title": "Last Bus", "isFree": true},
+    {"number": 2, "title": "The Stop With Nothing", "isFree": true},
+    {"number": 3, "title": "Regulars", "isFree": true}
+  ]
+}

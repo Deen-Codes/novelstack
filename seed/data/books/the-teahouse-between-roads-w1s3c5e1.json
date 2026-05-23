@@ -1,0 +1,18 @@
+{
+  "slug": "the-teahouse-between-roads-w1s3c5e1",
+  "authorUsername": "kettle_and_co_w1s3",
+  "title": "The Teahouse Between Roads",
+  "description": "Persi inherits a teahouse from an aunt she never met, and learns its one rule: it stands at a crossroads between worlds, and every traveller who stops is owed a cup and a question. Refuse no one. Remember everything. The first guest to walk through the door is a knight running from a war that has not started yet.",
+  "genre": "fantasy",
+  "tags": ["cozy fantasy", "magic", "found family", "slice of life", "portal fantasy"],
+  "isMature": false,
+  "coverColor": "#5e4a30",
+  "tier": "C",
+  "status": "ongoing",
+  "publishedDaysAgo": 100,
+  "popularity": "modest",
+  "plannedChapters": 18,
+  "chapters": [
+    {"number": 1, "title": "A Cup and a Question", "isFree": true}
+  ]
+}

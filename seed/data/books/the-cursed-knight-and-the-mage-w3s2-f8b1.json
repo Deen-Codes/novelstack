@@ -1,0 +1,18 @@
+{
+  "slug": "the-cursed-knight-and-the-mage-w3s2-f8b1",
+  "authorUsername": "tomas_birch_w3s2",
+  "title": "The Cursed Knight and the Mage",
+  "description": "Sir Aldric was cursed in battle and now he turns to stone every night when the sun goes down. The only person who might be able to break it is Elina, a young mage who is still learning and not very confident. They do not like each other much at first. But they need each other. A fantasy romance about a curse, a journey, and two people figuring it out as they go.",
+  "genre": "fantasy",
+  "tags": ["curse", "fantasy-romance", "slow-burn", "road-trip", "enemies-to-lovers"],
+  "isMature": false,
+  "coverColor": "#4a5a6a",
+  "tier": "C",
+  "status": "ongoing",
+  "publishedDaysAgo": 42,
+  "popularity": "new",
+  "plannedChapters": 25,
+  "chapters": [
+    {"number": 1, "title": "The Knight Who Turns to Stone", "isFree": true}
+  ]
+}

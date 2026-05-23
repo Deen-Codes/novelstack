@@ -1,0 +1,33 @@
+My name is Aman Sethi, I am thirty-one years old, and I have spent six years of my one wild and precious life finding bugs in a piece of inventory-management software that nobody, including the people who pay for it, particularly enjoys.
+
+I am good at it. I want to be clear about that before this becomes a story about how I am bad at things. I can break software the way other people can whistle — effortlessly, almost without trying, often to the irritation of those around me. Give me a fresh build and a free afternoon and I will find you a way to crash it that the developers will describe, in the ticket, as "frankly upsetting."
+
+So when my manager Priscilla called the whole engineering floor into the glass room — the one we call the Aquarium, because the meetings held in it tend to involve a lot of silent mouthing and the slow realization that you are trapped — I assumed it was about my talents. A promotion, maybe. A plaque.
+
+It was not a plaque.
+
+"Effective Monday," Priscilla said, in the bright voice she uses to deliver information she knows will be received like a brick through a window, "every member of the engineering team will rotate through a two-week shift on the customer support helpline."
+
+Somebody's pen dropped. I think it was mine.
+
+"The leadership team feels," she went on, "that engineering has become — and I'm quoting the deck — 'dangerously insulated from the lived experience of the user.'"
+
+I want to address that phrase, "the lived experience of the user," because I have now lived it, and I am writing this journal so that the rest of you will not have to.
+
+The user, in my professional experience, is a person who has been handed a tool of genuine and considerable power and has decided, freely and with their whole heart, to use it as a hammer, a coaster, and occasionally a small boat. The user does not read. The user does not scroll down. The user has named their most important file "asdfasdf final FINAL (2)" and will, in the fullness of time, blame us when they cannot find it.
+
+I knew all of this in the abstract. I had read the tickets. What I had not done — what no amount of reading prepares you for — was hear it. Live. In a human voice. With my own headset clamped to my own head.
+
+Monday morning they sat me at desk fourteen, in the support pit, between a woman named Carol who had clearly made her peace with God and a young man named Toby who flinched every time his phone lit up. They gave me a forty-minute orientation, a lanyard, and a mug that said WE'RE HERE TO HELP in a font that was, I would later decide, deliberately ironic.
+
+At 9:14 a.m. my screen flashed. Ticket #44910. Inbound call. Priority: high.
+
+I took a breath. Six years of finding bugs. How hard could a person be.
+
+I pressed the green button.
+
+"Hi, thank you for calling support, this is Aman, how can I —"
+
+"FINALLY," said the voice. "A HUMAN."
+
+Reader, it was 9:14 in the morning, and I want you to understand that I did not yet know it, but my entire understanding of the human species was about to be revised, downward, ticket by ticket, and I had decided — somewhere around the word FINALLY — that I was going to write every bit of it down.

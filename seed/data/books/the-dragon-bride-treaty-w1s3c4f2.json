@@ -1,0 +1,18 @@
+{
+  "slug": "the-dragon-bride-treaty-w1s3c4f2",
+  "authorUsername": "sable_quill_w1s3",
+  "title": "The Dragon-Bride Treaty",
+  "description": "For three hundred years the peace has held because each generation sends a royal daughter to wed the dragon of the northern peaks. Princess Caryn is the next bride — until she reads the original treaty and discovers no one has ever asked the dragon whether it agreed.",
+  "genre": "fantasy",
+  "tags": ["dragons", "court intrigue", "politics", "royalty", "slow burn"],
+  "isMature": false,
+  "coverColor": "#4a2c52",
+  "tier": "C",
+  "status": "ongoing",
+  "publishedDaysAgo": 190,
+  "popularity": "modest",
+  "plannedChapters": 28,
+  "chapters": [
+    {"number": 1, "title": "The Bride's Clause", "isFree": true}
+  ]
+}

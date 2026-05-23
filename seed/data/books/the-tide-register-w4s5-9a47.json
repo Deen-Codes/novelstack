@@ -1,0 +1,20 @@
+{
+  "slug": "the-tide-register-w4s5-9a47",
+  "authorUsername": "hollis_marsh_w4s5",
+  "title": "The Tide Register",
+  "description": "In the Cornish village of Pol Treven, every boat that leaves the harbour is written into the tide register, and every boat that returns is crossed out. When retired schoolteacher Edith Crewe notices a name that was never crossed out — and a fisherman everyone agrees drowned years ago walking the cliff path very much alive — she starts asking the village its oldest, quietest question.",
+  "genre": "mystery",
+  "tags": ["village mystery", "cosy", "cornwall", "cold case", "secrets"],
+  "isMature": false,
+  "coverColor": "#2f4f4f",
+  "tier": "B",
+  "status": "ongoing",
+  "publishedDaysAgo": 600,
+  "popularity": "modest",
+  "plannedChapters": 24,
+  "chapters": [
+    {"number": 1, "title": "A Name Not Crossed", "isFree": true},
+    {"number": 2, "title": "The Man on the Cliff Path", "isFree": true},
+    {"number": 3, "title": "What the Harbourmaster Kept", "isFree": true}
+  ]
+}

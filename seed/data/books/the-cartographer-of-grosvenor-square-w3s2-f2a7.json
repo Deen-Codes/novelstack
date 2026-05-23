@@ -1,0 +1,18 @@
+{
+  "slug": "the-cartographer-of-grosvenor-square-w3s2-f2a7",
+  "authorUsername": "eleanor_thorne_w3s2",
+  "title": "The Cartographer of Grosvenor Square",
+  "description": "Miss Honora Finch draws maps under a man's name because no London publisher will buy them under her own. When the Earl of Wexley commissions a survey of his estate, he expects a Mr. H. Finch — and gets, instead, a woman who knows his land better than he does. A Regency romance of disguise, pride, and the careful undrawing of a lie.",
+  "genre": "historical",
+  "tags": ["regency", "secret-identity", "slow-burn", "class-difference", "witty-banter"],
+  "isMature": false,
+  "coverColor": "#6b5230",
+  "tier": "C",
+  "status": "ongoing",
+  "publishedDaysAgo": 540,
+  "popularity": "modest",
+  "plannedChapters": 26,
+  "chapters": [
+    {"number": 1, "title": "Mr. H. Finch Regrets", "isFree": true}
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "slug": "iron-for-the-iron-god-w1s3c1d3",
+  "authorUsername": "dthorne_w1s3",
+  "title": "Iron for the Iron God",
+  "description": "The mercenary company called the Last Coin takes a contract no other company will touch: guard a pilgrim road no one has walked back from. Sergeant Vell has buried enough soldiers to know a bad job. She has never before been the one to choose the burying ground in advance.",
+  "genre": "adventure",
+  "tags": ["sword and sorcery", "mercenaries", "grimdark", "dark fantasy", "war"],
+  "isMature": false,
+  "coverColor": "#4a3c2e",
+  "tier": "C",
+  "status": "ongoing",
+  "publishedDaysAgo": 230,
+  "popularity": "new",
+  "plannedChapters": 22,
+  "chapters": [
+    {"number": 1, "title": "The Last Coin", "isFree": true}
+  ]
+}

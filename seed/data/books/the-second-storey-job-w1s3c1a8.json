@@ -1,0 +1,18 @@
+{
+  "slug": "the-second-storey-job-w1s3c1a8",
+  "authorUsername": "r_castellan_w1s3",
+  "title": "The Second-Storey Job",
+  "description": "Nessa steals memories — slips into a mark's house, lifts a single recollection clean out of their head, sells it to whoever wants it forgotten or owned. The job at the Hollish estate is simple coin. Until she lifts the memory and recognizes the face inside it as her own.",
+  "genre": "fantasy",
+  "tags": ["heist", "magic system", "thief", "mystery", "caper"],
+  "isMature": false,
+  "coverColor": "#3e2f4a",
+  "tier": "C",
+  "status": "ongoing",
+  "publishedDaysAgo": 320,
+  "popularity": "modest",
+  "plannedChapters": 22,
+  "chapters": [
+    {"number": 1, "title": "Lifting a Memory", "isFree": true}
+  ]
+}

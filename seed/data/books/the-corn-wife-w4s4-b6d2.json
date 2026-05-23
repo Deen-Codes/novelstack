@@ -1,0 +1,18 @@
+{
+  "slug": "the-corn-wife-w4s4-b6d2",
+  "authorUsername": "eleanor_thrush_w4s4",
+  "title": "The Corn Wife",
+  "description": "In the village of Lower Thorpe they have not had a failed harvest in two hundred years, and every August they crown a Corn Wife to thank the fields. Folklorist Hester Wynne arrives to record the custom and slowly understands that the village is not thanking the fields. It is paying them.",
+  "genre": "horror",
+  "tags": ["folk horror", "small-town wrongness", "ritual", "third person", "harvest"],
+  "isMature": false,
+  "coverColor": "#6b5a1f",
+  "tier": "C",
+  "status": "ongoing",
+  "publishedDaysAgo": 900,
+  "popularity": "modest",
+  "plannedChapters": 14,
+  "chapters": [
+    {"number": 1, "title": "Lower Thorpe", "isFree": true}
+  ]
+}

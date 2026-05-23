@@ -1,0 +1,27 @@
+{
+  "slug": "the-second-best-bakery-w3s1a4c2",
+  "authorUsername": "margot_ellery_w3s1",
+  "title": "The Second-Best Bakery on Marrow Lane",
+  "description": "When Nora inherits her grandmother's failing bakery, she also inherits a feud with the new patisserie across the street — and its infuriatingly charming owner, Theo. He has technique. She has a recipe box that smells like home. Neither of them planned on the dough rising between them.",
+  "genre": "romance",
+  "tags": ["small-town romance", "enemies-to-lovers", "slow-burn", "found family", "second-chance"],
+  "isMature": false,
+  "coverColor": "#d98b5f",
+  "tier": "A",
+  "status": "complete",
+  "publishedDaysAgo": 980,
+  "popularity": "rising",
+  "plannedChapters": 10,
+  "chapters": [
+    {"number": 1, "title": "Flour and Other Inheritances", "isFree": true},
+    {"number": 2, "title": "The Patisserie Across the Street", "isFree": true},
+    {"number": 3, "title": "A Cease-Fire of Croissants", "isFree": true},
+    {"number": 4, "title": "Gran's Recipe Box", "isFree": false},
+    {"number": 5, "title": "The Festival Committee", "isFree": false},
+    {"number": 6, "title": "Two A.M. and the Oven Light", "isFree": false},
+    {"number": 7, "title": "What the Town Already Knew", "isFree": false},
+    {"number": 8, "title": "The Bake-Off", "isFree": false},
+    {"number": 9, "title": "Burnt Sugar", "isFree": false},
+    {"number": 10, "title": "Open Early", "isFree": false}
+  ]
+}

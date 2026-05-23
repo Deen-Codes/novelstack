@@ -1,0 +1,26 @@
+{
+  "slug": "the-cartographers-debt-w1s3a1f7",
+  "authorUsername": "maren_voss_w1s3",
+  "title": "The Cartographer's Debt",
+  "description": "Every map Elin Sarr draws comes true. When a dying duke pays her to chart a road to a city that does not exist, she discovers the price of invention is paid in the lives of those who walk her roads. To unmake the city, she must first survive reaching it.",
+  "genre": "fantasy",
+  "tags": ["epic fantasy", "magic system", "morally grey", "quest", "slow burn"],
+  "isMature": false,
+  "coverColor": "#2f4a5c",
+  "tier": "A",
+  "status": "complete",
+  "publishedDaysAgo": 760,
+  "popularity": "rising",
+  "plannedChapters": 9,
+  "chapters": [
+    {"number": 1, "title": "The Commission", "isFree": true},
+    {"number": 2, "title": "What the Ink Remembers", "isFree": true},
+    {"number": 3, "title": "The Road That Wasn't", "isFree": true},
+    {"number": 4, "title": "Travellers", "isFree": false},
+    {"number": 5, "title": "The Toll", "isFree": false},
+    {"number": 6, "title": "Greywater", "isFree": false},
+    {"number": 7, "title": "The City of Saying-So", "isFree": false},
+    {"number": 8, "title": "The Duke's Name", "isFree": false},
+    {"number": 9, "title": "Unmade", "isFree": false}
+  ]
+}

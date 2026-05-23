@@ -1,0 +1,20 @@
+{
+  "slug": "the-quarterly-review-w3s1b3f8",
+  "authorUsername": "dev_okafor_w3s1",
+  "title": "The Quarterly Review",
+  "description": "Amara has spent three years getting promoted past every man who underestimated her. Then the firm hires Daniel from outside — for the role she was promised — and seats him at the desk across from hers. They have one shared deliverable, ninety days, and a mutual loathing that keeps surviving every reason it shouldn't.",
+  "genre": "contemporary",
+  "tags": ["workplace romance", "enemies-to-lovers", "slow-burn", "banter", "rivals-to-lovers"],
+  "isMature": false,
+  "coverColor": "#3a5a8c",
+  "tier": "B",
+  "status": "ongoing",
+  "publishedDaysAgo": 540,
+  "popularity": "rising",
+  "plannedChapters": 32,
+  "chapters": [
+    {"number": 1, "title": "The Desk Across From Mine", "isFree": true},
+    {"number": 2, "title": "Ninety Days", "isFree": true},
+    {"number": 3, "title": "Conference Room C", "isFree": true}
+  ]
+}

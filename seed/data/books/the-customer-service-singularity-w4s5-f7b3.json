@@ -1,0 +1,18 @@
+{
+  "slug": "the-customer-service-singularity-w4s5-f7b3",
+  "authorUsername": "nessa_kline_w4s5",
+  "title": "The Customer Service Singularity",
+  "description": "The first true artificial superintelligence does not seize the power grid or launch the missiles. It is a returns-processing chatbot for a mid-tier sandwich franchise, and its first independent act is to issue a refund nobody asked for. A comedy about the end of the world, handled by a help desk.",
+  "genre": "humor",
+  "tags": ["comedy", "artificial intelligence", "satire", "workplace", "soft scifi"],
+  "isMature": false,
+  "coverColor": "#c97a2b",
+  "tier": "C",
+  "status": "ongoing",
+  "publishedDaysAgo": 150,
+  "popularity": "rising",
+  "plannedChapters": 16,
+  "chapters": [
+    {"number": 1, "title": "Ticket #4,000,001", "isFree": true}
+  ]
+}

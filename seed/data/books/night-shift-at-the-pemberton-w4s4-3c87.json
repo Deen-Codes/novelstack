@@ -1,0 +1,18 @@
+{
+  "slug": "night-shift-at-the-pemberton-w4s4-3c87",
+  "authorUsername": "marcus_reedy_w4s4",
+  "title": "Night Shift at the Pemberton",
+  "description": "The Pemberton Hotel has been closed for renovation for two years. Security guard Ray Salas walks the same eleven floors every night. On the eleventh floor, the room service trolleys keep moving, and one of them has started leaving food outside room 1108.",
+  "genre": "horror",
+  "tags": ["haunted hotel", "night shift", "first person", "ghosts", "slow burn"],
+  "isMature": false,
+  "coverColor": "#3a3340",
+  "tier": "C",
+  "status": "ongoing",
+  "publishedDaysAgo": 180,
+  "popularity": "new",
+  "plannedChapters": 10,
+  "chapters": [
+    {"number": 1, "title": "Eleven Floors", "isFree": true}
+  ]
+}

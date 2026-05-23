@@ -1,0 +1,18 @@
+{
+  "slug": "slow-grown-w3s1c2f6",
+  "authorUsername": "jonas_w3s1",
+  "title": "Slow Grown",
+  "description": "Pete and Annie have run the two halves of the same hardware store for fifteen years, him on the timber side, her on the seeds and the till. They are not together. Everyone in town assumes they are. When a developer offers to buy the building, the two of them have to decide, finally, what it is they have been quietly building all along.",
+  "genre": "romance",
+  "tags": ["friends-to-lovers", "small-town romance", "slow-burn", "older couple", "second-chance"],
+  "isMature": false,
+  "coverColor": "#6e8a4a",
+  "tier": "C",
+  "status": "ongoing",
+  "publishedDaysAgo": 340,
+  "popularity": "modest",
+  "plannedChapters": 16,
+  "chapters": [
+    {"number": 1, "title": "The Offer", "isFree": true}
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "slug": "the-summer-i-stayed-w3s1c9a2",
+  "authorUsername": "priya_n_w3s1",
+  "title": "The Summer I Stayed",
+  "description": "Mira's flight got cancelled and she ended up stuck for a week in the seaside town she grew up in, the one she swore she'd never come back to. The boy who broke her heart at eighteen now runs the only cafe on the front. Some places make you finish the conversation.",
+  "genre": "romance",
+  "tags": ["second-chance", "small-town romance", "summer", "first love", "slow-burn"],
+  "isMature": false,
+  "coverColor": "#f0a868",
+  "tier": "C",
+  "status": "ongoing",
+  "publishedDaysAgo": 30,
+  "popularity": "new",
+  "plannedChapters": 18,
+  "chapters": [
+    {"number": 1, "title": "Cancelled", "isFree": true}
+  ]
+}

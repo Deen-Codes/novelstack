@@ -1,0 +1,20 @@
+{
+  "slug": "eleven-missed-calls-w1s4b7c2",
+  "authorUsername": "marlowe_quill_w1s4",
+  "title": "Eleven Missed Calls",
+  "description": "Defense investigator Nadia Reyes takes a routine job verifying an alibi and finds eleven missed calls on a dead woman's phone, all from a number that was never traced. The client says the case is simple. The client is lying. A slow-burn legal mystery about the questions nobody wanted asked.",
+  "genre": "mystery",
+  "tags": ["amateur sleuth", "legal thriller", "slow burn", "twist", "investigation"],
+  "isMature": false,
+  "coverColor": "#5a3b4a",
+  "tier": "B",
+  "status": "ongoing",
+  "publishedDaysAgo": 240,
+  "popularity": "modest",
+  "plannedChapters": 28,
+  "chapters": [
+    {"number": 1, "title": "A Simple Job", "isFree": true},
+    {"number": 2, "title": "The Number", "isFree": true},
+    {"number": 3, "title": "Voicemail", "isFree": true}
+  ]
+}

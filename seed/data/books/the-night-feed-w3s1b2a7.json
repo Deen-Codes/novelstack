@@ -1,0 +1,19 @@
+{
+  "slug": "the-night-feed-w3s1b2a7",
+  "authorUsername": "harriet_lowe_w3s1",
+  "title": "The Night Feed",
+  "description": "Cara is twenty-nine, exhausted, and raising a baby alone in a flat with a view of the bin store. The new tenant downstairs keeps a light on at 3am, same as her. When their two sleepless windows finally turn into a conversation, she has to decide if there's room in a life this full for one more person.",
+  "genre": "romance",
+  "tags": ["single-parent romance", "friends-to-lovers", "slow-burn", "slice of life", "found family"],
+  "isMature": false,
+  "coverColor": "#6b5b95",
+  "tier": "B",
+  "status": "ongoing",
+  "publishedDaysAgo": 360,
+  "popularity": "modest",
+  "plannedChapters": 22,
+  "chapters": [
+    {"number": 1, "title": "The Light Downstairs", "isFree": true},
+    {"number": 2, "title": "Two Sugars", "isFree": true}
+  ]
+}

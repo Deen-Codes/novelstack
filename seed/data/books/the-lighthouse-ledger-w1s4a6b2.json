@@ -1,0 +1,18 @@
+{
+  "slug": "the-lighthouse-ledger-w1s4a6b2",
+  "authorUsername": "rosa_delmar_w1s4",
+  "title": "The Lighthouse Ledger",
+  "description": "In 1971 a lighthouse keeper vanished from a locked tower on the night of the worst storm in living memory. Fifty years on, his granddaughter finds his last ledger and a single entry that doesn't match the official story. A cold-case mystery steeped in salt, fog, and the long memory of a coastal town.",
+  "genre": "mystery",
+  "tags": ["cold case", "coastal town", "historical mystery", "family secrets", "amateur sleuth"],
+  "isMature": false,
+  "coverColor": "#37536b",
+  "tier": "C",
+  "status": "ongoing",
+  "publishedDaysAgo": 300,
+  "popularity": "modest",
+  "plannedChapters": 22,
+  "chapters": [
+    {"number": 1, "title": "The Last Entry", "isFree": true}
+  ]
+}

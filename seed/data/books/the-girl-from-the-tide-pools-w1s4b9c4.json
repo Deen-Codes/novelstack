@@ -1,0 +1,18 @@
+{
+  "slug": "the-girl-from-the-tide-pools-w1s4b9c4",
+  "authorUsername": "rosa_delmar_w1s4",
+  "title": "The Girl from the Tide Pools",
+  "description": "Everyone in Wrenmouth knows the story of the girl who drowned in the tide pools forty summers ago. Retired librarian Edith Vane knew her, and Edith has always known the story is wrong. When a developer starts draining the cove, the truth begins to surface. A gentle, melancholy cold-case mystery.",
+  "genre": "mystery",
+  "tags": ["cold case", "small town secrets", "coastal town", "amateur sleuth", "slow burn"],
+  "isMature": false,
+  "coverColor": "#4a6356",
+  "tier": "C",
+  "status": "ongoing",
+  "publishedDaysAgo": 110,
+  "popularity": "new",
+  "plannedChapters": 21,
+  "chapters": [
+    {"number": 1, "title": "Forty Summers", "isFree": true}
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "slug": "the-recanting-w1s4a3f1",
+  "authorUsername": "marlowe_quill_w1s4",
+  "title": "The Recanting",
+  "description": "Nineteen years ago, Dana Holt's testimony put a man in prison for a murder she didn't see. Now the only other witness is dead, the case is reopening, and someone wants Dana to keep her story exactly as it was. A taut courtroom thriller about the lies we rehearse until they feel like memory.",
+  "genre": "thriller",
+  "tags": ["legal thriller", "unreliable narrator", "cold case", "courtroom", "guilt"],
+  "isMature": false,
+  "coverColor": "#3b4a5a",
+  "tier": "A",
+  "status": "complete",
+  "publishedDaysAgo": 760,
+  "popularity": "rising",
+  "plannedChapters": 9,
+  "chapters": [
+    {"number": 1, "title": "The Letter", "isFree": true},
+    {"number": 2, "title": "What I Said Then", "isFree": true},
+    {"number": 3, "title": "The Other Witness", "isFree": true},
+    {"number": 4, "title": "Discovery", "isFree": false},
+    {"number": 5, "title": "The Visit", "isFree": false},
+    {"number": 6, "title": "Cross", "isFree": false},
+    {"number": 7, "title": "The Tape", "isFree": false},
+    {"number": 8, "title": "Recanting", "isFree": false},
+    {"number": 9, "title": "Verdict", "isFree": false}
+  ]
+}

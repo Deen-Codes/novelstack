@@ -1,0 +1,18 @@
+{
+  "slug": "the-debt-collectors-guild-w1s3c3a9",
+  "authorUsername": "grayston_w1s3",
+  "title": "The Debt Collector's Guild",
+  "description": "In Hexgate, the Guild collects debts the law cannot reach — and the law cannot reach a debt sworn on blood. Junior collector Rell is handed his first solo book of names. The first name on it has been dead for six years, and the debt is still accruing interest.",
+  "genre": "fantasy",
+  "tags": ["dark fantasy", "magic system", "antihero", "crime", "sword and sorcery"],
+  "isMature": false,
+  "coverColor": "#3a3340",
+  "tier": "C",
+  "status": "ongoing",
+  "publishedDaysAgo": 70,
+  "popularity": "new",
+  "plannedChapters": 24,
+  "chapters": [
+    {"number": 1, "title": "A Book of Names", "isFree": true}
+  ]
+}

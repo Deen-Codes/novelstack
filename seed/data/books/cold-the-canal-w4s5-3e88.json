@@ -1,0 +1,20 @@
+{
+  "slug": "cold-the-canal-w4s5-3e88",
+  "authorUsername": "dex_okafor_w4s5",
+  "title": "Cold the Canal",
+  "description": "When a property developer turns up face-down in the Rochdale Canal, DS Femi Bankole catches a case nobody upstairs wants solved. The dead man had friends in planning permission and enemies in every terraced street he was about to demolish. A gritty Manchester crime novel about money, memory, and the price of a postcode.",
+  "genre": "crime",
+  "tags": ["police procedural", "manchester", "corruption", "noir", "murder"],
+  "isMature": true,
+  "coverColor": "#1c1c1f",
+  "tier": "B",
+  "status": "ongoing",
+  "publishedDaysAgo": 300,
+  "popularity": "modest",
+  "plannedChapters": 38,
+  "chapters": [
+    {"number": 1, "title": "Towpath", "isFree": true},
+    {"number": 2, "title": "Next of Kin", "isFree": true},
+    {"number": 3, "title": "The Planning File", "isFree": true}
+  ]
+}

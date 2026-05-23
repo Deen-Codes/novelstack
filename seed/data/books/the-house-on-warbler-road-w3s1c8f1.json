@@ -1,0 +1,18 @@
+{
+  "slug": "the-house-on-warbler-road-w3s1c8f1",
+  "authorUsername": "jonas_w3s1",
+  "title": "The House on Warbler Road",
+  "description": "Hal is a carpenter who fixes other people's homes and goes back to an empty one. When the widow who bought the old Warbler place hires him to make it liveable, the job is meant to take six weeks. Some houses take longer. So do some people.",
+  "genre": "romance",
+  "tags": ["small-town romance", "slow-burn", "second-chance", "older couple", "grief and healing"],
+  "isMature": false,
+  "coverColor": "#8a7a4a",
+  "tier": "C",
+  "status": "ongoing",
+  "publishedDaysAgo": 480,
+  "popularity": "modest",
+  "plannedChapters": 20,
+  "chapters": [
+    {"number": 1, "title": "The Estimate", "isFree": true}
+  ]
+}

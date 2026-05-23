@@ -1,0 +1,18 @@
+{
+  "slug": "dragon-camp-w1s3c6b9",
+  "authorUsername": "pixelbard_w1s3",
+  "title": "Dragon Camp",
+  "description": "Summer camp but for dragon riders. Sort of. Kez got the acceptance letter by accident, she's pretty sure, because everyone else can already fly and she can't even get her dragon to look at her. This is the story of the worst and best summer of her life.",
+  "genre": "young_adult",
+  "tags": ["young adult", "dragons", "magic school", "coming of age", "friendship"],
+  "isMature": false,
+  "coverColor": "#4a5e3a",
+  "tier": "C",
+  "status": "ongoing",
+  "publishedDaysAgo": 40,
+  "popularity": "new",
+  "plannedChapters": 15,
+  "chapters": [
+    {"number": 1, "title": "The Wrong Letter", "isFree": true}
+  ]
+}

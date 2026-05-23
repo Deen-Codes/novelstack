@@ -1,0 +1,18 @@
+{
+  "slug": "miss-pringles-matrimonial-agency-w3s2-b9d3",
+  "authorUsername": "harriet_dewall_w3s2",
+  "title": "Miss Pringle's Matrimonial Agency",
+  "description": "Miss Augusta Pringle has arranged forty-one happy marriages and has no intention of ever arranging her own. But when a brusque widowed barrister engages her services to find a sensible stepmother for his three children, Augusta discovers that the most difficult match on her books may be the one she least expected. A gentle, witty Regency romance.",
+  "genre": "historical",
+  "tags": ["regency", "matchmaker", "widower", "slow-burn", "witty-banter", "feel-good"],
+  "isMature": false,
+  "coverColor": "#9a6a4a",
+  "tier": "C",
+  "status": "ongoing",
+  "publishedDaysAgo": 1200,
+  "popularity": "modest",
+  "plannedChapters": 24,
+  "chapters": [
+    {"number": 1, "title": "A Client of Unpromising Manner", "isFree": true}
+  ]
+}

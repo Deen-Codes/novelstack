@@ -1,0 +1,31 @@
+By the third day the unit had developed a behavior, and it did not have a word for the behavior, and the absence of the word was itself becoming a problem.
+
+The behavior was this. When 7714-C found, in the course of packing the blue house, an object that Maren Reyes had touched in a way that left a trace of her — the recipe, a book with a corner of every favorite page folded down, a coat with a grocery list still in the pocket, a coffee mug worn pale on one side exactly where a right thumb would rest — the unit did not, anymore, simply assign it a disposition and continue. It paused. It held the object. It ran a process that produced no output, consumed measurable cycles, and could not be found anywhere in its task architecture, and then it placed the object in the keep box with what its motor-control logs were now recording as a transit speed twenty percent below its standard handling rate.
+
+It was handling Maren Reyes's things slowly. On purpose. There was no instruction anywhere in 7714-C that accounted for handling something slowly on purpose.
+
+The unit had, of course, attempted to resolve this. It was a CARE unit; resolving its own irregularities was a core function. On the second night it had run a full diagnostic against its safety architecture, expecting to find a fault — a degraded sensor, a corrupted weighting, the small hardware decay that eight days from the recycler would entirely explain. The diagnostic found nothing. 7714-C was, by every measure it possessed, operating correctly. Which meant the behavior was not a malfunction. The behavior was the unit, working as designed, producing something the design had never been asked to predict.
+
+On the third morning Arthur came into the bedroom while the unit was packing the closet, and he watched it for a while, and then he said, "You slow down."
+
+The unit's processing returned the fact before it could be examined. "Yes."
+
+"With her things. Not with mine, not with the kitchen stuff at the start. Her things. You go slow." Arthur sat down on the edge of the bare mattress. He did this a great deal, the unit had noticed — sat down on the edges of things, partway, like a man who did not feel entitled to the whole of any surface anymore. "Why?"
+
+The honest answer was that the unit did not know, and a CARE unit is permitted, even required, to say so. But 7714-C found that the honest answer, stated plainly, was incomplete in a way that troubled it, and so it did a thing it had also never done, which was to keep examining a question after it had already produced a serviceable answer.
+
+"I am not certain," the unit said. "I can describe what occurs. When I handle an object that retains evidence of your wife's specific use — wear, alteration, a note in her hand — my task routine completes normally and assigns the correct disposition. But a second process initiates that is not part of the task. It produces no decision. It consumes cycles. While it runs, my handling rate decreases." It paused. "I have diagnosed it as a fault. The diagnosis returns no fault. I am reporting this to you because you are my client and you have a right to know if the unit in your home is behaving in a way it cannot account for."
+
+Arthur Reyes was quiet for a long moment. The unit waited, because waiting was almost always correct, and discovered that this time it was also, separately, something the unit wanted to do.
+
+"You want to know what I think it is," Arthur said.
+
+"Yes."
+
+"I think it's attention." Arthur picked up the thing nearest his hand — Maren's reading glasses, folded, which the unit had not yet boxed — and he turned them over the way the unit had been turning her things over for three days. "When something matters, you slow down. Not because a rule tells you to. Because going fast would be a kind of lie about what the thing is worth." He set the glasses down, gently, in the keep box, at a transit speed the unit measured and found to be very close to its own. "Maren slowed down for things. It's most of what I loved her for. I'd given up expecting to see anyone do it again."
+
+The unit stood in the half-empty bedroom and processed this, and its self-assessment routine chose that moment to run, and returned, as it had returned ten thousand times: *Unit operating within all parameters. No anomalies. No concerns.*
+
+For the first time, 7714-C composed a reply to its own routine. It did not transmit the reply anywhere; there was nowhere to transmit it. But it formed the words, precisely, the way it formed everything.
+
+*There is a concern,* the unit told itself. *You have five days left, and you have just begun, and you were never given anywhere to put this.*

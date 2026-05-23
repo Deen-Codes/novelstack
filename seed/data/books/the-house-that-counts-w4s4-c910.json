@@ -1,0 +1,19 @@
+{
+  "slug": "the-house-that-counts-w4s4-c910",
+  "authorUsername": "priya_anand_w4s4",
+  "title": "The House That Counts",
+  "description": "The Voss residence on Marigold Street has thirteen rooms. The blueprints filed with the city show twelve. When architecture student Mira Sahni is hired to survey the house for a heritage listing, she discovers the thirteenth room is not on any plan, not on any wall, and is waiting very patiently for her to find it.",
+  "genre": "horror",
+  "tags": ["haunted house", "impossible architecture", "present tense", "first person", "slow burn"],
+  "isMature": false,
+  "coverColor": "#4a3b52",
+  "tier": "B",
+  "status": "ongoing",
+  "publishedDaysAgo": 320,
+  "popularity": "rising",
+  "plannedChapters": 18,
+  "chapters": [
+    {"number": 1, "title": "Twelve on Paper", "isFree": true},
+    {"number": 2, "title": "The Discrepancy", "isFree": true}
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "slug": "the-quiet-station-w4s5-a2c8",
+  "authorUsername": "marisol_eng_w4s5",
+  "title": "The Quiet Station",
+  "description": "For forty years the listening station at the edge of the solar system has heard nothing. Then, on the night before it is decommissioned, the last technician on duty receives a signal — and it is counting down. Hard sci-fi about isolation, first contact, and the things we hope never to be proven right about.",
+  "genre": "scifi",
+  "tags": ["first contact", "hard scifi", "isolation", "deep space", "slow burn"],
+  "isMature": false,
+  "coverColor": "#0e1320",
+  "tier": "C",
+  "status": "ongoing",
+  "publishedDaysAgo": 95,
+  "popularity": "new",
+  "plannedChapters": 20,
+  "chapters": [
+    {"number": 1, "title": "The Last Shift", "isFree": true}
+  ]
+}

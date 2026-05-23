@@ -1,0 +1,18 @@
+{
+  "slug": "last-call-at-the-blue-hour-w4s5-b9d5",
+  "authorUsername": "dex_okafor_w4s5",
+  "title": "Last Call at the Blue Hour",
+  "description": "A jazz bar closes for good at 2 a.m., and by 2:15 the owner is dead behind the bar with the night's takings untouched. Six people were still inside. None of them will say why they stayed. A locked-room crime novel where everyone has an alibi and nobody has a reason to be honest.",
+  "genre": "crime",
+  "tags": ["locked room", "whodunit", "jazz", "noir", "ensemble"],
+  "isMature": false,
+  "coverColor": "#1a2438",
+  "tier": "C",
+  "status": "ongoing",
+  "publishedDaysAgo": 120,
+  "popularity": "modest",
+  "plannedChapters": 28,
+  "chapters": [
+    {"number": 1, "title": "Stragglers", "isFree": true}
+  ]
+}

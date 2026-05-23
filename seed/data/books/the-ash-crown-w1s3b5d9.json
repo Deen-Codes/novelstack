@@ -1,0 +1,19 @@
+{
+  "slug": "the-ash-crown-w1s3b5d9",
+  "authorUsername": "sable_quill_w1s3",
+  "title": "The Ash Crown",
+  "description": "When the old queen burns on her own pyre, her dragon does not die with her — it chooses her bastard daughter instead, and a kingdom that wanted a quiet succession now has a war. Naeve never wanted the throne. She wants the people who killed her mother. The crown, she is learning, can give her only one of those things.",
+  "genre": "fantasy",
+  "tags": ["court intrigue", "dragons", "grimdark", "politics", "revenge", "royalty"],
+  "isMature": true,
+  "coverColor": "#3a1f1f",
+  "tier": "B",
+  "status": "ongoing",
+  "publishedDaysAgo": 600,
+  "popularity": "modest",
+  "plannedChapters": 36,
+  "chapters": [
+    {"number": 1, "title": "The Pyre Chooses", "isFree": true},
+    {"number": 2, "title": "A Quiet Succession", "isFree": true}
+  ]
+}

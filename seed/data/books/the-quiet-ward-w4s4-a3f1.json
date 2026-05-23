@@ -1,0 +1,27 @@
+{
+  "slug": "the-quiet-ward-w4s4-a3f1",
+  "authorUsername": "marrow_lane_w4s4",
+  "title": "The Quiet Ward",
+  "description": "When night nurse Della Voss takes a posting at the half-closed Aldgrove Convalescent Home, she finds the third floor sealed and the staff unwilling to discuss it. The patients there were discharged years ago. So why does someone keep ringing the call bell?",
+  "genre": "horror",
+  "tags": ["haunted hospital", "ghosts", "slow burn", "first person", "psychological horror"],
+  "isMature": false,
+  "coverColor": "#2d3a3a",
+  "tier": "A",
+  "status": "complete",
+  "publishedDaysAgo": 760,
+  "popularity": "rising",
+  "plannedChapters": 10,
+  "chapters": [
+    {"number": 1, "title": "The Posting", "isFree": true},
+    {"number": 2, "title": "Third Floor", "isFree": true},
+    {"number": 3, "title": "The Call Bell", "isFree": true},
+    {"number": 4, "title": "Mrs. Fern", "isFree": false},
+    {"number": 5, "title": "The Logbook", "isFree": false},
+    {"number": 6, "title": "What the Day Staff Won't Say", "isFree": false},
+    {"number": 7, "title": "The Sealed Door", "isFree": false},
+    {"number": 8, "title": "Rounds", "isFree": false},
+    {"number": 9, "title": "Discharge", "isFree": false},
+    {"number": 10, "title": "The Quiet Ward", "isFree": false}
+  ]
+}

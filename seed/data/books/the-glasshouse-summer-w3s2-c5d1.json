@@ -1,0 +1,18 @@
+{
+  "slug": "the-glasshouse-summer-w3s2-c5d1",
+  "authorUsername": "james_okafor_w3s2",
+  "title": "The Glasshouse Summer",
+  "description": "Newport, 1902. Theodore Brandt has spent his life in service at the great summer cottages of the very rich, and Eleanor Ashby-Vane has spent hers being displayed in them. They were not supposed to meet at all, let alone in the orchid house at two in the morning. A Gilded Age romance of two people on the wrong sides of a glass wall.",
+  "genre": "historical",
+  "tags": ["gilded-age", "forbidden-love", "class-difference", "slow-burn", "summer-romance"],
+  "isMature": false,
+  "coverColor": "#3a5240",
+  "tier": "C",
+  "status": "ongoing",
+  "publishedDaysAgo": 470,
+  "popularity": "new",
+  "plannedChapters": 28,
+  "chapters": [
+    {"number": 1, "title": "Two O'Clock in the Orchid House", "isFree": true}
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "slug": "best-man-worst-timing-w3s1c7b3",
+  "authorUsername": "dev_okafor_w3s1",
+  "title": "Best Man, Worst Timing",
+  "description": "Nadia and Theo have been best friends for nine years, which is exactly long enough for both of them to have missed every single window. Now they're co-planning their friends' wedding, sharing a hotel room with one bed, and running out of excuses. Friendship was supposed to be the safe option.",
+  "genre": "contemporary",
+  "tags": ["friends-to-lovers", "wedding", "slow-burn", "banter", "one-bed"],
+  "isMature": false,
+  "coverColor": "#c97b3a",
+  "tier": "C",
+  "status": "ongoing",
+  "publishedDaysAgo": 300,
+  "popularity": "modest",
+  "plannedChapters": 26,
+  "chapters": [
+    {"number": 1, "title": "The Spreadsheet of Honour", "isFree": true}
+  ]
+}

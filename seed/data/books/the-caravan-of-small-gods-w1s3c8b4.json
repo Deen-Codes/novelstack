@@ -1,0 +1,18 @@
+{
+  "slug": "the-caravan-of-small-gods-w1s3c8b4",
+  "authorUsername": "kettle_and_co_w1s3",
+  "title": "The Caravan of Small Gods",
+  "description": "Every village in the Tallowlands has its own small god — of the bread oven, of the lost button, of the safe road home. When the gods start going quiet one by one, retired caravan-master Brannot is asked to do one last route: carry a cartload of forgotten gods back to where they were first believed in.",
+  "genre": "adventure",
+  "tags": ["cozy fantasy", "found family", "road trip", "folklore", "low stakes"],
+  "isMature": false,
+  "coverColor": "#6e5a32",
+  "tier": "C",
+  "status": "ongoing",
+  "publishedDaysAgo": 130,
+  "popularity": "modest",
+  "plannedChapters": 16,
+  "chapters": [
+    {"number": 1, "title": "One Last Route", "isFree": true}
+  ]
+}

@@ -1,0 +1,31 @@
+Imogen Vale had been the ship's accountant for nineteen years before she found the lie, and even then she did not find it so much as trip over it, the way you trip over a step you have climbed ten thousand times without ever looking down.
+
+The Anselm was four hundred and six years into its crossing. It carried, at last reliable count, eleven thousand and forty people, most of whom had never known anything but the curved corridors, the hydroponic light cycling cold to warm and back, the low organ-note of the drive that you stopped hearing by your second birthday. The ship was not large for what it did. It was a town that happened to be moving, and like every town it kept its books, and the books were Imogen's.
+
+She liked the books. She would not have said so out loud, because people found it strange, an affection for spreadsheets, but the truth was that the ledgers were the only place on the Anselm where the universe behaved. Everything else — the politics, the air recycling committee, her sister's marriage, the slow ugly argument about the schools — everything else was opinion all the way down. The ledgers were not. A number was true or it was wrong, and if it was wrong you could find the place where it went wrong, and you could fix it, and afterward the world balanced.
+
+That morning she had been reconciling the propulsion reserve. It was a quarterly chore, dull as scripture. The reserve was the fuel set aside for one purpose only — the deceleration burn, the long terrible braking that would, eighty-one years from now, slow the Anselm from its cruising speed to something a destination could survive. You did not touch the reserve. You did not borrow against it. The first article of the ship's compact, older than any law about food or marriage or air, was that the light budget was sacred, and Imogen had reconciled it nineteen times and it had balanced nineteen times and she expected the twentieth to take her until lunch and no longer.
+
+It did not balance.
+
+She noticed it the way you notice a wrong note in music you know — not as a fact but as a wrongness, a flinch before the mind caught up. The reserve mass was correct. The drive efficiency was correct. But the target figure, the velocity the burn was calculated to kill, was keyed to a number she had never had cause to question, a number that lived in a locked founding document and was simply imported into every projection: the ship's cruising speed.
+
+And the cruising speed in the founding document was not the cruising speed the navigation logs had been quietly recording for four hundred years.
+
+The difference was small. That was the first thing she told herself, standing in the cold light of the office with the discrepancy glowing on the slate. The difference was small, a fraction of a percent, the kind of thing that rounds away. She told herself that for almost a minute. Then she did the only thing she had ever known how to do with a wrong number, which was to follow it, and she opened the reserve calculation and substituted the real speed for the founders' speed, and watched the deceleration burn recompute.
+
+The reserve was not enough.
+
+It was close. It was heartbreakingly, deliberately close. With the speed the founders had written down, the Anselm could brake to a survivable approach with a comfortable eight per cent margin — the figure every child learned, the figure carved into the wall of the assembly hall. With the speed the ship had actually been travelling, all these centuries, the burn ran the reserve dry and left the Anselm still moving, still falling forward, at a velocity no orbit could hold and no world could forgive.
+
+Imogen sat down. The chair was where it always was. She found that small mercy almost unbearable.
+
+She ran it again. She ran it the way you press a bruise. She checked the navigation logs for corruption and found none; the logs were redundant, triple-kept, and they agreed with each other across four hundred years the way only true things agree. She checked whether the founders' figure might be a planned speed, an intention rather than a record, and found that it was labelled, in the clipped grammar of the first crew, as MEASURED. They had written measured. They had measured something else, or they had measured nothing, and either way they had written measured, and sealed it, and let every navigator and accountant since build their arithmetic on a foundation that was a sentence somebody chose to type.
+
+The drive hummed its single note through the floor. Outside the office, in the corridor, she could hear the schools letting out, the high bright chaos of children who had eighty-one years and a number on a wall.
+
+Imogen Vale was fifty-four years old. The ship would not begin its braking burn until long after she was dead. Whatever she did now, she would not live to see whether it had been right. That was the shape of the thing she was holding: a wrongness with no deadline she would meet, a debt that came due in a century, a step she had tripped over in the dark and could not now pretend she had not felt give way beneath her.
+
+She closed the slate. She did not save the substitution. She told herself that was procedure, that you did not commit an unverified figure, and that was true, and it was also the first small lie she told to keep the larger one company, and she knew it even as she told it, the way you know the weather is turning before the first real cold.
+
+She went to lunch. She found she could not eat. She sat in the long warm hall under the carved figure that said EIGHT PER CENT and watched eleven thousand people pass food to one another, and she understood that she had become, in the span of a single morning, the only person aboard who knew the town was not going to be able to stop.

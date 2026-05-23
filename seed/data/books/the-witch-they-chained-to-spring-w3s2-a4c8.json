@@ -1,0 +1,18 @@
+{
+  "slug": "the-witch-they-chained-to-spring-w3s2-a4c8",
+  "authorUsername": "anneliese_vorn_w3s2",
+  "title": "The Witch They Chained to Spring",
+  "description": "The kingdom's harvest fails unless a witch is bound to the land each spring and bled slowly of her magic until autumn. This year they chose Maren. Her guard is Castellan Roeve, who has escorted nine witches to that field and watched all nine die — and who has decided, too late and against every oath he swore, that he will not watch a tenth. Dark romantasy of sacrifice, oaths, and a love that intends to break a kingdom's worst tradition.",
+  "genre": "fantasy",
+  "tags": ["dark-romantasy", "sacrifice", "forbidden-love", "slow-burn", "morally-grey", "magic-cost"],
+  "isMature": true,
+  "coverColor": "#3e3552",
+  "tier": "C",
+  "status": "ongoing",
+  "publishedDaysAgo": 180,
+  "popularity": "modest",
+  "plannedChapters": 36,
+  "chapters": [
+    {"number": 1, "title": "The Tenth Witch", "isFree": true}
+  ]
+}

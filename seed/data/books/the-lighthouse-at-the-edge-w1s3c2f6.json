@@ -1,0 +1,18 @@
+{
+  "slug": "the-lighthouse-at-the-edge-w1s3c2f6",
+  "authorUsername": "old_salt_finn_w1s3",
+  "title": "The Lighthouse at the Edge of the Charts",
+  "description": "There is a lighthouse past the last marked island, and it has burned for three hundred years, and no one has ever met its keeper. When young Wick is shipwrecked onto its rock, he discovers the light is not there to warn ships away. It is there to keep something from coming in.",
+  "genre": "adventure",
+  "tags": ["sea adventure", "folklore", "monsters", "mystery", "isolation"],
+  "isMature": false,
+  "coverColor": "#23394a",
+  "tier": "C",
+  "status": "ongoing",
+  "publishedDaysAgo": 380,
+  "popularity": "new",
+  "plannedChapters": 14,
+  "chapters": [
+    {"number": 1, "title": "Wrecked", "isFree": true}
+  ]
+}

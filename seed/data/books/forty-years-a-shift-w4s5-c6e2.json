@@ -1,0 +1,18 @@
+{
+  "slug": "forty-years-a-shift-w4s5-c6e2",
+  "authorUsername": "colby_reyes_w4s5",
+  "title": "Forty Years a Shift",
+  "description": "A retired patrol officer remembers the calls that never made it into a report — the quiet ones, the strange ones, the ones that changed how he saw the badge on his chest. A plainspoken memoir about three decades on the night car, written by a man who is still not sure he understands any of it.",
+  "genre": "nonfiction",
+  "tags": ["memoir", "policing", "small town", "essays", "reflection"],
+  "isMature": false,
+  "coverColor": "#3a3530",
+  "tier": "C",
+  "status": "ongoing",
+  "publishedDaysAgo": 260,
+  "popularity": "modest",
+  "plannedChapters": 14,
+  "chapters": [
+    {"number": 1, "title": "The First Quiet Call", "isFree": true}
+  ]
+}

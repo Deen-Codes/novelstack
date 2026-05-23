@@ -1,0 +1,18 @@
+{
+  "slug": "the-lighthouse-keepers-daughter-w3s1c1f9",
+  "authorUsername": "margot_ellery_w3s1",
+  "title": "The Lighthouse Keeper's Daughter",
+  "description": "Wren came back to the coastal village of Stennick to sell her late father's lighthouse and leave for good. The new harbourmaster, who learned the light from her father in his final years, has other ideas — and a stubbornness that matches the sea. Some homes don't let you go quietly.",
+  "genre": "romance",
+  "tags": ["small-town romance", "second-chance", "grief and healing", "slow-burn", "coastal"],
+  "isMature": false,
+  "coverColor": "#4a7ba6",
+  "tier": "C",
+  "status": "ongoing",
+  "publishedDaysAgo": 220,
+  "popularity": "modest",
+  "plannedChapters": 24,
+  "chapters": [
+    {"number": 1, "title": "The Sale Sign", "isFree": true}
+  ]
+}

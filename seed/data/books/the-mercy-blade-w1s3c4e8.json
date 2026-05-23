@@ -1,0 +1,18 @@
+{
+  "slug": "the-mercy-blade-w1s3c4e8",
+  "authorUsername": "dthorne_w1s3",
+  "title": "The Mercy Blade",
+  "description": "Hadrek kills the dying. It is a trade, and an honest one, and the plague-towns pay him in coin to end what the sickness drags out. Then a girl with no plague-mark begs for his blade, and tells him a thing that means the sickness was never a sickness at all.",
+  "genre": "fantasy",
+  "tags": ["grimdark", "dark fantasy", "morally grey", "plague", "antihero"],
+  "isMature": true,
+  "coverColor": "#2b2b30",
+  "tier": "C",
+  "status": "ongoing",
+  "publishedDaysAgo": 400,
+  "popularity": "modest",
+  "plannedChapters": 26,
+  "chapters": [
+    {"number": 1, "title": "An Honest Trade", "isFree": true}
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "slug": "the-handover-w3s1c7e3",
+  "authorUsername": "harriet_lowe_w3s1",
+  "title": "The Handover",
+  "description": "Night-shift charge nurse Priya runs a tight ward and trusts no one quickly. The new agency doctor, Sam, is too gentle for the job and she is sure he won't last a month. Across a long winter of hard shifts, she learns that gentle is its own kind of strong. Quiet workplace romance about exhaustion, dignity, and finding someone who stays.",
+  "genre": "drama",
+  "tags": ["workplace romance", "slow-burn", "grumpy-sunshine", "found family", "healthcare"],
+  "isMature": true,
+  "coverColor": "#3a6b6b",
+  "tier": "C",
+  "status": "ongoing",
+  "publishedDaysAgo": 240,
+  "popularity": "modest",
+  "plannedChapters": 20,
+  "chapters": [
+    {"number": 1, "title": "Nights", "isFree": true}
+  ]
+}

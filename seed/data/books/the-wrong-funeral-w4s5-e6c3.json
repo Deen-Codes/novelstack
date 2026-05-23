@@ -1,0 +1,18 @@
+{
+  "slug": "the-wrong-funeral-w4s5-e6c3",
+  "authorUsername": "hollis_marsh_w4s5",
+  "title": "The Wrong Funeral",
+  "description": "Margaret attends the funeral of a woman she has never heard of and recognises, in the front pew, her own husband weeping. He has been dead for two years. A mystery about a marriage that was mostly a closed door, and a widow who decides, far too late, to find out who she actually buried.",
+  "genre": "mystery",
+  "tags": ["domestic mystery", "double life", "twisty", "widow", "secrets"],
+  "isMature": false,
+  "coverColor": "#3b3640",
+  "tier": "C",
+  "status": "ongoing",
+  "publishedDaysAgo": 340,
+  "popularity": "modest",
+  "plannedChapters": 26,
+  "chapters": [
+    {"number": 1, "title": "The Front Pew", "isFree": true}
+  ]
+}

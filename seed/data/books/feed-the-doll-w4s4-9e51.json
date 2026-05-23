@@ -1,0 +1,18 @@
+{
+  "slug": "feed-the-doll-w4s4-9e51",
+  "authorUsername": "grackle_w4s4",
+  "title": "Feed the Doll",
+  "description": "Casey buys a creepy old doll at a yard sale for two dollars. There's a note taped to its back. It says FEED ME EVERY NIGHT OR ELSE. Casey thinks it's funny. Casey doesn't think it's funny for very long.",
+  "genre": "horror",
+  "tags": ["cursed object", "creepy doll", "teen", "first person", "scary"],
+  "isMature": false,
+  "coverColor": "#5a2030",
+  "tier": "C",
+  "status": "ongoing",
+  "publishedDaysAgo": 70,
+  "popularity": "new",
+  "plannedChapters": 8,
+  "chapters": [
+    {"number": 1, "title": "Two Dollars", "isFree": true}
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "slug": "the-long-field-w1s4b3c9",
+  "authorUsername": "grimcasthollow_w1s4",
+  "title": "The Long Field",
+  "description": "There is a field behind the village that takes nine minutes to cross and always has, even when you walk faster. The locals don't talk about it. The new schoolteacher decides to time it properly. A slow-dread folk horror about distance, patience, and the things that wait at the far hedgerow.",
+  "genre": "horror",
+  "tags": ["folk horror", "slow burn", "rural horror", "dread", "the uncanny"],
+  "isMature": true,
+  "coverColor": "#2a3324",
+  "tier": "B",
+  "status": "ongoing",
+  "publishedDaysAgo": 130,
+  "popularity": "modest",
+  "plannedChapters": 14,
+  "chapters": [
+    {"number": 1, "title": "Nine Minutes", "isFree": true},
+    {"number": 2, "title": "The Far Hedgerow", "isFree": true},
+    {"number": 3, "title": "Counting", "isFree": true}
+  ]
+}

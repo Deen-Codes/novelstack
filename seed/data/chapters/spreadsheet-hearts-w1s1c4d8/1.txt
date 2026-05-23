@@ -1,0 +1,49 @@
+Meeting Room C was four metres by three, had no window, and contained a radiator that had two settings: off, and a heat that suggested the building was personally angry at you. For the next eleven weeks it would also contain Reena Sharma and Marcus Bell, who had spent two years successfully avoiding being in any room together, and who had now been assigned, by a manager with either no idea or a cruel sense of humour, to co-own the entire Q3 client analytics review.
+
+Reena got there first. She always got everywhere first; arriving early was a form of armour. She took the chair facing the door, set up her laptop, opened the master workbook, and had built four clean tabs before she heard Marcus in the corridor, talking to someone, laughing at something, because Marcus laughed in corridors, Marcus treated corridors as venues.
+
+Then he came in, and the small room got smaller.
+
+"Reena Sharma." He said her full name like it was a pleasant surprise rather than a printed item on the project brief he was holding. He had a coffee, a notebook, and the specific relaxed energy of a man who had never once in his life arrived early to armour himself against anything. "Eleven weeks. Meeting Room C. They've basically sentenced us."
+
+"They've assigned us a project." Reena did not look up from her tabs. "If you treat it like a sentence it'll feel like one."
+
+"That is the single most Reena thing anyone has ever said." He dropped into the chair across from her, and the table was small enough that this felt like a development. "You've already built tabs. We've been in the room ninety seconds."
+
+"I built them last night."
+
+"Of course you did." He was smiling. He was almost always smiling, and Reena had spent two years finding this suspicious, the way you'd find a salesman suspicious — what was he selling, where was the catch, why was a person that at ease. "Okay. Show me the structure."
+
+She turned the laptop. And here was the thing she had braced for, the actual reason she had wanted to avoid this room: Marcus Bell, for all the corridor laughing, was good. Annoyingly, unfairly good. He looked at her four clean tabs for about eight seconds and then said, "The client-segmentation tab — you've split by revenue band, but half our Q3 churn is in accounts that moved bands mid-quarter. If you segment static you'll lose them in the cracks. You'd want a movement flag."
+
+Reena looked at the tab. He was right. She hated, in a small precise way, that he was right.
+
+"I'd have caught that," she said.
+
+"I know you would." He said it easily, with no edge at all, which was somehow worse than if he'd gloated. "You catch everything. That's the whole problem with you, Reena, you catch everything and then you don't tell anyone, you just fix it quietly at nine at night and let everyone think the spreadsheet was always fine. I annotate. You conceal. We're going to drive each other completely insane."
+
+The radiator chose that moment to come on, with a metallic bang like a small accusation, and began pushing out its furious unreasonable heat.
+
+"The radiator's broken," Reena said.
+
+"The radiator's broken," Marcus agreed. "I checked, on my way in — facilities have it logged as 'awaiting parts,' which I think we both know is corporate for 'never.' So." He took off his jumper, with the unbothered ease of a man who treated discomfort as a negotiable thing, and pushed his notebook to the centre of the too-small table. "Eleven weeks. One broken radiator. One project. One room. I propose a treaty."
+
+Reena finally looked at him properly. Across the four-metre room, in the rising heat, with his sleeves now pushed up and his ridiculous notebook open to a fresh page.
+
+"What kind of treaty."
+
+"You stop fixing things silently. I'll stop annotating things you didn't ask me to annotate. We share the master file instead of each keeping a secret better version — and don't" — he pointed his pen at her — "tell me you don't have a secret better version, Reena, I've worked near you for two years, you absolutely have a secret better version."
+
+She did. It was open in another window right now. She closed the laptop lid two inches, casually, which Marcus watched her do and had the grace not to comment on.
+
+"Eleven weeks," Reena said.
+
+"Eleven weeks."
+
+"And you'll stop laughing in corridors?"
+
+"Absolutely not," said Marcus Bell, "the corridors are the best part of my day," and he grinned at her, full and unguarded, in the small overheated windowless room they were now sentenced to share, and Reena Sharma felt something shift in a tab she kept locked, and very deliberately did not look at it, and opened the master workbook instead.
+
+"Fine," she said. "Show me where you'd put the movement flag."
+
+It was, she would think much later, when she finally let herself unlock the tab and look at what was in it, a genuinely terrible way to begin falling for someone: over a churn analysis, in a sweatbox, arguing about segmentation. But it was, she had to admit, extremely on brand for both of them.

@@ -1,0 +1,20 @@
+{
+  "slug": "dead-air-w4s4-d4e8",
+  "authorUsername": "jordan_okafor_w4s4",
+  "title": "Dead Air",
+  "description": "Paranormal podcaster Theo Marsh records an episode inside the abandoned Carrow Hill radio station, where a night DJ vanished mid-broadcast in 1971. The episode comes out clean. But when listeners start calling in, every one of them heard a thirteenth segment that Theo never recorded.",
+  "genre": "paranormal",
+  "tags": ["paranormal investigators", "haunted broadcast", "found footage", "third person", "cosmic dread"],
+  "isMature": false,
+  "coverColor": "#1f2d3d",
+  "tier": "B",
+  "status": "ongoing",
+  "publishedDaysAgo": 480,
+  "popularity": "modest",
+  "plannedChapters": 21,
+  "chapters": [
+    {"number": 1, "title": "The Carrow Hill Tape", "isFree": true},
+    {"number": 2, "title": "Segment Thirteen", "isFree": true},
+    {"number": 3, "title": "Listener Mail", "isFree": true}
+  ]
+}

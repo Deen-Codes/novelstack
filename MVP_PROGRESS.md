@@ -229,3 +229,16 @@ The sandbox can't run git against the workspace folder (the mounted filesystem b
 - Community threads/clubs backend; cover image uploads; the "Following" feed in Library.
 - Search by tag and by author (currently title/description/genre only).
 - Analytics (PostHog), error monitoring (Sentry), accessibility pass, mobile offline reading.
+
+---
+
+## Seed catalogue run (overnight)
+
+Populated the live Render Postgres database with a tiered seed catalogue.
+Database grew from 89 → **272 seed authors**, 90 → **320 stories**,
+393 → **904 chapters**. Books by tier: 20 fully-written (Tier A), 62 with
+opening chapters (Tier B), 149 metadata + opener (Tier C). All authors are
+`is_seed = true`. Built a repeatable pipeline at `seed/` for future fill runs.
+
+Full details, genre distribution, what's queued, and how to run future waves:
+see `SEED_CATALOGUE_LOG.md`.

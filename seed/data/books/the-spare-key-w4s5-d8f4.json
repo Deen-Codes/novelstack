@@ -1,0 +1,18 @@
+{
+  "slug": "the-spare-key-w4s5-d8f4",
+  "authorUsername": "colby_reyes_w4s5",
+  "title": "The Spare Key",
+  "description": "A collection of short stories from a former police officer, set in the same tired desert town across forty years. A locksmith who knows every house. A diner that never closes. A patrol car that keeps passing the same window. Quiet, human, occasionally funny stories about the people a small place forgets to notice.",
+  "genre": "short_story",
+  "tags": ["short stories", "small town", "americana", "character study", "desert"],
+  "isMature": false,
+  "coverColor": "#7a5c3e",
+  "tier": "C",
+  "status": "ongoing",
+  "publishedDaysAgo": 180,
+  "popularity": "new",
+  "plannedChapters": 9,
+  "chapters": [
+    {"number": 1, "title": "The Locksmith", "isFree": true}
+  ]
+}
