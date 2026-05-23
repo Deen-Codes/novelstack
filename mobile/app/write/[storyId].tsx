@@ -148,7 +148,8 @@ export default function StoryWriter() {
       mediaTypes: ['images'],
       allowsEditing: true,
       aspect: [3, 4],
-      quality: 0.85,
+      // Lower quality keeps the upload small + fast — covers display small.
+      quality: 0.5,
     });
     if (result.canceled) return;
 
