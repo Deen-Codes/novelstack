@@ -13,6 +13,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { colors, spacing, radius } from '@/theme/tokens';
 import { apiGet, apiSend, getSessionToken } from '@/lib/api';
 import { getCurrentUser, signOut as clearSessionAuth } from '@/lib/auth';
+import { Cover } from '@/components/Cover';
 import type { User, Shelf, Story } from '@/lib/types';
 
 export default function ProfileScreen() {
@@ -194,8 +195,10 @@ export default function ProfileScreen() {
                 style={styles.gridItem}
                 onPress={() => router.push(`/story/${s.slug}`)}
               >
-                <View
-                  style={[styles.gridCover, { backgroundColor: s.coverColor ?? '#4F4AAA' }]}
+                <Cover
+                  coverUrl={s.coverUrl}
+                  coverColor={s.coverColor}
+                  style={styles.gridCover}
                 />
                 <Text style={styles.gridTitle}>{s.title}</Text>
               </Pressable>

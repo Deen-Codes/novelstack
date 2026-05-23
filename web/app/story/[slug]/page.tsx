@@ -5,6 +5,7 @@ import { getStoryBySlug, getSavedStories, isAdult } from '@/lib/queries';
 import { BookmarkButton } from '@/components/BookmarkButton';
 import { ReportButton } from '@/components/ReportButton';
 import { TipButton } from '@/components/TipButton';
+import { Cover } from '@/components/Cover';
 
 const BASE = 'https://novelstack.app';
 
@@ -98,9 +99,11 @@ export default async function StoryPage({ params }: { params: Promise<{ slug: st
       </Link>
 
       <div className="flex flex-col sm:flex-row gap-6 mt-10">
-        <div
-          className="w-32 sm:w-36 shrink-0 aspect-[3/4] rounded-xl"
-          style={{ background: story.coverColor ?? '#D85A30' }}
+        <Cover
+          coverUrl={story.coverUrl}
+          coverColor={story.coverColor}
+          title={story.title}
+          className="w-32 sm:w-36 shrink-0 aspect-[3/4] rounded-xl overflow-hidden"
         />
         <div>
           <span className="text-[12px] text-signal font-medium capitalize">{story.genre}</span>

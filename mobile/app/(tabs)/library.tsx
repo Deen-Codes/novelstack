@@ -12,6 +12,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { colors, spacing, radius } from '@/theme/tokens';
 import { apiGet } from '@/lib/api';
 import { getSessionToken } from '@/lib/api';
+import { Cover } from '@/components/Cover';
 import type { Shelf } from '@/lib/types';
 
 export default function Library() {
@@ -105,8 +106,10 @@ export default function Library() {
                 style={styles.gridItem}
                 onPress={() => router.push(`/story/${s.slug}`)}
               >
-                <View
-                  style={[styles.gridCover, { backgroundColor: s.coverColor ?? '#4F4AAA' }]}
+                <Cover
+                  coverUrl={s.coverUrl}
+                  coverColor={s.coverColor}
+                  style={styles.gridCover}
                 />
                 <Text style={styles.gridTitle}>{s.title}</Text>
               </Pressable>

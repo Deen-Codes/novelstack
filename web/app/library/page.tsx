@@ -6,6 +6,7 @@ import { reads, chapters, stories } from '@/db/schema';
 import { getSessionUser } from '@/lib/auth';
 import { getFollowing, getSavedStories } from '@/lib/queries';
 import { AppHeader } from '@/components/AppHeader';
+import { Cover } from '@/components/Cover';
 
 export const metadata = { title: 'Your library — NovelStack' };
 
@@ -21,6 +22,7 @@ export default async function Library() {
       chapterTitle: chapters.title,
       storyTitle: stories.title,
       storyCoverColor: stories.coverColor,
+      storyCoverUrl: stories.coverUrl,
     })
     .from(reads)
     .innerJoin(chapters, eq(chapters.id, reads.chapterId))
@@ -52,9 +54,11 @@ export default async function Library() {
                 href={`/read/${r.chapterId}`}
                 className="flex items-center gap-3 py-3 group"
               >
-                <div
-                  className="w-9 h-12 rounded shrink-0"
-                  style={{ background: r.storyCoverColor ?? '#D85A30' }}
+                <Cover
+                  coverUrl={r.storyCoverUrl}
+                  coverColor={r.storyCoverColor}
+                  title={r.storyTitle}
+                  className="w-9 h-12 rounded shrink-0 overflow-hidden"
                 />
                 <div>
                   <div className="text-[15px] font-medium group-hover:text-signal">
@@ -100,9 +104,11 @@ export default async function Library() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             {saved.map((s) => (
               <Link key={s.id} href={`/story/${s.slug}`} className="group">
-                <div
-                  className="aspect-[3/4] rounded-[10px] transition-transform group-hover:-translate-y-1"
-                  style={{ background: s.coverColor ?? '#4F4AAA' }}
+                <Cover
+                  coverUrl={s.coverUrl}
+                  coverColor={s.coverColor}
+                  title={s.title}
+                  className="aspect-[3/4] rounded-[10px] overflow-hidden transition-transform group-hover:-translate-y-1"
                 />
                 <div className="text-[13px] font-medium mt-2">{s.title}</div>
               </Link>

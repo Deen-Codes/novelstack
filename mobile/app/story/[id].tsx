@@ -13,6 +13,7 @@ import { useLocalSearchParams, useFocusEffect, router } from 'expo-router';
 import { colors, spacing, radius } from '@/theme/tokens';
 import { apiGet, apiSend } from '@/lib/api';
 import { getCurrentUser } from '@/lib/auth';
+import { Cover } from '@/components/Cover';
 import type { StoryDetail, Shelf } from '@/lib/types';
 
 // Reader-to-writer tip amounts, in cents.
@@ -171,7 +172,11 @@ export default function StoryScreen() {
         </Pressable>
 
         <View style={styles.head}>
-          <View style={[styles.cover, { backgroundColor: story.coverColor ?? '#4F4AAA' }]} />
+          <Cover
+            coverUrl={story.coverUrl}
+            coverColor={story.coverColor}
+            style={styles.cover}
+          />
           <View style={styles.headText}>
             <Text style={styles.genre}>{story.genre}</Text>
             <Text style={styles.h1}>{story.title}</Text>

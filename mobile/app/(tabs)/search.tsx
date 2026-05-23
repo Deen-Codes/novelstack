@@ -13,6 +13,7 @@ import { router } from 'expo-router';
 import { colors, spacing, radius } from '@/theme/tokens';
 import { apiGet } from '@/lib/api';
 import { GENRES } from '@/lib/genres';
+import { Cover } from '@/components/Cover';
 import type { Story } from '@/lib/types';
 
 export default function Search() {
@@ -91,7 +92,11 @@ export default function Search() {
                 style={styles.row}
                 onPress={() => router.push(`/story/${s.slug}`)}
               >
-                <View style={[styles.cover, { backgroundColor: s.coverColor ?? '#D85A30' }]} />
+                <Cover
+                  coverUrl={s.coverUrl}
+                  coverColor={s.coverColor}
+                  style={styles.cover}
+                />
                 <View style={styles.rowText}>
                   <Text style={styles.genre}>{s.genre}</Text>
                   <Text style={styles.rowTitle}>{s.title}</Text>

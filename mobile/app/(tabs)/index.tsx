@@ -12,6 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import { colors, spacing, radius } from '@/theme/tokens';
 import { apiGet } from '@/lib/api';
+import { Cover } from '@/components/Cover';
 import type { FeedStory } from '@/lib/types';
 
 export default function Home() {
@@ -70,9 +71,12 @@ export default function Home() {
               style={styles.row}
               onPress={() => router.push(`/story/${story.slug}`)}
             >
-              <View style={[styles.cover, { backgroundColor: story.coverColor ?? '#D85A30' }]}>
-                <Text style={styles.coverTitle}>{story.title}</Text>
-              </View>
+              <Cover
+                coverUrl={story.coverUrl}
+                coverColor={story.coverColor}
+                title={story.title}
+                style={styles.cover}
+              />
               <View style={styles.rowText}>
                 <Text style={styles.reason}>{story._reason}</Text>
                 <Text style={styles.rowTitle}>{story.title}</Text>
@@ -105,8 +109,7 @@ const styles = StyleSheet.create({
     borderColor: colors.borderSoft,
     overflow: 'hidden',
   },
-  cover: { width: 76, height: 104, padding: 8, justifyContent: 'flex-end' },
-  coverTitle: { color: colors.white, fontSize: 11, fontWeight: '500' },
+  cover: { width: 76, height: 104 },
   rowText: { flex: 1, padding: spacing.md, justifyContent: 'center' },
   reason: { fontSize: 11, color: colors.signal, fontWeight: '500' },
   rowTitle: { fontSize: 16, fontWeight: '500', color: colors.ink, marginTop: 2 },

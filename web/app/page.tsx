@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { AppHeader } from '@/components/AppHeader';
+import { Cover } from '@/components/Cover';
 import { CollapsibleSidebar } from '@/components/CollapsibleSidebar';
 import { SidebarNav } from '@/components/SidebarNav';
 import { getSessionUser } from '@/lib/auth';
@@ -131,9 +132,11 @@ function FeedView({ feed }: { feed: FeedStory[] }) {
     <div className="space-y-5">
       {feed.map((s) => (
         <Link key={s.id} href={`/story/${s.slug}`} className="flex gap-4 group">
-          <div
-            className="w-20 shrink-0 aspect-[3/4] rounded-lg transition-transform group-hover:-translate-y-1"
-            style={{ background: s.coverColor ?? '#D85A30' }}
+          <Cover
+            coverUrl={s.coverUrl}
+            coverColor={s.coverColor}
+            title={s.title}
+            className="w-20 shrink-0 aspect-[3/4] rounded-lg overflow-hidden transition-transform group-hover:-translate-y-1"
           />
           <div className="min-w-0">
             <p className="text-[11px] text-signal font-medium">{s._reason}</p>
@@ -166,9 +169,11 @@ function SavedView({ saved }: { saved: Awaited<ReturnType<typeof getSavedStories
     <div className="grid grid-cols-3 sm:grid-cols-4 gap-4">
       {saved.map((s) => (
         <Link key={s.id} href={`/story/${s.slug}`} className="group">
-          <div
-            className="aspect-[3/4] rounded-[10px] transition-transform group-hover:-translate-y-1"
-            style={{ background: s.coverColor ?? '#D85A30' }}
+          <Cover
+            coverUrl={s.coverUrl}
+            coverColor={s.coverColor}
+            title={s.title}
+            className="aspect-[3/4] rounded-[10px] overflow-hidden transition-transform group-hover:-translate-y-1"
           />
           <div className="text-[13px] font-medium mt-2 leading-tight">{s.title}</div>
         </Link>
@@ -200,7 +205,12 @@ function WritingView({
           href={`/write/${s.id}`}
           className="flex items-center gap-3 border border-border-soft rounded-xl p-3 bg-white group"
         >
-          <div className="w-11 h-14 rounded shrink-0" style={{ background: s.coverColor ?? '#D85A30' }} />
+          <Cover
+            coverUrl={s.coverUrl}
+            coverColor={s.coverColor}
+            title={s.title}
+            className="w-11 h-14 rounded shrink-0 overflow-hidden"
+          />
           <div className="min-w-0 flex-1">
             <div className="font-medium text-[15px] group-hover:text-signal">{s.title}</div>
             <div className="text-[12px] text-ink-faint">
