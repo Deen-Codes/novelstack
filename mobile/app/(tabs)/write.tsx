@@ -23,6 +23,7 @@ export default function Write() {
   const [title, setTitle] = useState('');
   const [genre, setGenre] = useState('romance');
   const [desc, setDesc] = useState('');
+  const [mature, setMature] = useState(false);
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
@@ -57,9 +58,11 @@ export default function Write() {
         title: title.trim(),
         description: desc.trim(),
         genre,
+        isMature: mature,
       });
       setTitle('');
       setDesc('');
+      setMature(false);
       setCreating(false);
       router.push(`/write/${story.id}`);
     } catch {
@@ -130,6 +133,14 @@ export default function Write() {
               multiline
               style={[styles.input, { height: 72, textAlignVertical: 'top' }]}
             />
+            <Pressable style={styles.matureRow} onPress={() => setMature((m) => !m)}>
+              <View style={[styles.checkbox, mature && styles.checkboxOn]}>
+                {mature && <Text style={styles.checkMark}>✓</Text>}
+              </View>
+              <Text style={styles.matureText}>
+                Mature (18+) — adult content. Readers confirm their age first.
+              </Text>
+            </Pressable>
             <View style={styles.formBtns}>
               <Pressable style={styles.ghostBtn} onPress={() => setCreating(false)}>
                 <Text style={styles.ghostBtnText}>Cancel</Text>
@@ -218,6 +229,19 @@ const styles = StyleSheet.create({
   chipActive: { backgroundColor: colors.signal, borderColor: colors.signal },
   chipText: { fontSize: 12, color: colors.inkMuted, textTransform: 'capitalize' },
   chipTextActive: { color: colors.paper },
+  matureRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 5,
+    borderWidth: 1,
+    borderColor: colors.borderSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkboxOn: { backgroundColor: colors.signal, borderColor: colors.signal },
+  checkMark: { color: colors.paper, fontSize: 12, fontWeight: '700' },
+  matureText: { fontSize: 12, color: colors.inkMuted, flex: 1, lineHeight: 17 },
   formBtns: { flexDirection: 'row', gap: spacing.sm },
   card: {
     flexDirection: 'row',

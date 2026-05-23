@@ -64,12 +64,17 @@ export default async function StoryPage({ params }: { params: Promise<{ slug: st
   if (story.isMature && !adult) {
     return (
       <main className="max-w-xl mx-auto px-6 py-32 text-center">
+        <p className="text-[12px] font-medium text-signal mb-3">18+ · Mature</p>
         <p className="text-ink-muted">
-          This story is marked mature (18+). Sign in with a date of birth confirming
-          you are 18 or older to read it.
+          {user
+            ? 'This story is marked mature. Add your date of birth to confirm you are 18 or older.'
+            : 'This story is marked mature (18+). Sign in and confirm your date of birth to read it.'}
         </p>
-        <Link href="/signin" className="text-signal text-sm mt-4 inline-block">
-          Sign in
+        <Link
+          href={user ? '/settings' : '/signin'}
+          className="text-signal text-sm mt-4 inline-block"
+        >
+          {user ? 'Confirm your date of birth' : 'Sign in'}
         </Link>
       </main>
     );
@@ -103,10 +108,18 @@ export default async function StoryPage({ params }: { params: Promise<{ slug: st
           coverUrl={story.coverUrl}
           coverColor={story.coverColor}
           title={story.title}
+          mature={story.isMature}
           className="w-32 sm:w-36 shrink-0 aspect-[3/4] rounded-xl overflow-hidden"
         />
         <div>
-          <span className="text-[12px] text-signal font-medium capitalize">{story.genre}</span>
+          <div className="flex items-center gap-2">
+            <span className="text-[12px] text-signal font-medium capitalize">{story.genre}</span>
+            {story.isMature && (
+              <span className="text-[10px] font-medium bg-ink text-paper px-1.5 py-0.5 rounded">
+                18+
+              </span>
+            )}
+          </div>
           <h1 className="font-serif text-3xl font-medium mt-1">{story.title}</h1>
           <p className="text-[14px] text-ink-muted mt-1">
             by{' '}

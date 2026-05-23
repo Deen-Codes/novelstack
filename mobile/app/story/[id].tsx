@@ -14,7 +14,18 @@ import { colors, spacing, radius } from '@/theme/tokens';
 import { apiGet, apiSend } from '@/lib/api';
 import { getCurrentUser } from '@/lib/auth';
 import { Cover } from '@/components/Cover';
-import type { StoryDetail, Shelf } from '@/lib/types';
+import { DobField } from '@/components/DobField';
+import type { StoryDetail, Shelf, User } from '@/lib/types';
+
+// 18 or older. Mature stories stay gated until a date of birth proves it.
+function isAdult(dob?: string | null): boolean {
+  if (!dob) return false;
+  const d = new Date(`${dob}T00:00:00`);
+  if (Number.isNaN(d.getTime())) return false;
+  const eighteen = new Date();
+  eighteen.setFullYear(eighteen.getFullYear() - 18);
+  return d <= eighteen;
+}
 
 // Reader-to-writer tip amounts, in cents.
 const TIP_AMOUNTS = [300, 500, 1000];
@@ -37,10 +48,16 @@ export default function StoryScreen() {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
 
-  const [userId, setUserId] = useState<string | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [bookmarked, setBookmarked] = useState(false);
   const [following, setFollowing] = useState(false);
   const [busy, setBusy] = useState(false);
+
+  // 18+ age-gate state.
+  const [gateDob, setGateDob] = useState<string | null>(null);
+  const [gateErr, setGateErr] = useState('');
+
+  const userId = user?.id ?? null;
 
   const [tipOpen, setTipOpen] = useState(false);
   const [tipAmount, setTipAmount] = useState(500);
@@ -63,9 +80,9 @@ export default function StoryScreen() {
     }
     setStory(s);
 
-    const user = await getCurrentUser();
-    setUserId(user?.id ?? null);
-    if (user) {
+    const me = await getCurrentUser();
+    setUser(me ?? null);
+    if (me) {
       // The shelf tells us which stories are saved and which authors followed.
       try {
         const shelf = await apiGet<Shelf>('/api/me/shelf');
@@ -140,6 +157,29 @@ export default function StoryScreen() {
     setReportOpen(false);
   }
 
+  // Saves the reader's date of birth, then reloads — which lifts the gate
+  // if it confirms they're 18+.
+  async function confirmAge() {
+    if (busy) return;
+    if (!gateDob) {
+      setGateErr('Select your date of birth.');
+      return;
+    }
+    if (!isAdult(gateDob)) {
+      setGateErr('You must be 18 or older to read this story.');
+      return;
+    }
+    setBusy(true);
+    setGateErr('');
+    try {
+      await apiSend<User>('/api/me/profile', 'PATCH', { dateOfBirth: gateDob });
+      await load();
+    } catch {
+      setGateErr('Could not save that. Please try again.');
+    }
+    setBusy(false);
+  }
+
   if (loading) {
     return (
       <SafeAreaView style={styles.safe}>
@@ -163,6 +203,9 @@ export default function StoryScreen() {
 
   const isOwnStory = userId === story.authorId;
   const chapters = story.chapters.filter((c) => c.publishedAt);
+  // Mature stories are gated until the reader proves they're 18+. Authors
+  // always see their own story.
+  const gated = story.isMature && !isOwnStory && !isAdult(user?.dateOfBirth);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -175,10 +218,19 @@ export default function StoryScreen() {
           <Cover
             coverUrl={story.coverUrl}
             coverColor={story.coverColor}
+            title={story.title}
+            mature={story.isMature}
             style={styles.cover}
           />
           <View style={styles.headText}>
-            <Text style={styles.genre}>{story.genre}</Text>
+            <View style={styles.metaRow}>
+              <Text style={styles.genre}>{story.genre}</Text>
+              {story.isMature && (
+                <View style={styles.maturePill}>
+                  <Text style={styles.maturePillText}>18+</Text>
+                </View>
+              )}
+            </View>
             <Text style={styles.h1}>{story.title}</Text>
             <Text style={styles.author}>
               by {story.author?.displayName ?? 'a NovelStack writer'}
@@ -189,6 +241,45 @@ export default function StoryScreen() {
 
         {!!story.description && <Text style={styles.desc}>{story.description}</Text>}
 
+        {gated ? (
+          <View style={styles.gate}>
+            <Text style={styles.gateTitle}>This story is 18+</Text>
+            {userId ? (
+              <>
+                <Text style={styles.gateBody}>
+                  Confirm your date of birth to read mature stories — we only ask once.
+                </Text>
+                <DobField
+                  value={gateDob}
+                  onChange={(d) => {
+                    setGateDob(d);
+                    setGateErr('');
+                  }}
+                />
+                {!!gateErr && <Text style={styles.gateErr}>{gateErr}</Text>}
+                <Pressable
+                  style={[styles.primaryBtn, busy && { opacity: 0.6 }]}
+                  onPress={confirmAge}
+                  disabled={busy}
+                >
+                  <Text style={styles.primaryBtnText}>
+                    {busy ? 'Saving…' : 'Confirm & continue'}
+                  </Text>
+                </Pressable>
+              </>
+            ) : (
+              <>
+                <Text style={styles.gateBody}>
+                  Sign in and confirm your date of birth to read mature stories.
+                </Text>
+                <Pressable style={styles.primaryBtn} onPress={() => router.push('/signin')}>
+                  <Text style={styles.primaryBtnText}>Sign in</Text>
+                </Pressable>
+              </>
+            )}
+          </View>
+        ) : (
+          <>
         {/* Actions */}
         <View style={styles.actions}>
           <Pressable
@@ -324,6 +415,8 @@ export default function StoryScreen() {
             </Pressable>
           ))
         )}
+          </>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -337,7 +430,27 @@ const styles = StyleSheet.create({
   head: { flexDirection: 'row', gap: spacing.md },
   cover: { width: 110, height: 146, borderRadius: radius.md },
   headText: { flex: 1, justifyContent: 'center' },
+  metaRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   genre: { fontSize: 12, color: colors.signal, fontWeight: '500', textTransform: 'capitalize' },
+  maturePill: {
+    backgroundColor: colors.ink,
+    borderRadius: radius.sm,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  maturePillText: { fontSize: 10, fontWeight: '700', color: colors.paper },
+  gate: {
+    marginTop: spacing.lg,
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.borderSoft,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+    gap: spacing.md,
+  },
+  gateTitle: { fontSize: 17, fontWeight: '500', color: colors.ink },
+  gateBody: { fontSize: 14, color: colors.inkMuted, lineHeight: 21 },
+  gateErr: { fontSize: 13, color: colors.signal },
   h1: { fontSize: 24, fontWeight: '500', color: colors.ink, marginTop: 4, letterSpacing: -0.5 },
   author: { fontSize: 14, color: colors.inkMuted, marginTop: 6 },
   desc: { fontSize: 14, color: colors.inkMuted, lineHeight: 21, marginTop: spacing.lg },

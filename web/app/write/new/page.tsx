@@ -38,6 +38,17 @@ export default function NewStory() {
               className="w-full border border-border-soft rounded-lg px-3.5 py-2.5 text-[15px] bg-white"
             />
           </div>
+          <label className="flex items-start gap-2.5 cursor-pointer">
+            <input
+              type="checkbox"
+              name="isMature"
+              className="mt-0.5 accent-signal w-4 h-4"
+            />
+            <span className="text-[13px] text-ink-muted">
+              Mature (18+) — this story contains adult content. Readers will need to
+              confirm their age before they can open it.
+            </span>
+          </label>
           <button
             type="submit"
             className="bg-signal text-paper px-5 py-2.5 rounded-full font-medium text-sm"

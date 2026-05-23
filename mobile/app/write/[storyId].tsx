@@ -176,6 +176,19 @@ export default function StoryWriter() {
     setCoverBusy(false);
   }
 
+  // Flips the story's mature (18+) flag.
+  async function toggleMature() {
+    if (!story || busy) return;
+    try {
+      const updated = await apiSend<Story>(`/api/me/stories/${storyId}`, 'PATCH', {
+        isMature: !story.isMature,
+      });
+      setStory(updated);
+    } catch {
+      // UI reflects server state on next load.
+    }
+  }
+
   // Marks the whole story as live (ongoing).
   async function publishStory() {
     if (busy || !story) return;
@@ -247,6 +260,13 @@ export default function StoryWriter() {
             {!!coverError && <Text style={styles.coverError}>{coverError}</Text>}
           </View>
         </View>
+
+        <Pressable style={styles.matureRow} onPress={toggleMature}>
+          <View style={[styles.checkbox, story.isMature && styles.checkboxOn]}>
+            {story.isMature && <Text style={styles.checkMark}>✓</Text>}
+          </View>
+          <Text style={styles.freeText}>Mature (18+) — readers confirm their age first</Text>
+        </Pressable>
 
         {story.status === 'draft' && (
           <Pressable
@@ -439,6 +459,7 @@ const styles = StyleSheet.create({
   },
   bodyInput: { height: 220, textAlignVertical: 'top', fontSize: 16, lineHeight: 24 },
   freeRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  matureRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: spacing.lg },
   checkbox: {
     width: 20,
     height: 20,

@@ -95,6 +95,8 @@ export default function Search() {
                 <Cover
                   coverUrl={s.coverUrl}
                   coverColor={s.coverColor}
+                  title={s.title}
+                  mature={s.isMature}
                   style={styles.cover}
                 />
                 <View style={styles.rowText}>

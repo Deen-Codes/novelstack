@@ -14,6 +14,7 @@ import { colors, spacing, radius } from '@/theme/tokens';
 import { apiGet, apiSend, getSessionToken } from '@/lib/api';
 import { getCurrentUser, signOut as clearSessionAuth } from '@/lib/auth';
 import { Cover } from '@/components/Cover';
+import { DobField } from '@/components/DobField';
 import type { User, Shelf, Story } from '@/lib/types';
 
 export default function ProfileScreen() {
@@ -147,14 +148,13 @@ export default function ProfileScreen() {
               multiline
               style={[styles.input, { height: 80, textAlignVertical: 'top' }]}
             />
-            <TextInput
-              value={dob}
-              onChangeText={setDob}
-              placeholder="Date of birth — YYYY-MM-DD"
-              placeholderTextColor={colors.inkFaint}
-              autoCapitalize="none"
-              style={styles.input}
-            />
+            <View>
+              <Text style={styles.fieldLabel}>Date of birth</Text>
+              <DobField value={dob || null} onChange={setDob} />
+              <Text style={styles.fieldHint}>
+                Used to confirm your age — mature (18+) stories stay hidden until this is set.
+              </Text>
+            </View>
             <View style={styles.formBtns}>
               <Pressable style={styles.ghostBtn} onPress={() => setEditing(false)}>
                 <Text style={styles.ghostBtnText}>Cancel</Text>
@@ -252,6 +252,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     color: colors.ink,
   },
+  fieldLabel: { fontSize: 13, color: colors.inkMuted, marginBottom: 6 },
+  fieldHint: { fontSize: 12, color: colors.inkFaint, marginTop: 6, lineHeight: 17 },
   formBtns: { flexDirection: 'row', gap: spacing.sm },
   primaryBtn: {
     backgroundColor: colors.signal,

@@ -19,9 +19,10 @@ export async function createStory(formData: FormData) {
   const title = String(formData.get('title') || '').trim();
   const genre = String(formData.get('genre') || 'other') as StoryGenre;
   const description = String(formData.get('description') || '').trim();
+  const isMature = formData.get('isMature') === 'on';
   if (!title) throw new Error('A title is required.');
 
-  const story = await createStoryMutation(user.id, { title, description, genre });
+  const story = await createStoryMutation(user.id, { title, description, genre, isMature });
   redirect(`/write/${story.id}`);
 }
 

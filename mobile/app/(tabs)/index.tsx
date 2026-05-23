@@ -182,6 +182,7 @@ export default function Home() {
                         coverUrl={s.coverUrl}
                         coverColor={s.coverColor}
                         title={s.title}
+                        mature={s.isMature}
                         style={styles.railCover}
                       />
                       <Text style={styles.railTitle} numberOfLines={1}>
@@ -208,6 +209,7 @@ export default function Home() {
                     coverUrl={spotlight.coverUrl}
                     coverColor={spotlight.coverColor}
                     title={spotlight.title}
+                    mature={spotlight.isMature}
                     style={styles.spotCover}
                   />
                   <View style={styles.spotBody}>
@@ -276,6 +278,7 @@ export default function Home() {
                       coverUrl={s.coverUrl}
                       coverColor={s.coverColor}
                       title={s.title}
+                      mature={s.isMature}
                       style={styles.rowCover}
                     />
                     <View style={styles.rowText}>

@@ -136,6 +136,7 @@ function FeedView({ feed }: { feed: FeedStory[] }) {
             coverUrl={s.coverUrl}
             coverColor={s.coverColor}
             title={s.title}
+            mature={s.isMature}
             className="w-20 shrink-0 aspect-[3/4] rounded-lg overflow-hidden transition-transform group-hover:-translate-y-1"
           />
           <div className="min-w-0">
@@ -173,6 +174,7 @@ function SavedView({ saved }: { saved: Awaited<ReturnType<typeof getSavedStories
             coverUrl={s.coverUrl}
             coverColor={s.coverColor}
             title={s.title}
+            mature={s.isMature}
             className="aspect-[3/4] rounded-[10px] overflow-hidden transition-transform group-hover:-translate-y-1"
           />
           <div className="text-[13px] font-medium mt-2 leading-tight">{s.title}</div>
@@ -209,6 +211,7 @@ function WritingView({
             coverUrl={s.coverUrl}
             coverColor={s.coverColor}
             title={s.title}
+            mature={s.isMature}
             className="w-11 h-14 rounded shrink-0 overflow-hidden"
           />
           <div className="min-w-0 flex-1">
