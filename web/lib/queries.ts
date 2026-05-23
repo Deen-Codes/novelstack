@@ -2,7 +2,7 @@
 // These typed functions replace every Supabase read. Website server components
 // call them directly; the mobile API route handlers wrap them over HTTP.
 import 'server-only';
-import { and, asc, desc, eq, ilike, ne, or, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, ilike, isNotNull, ne, or, sql } from 'drizzle-orm';
 import { db } from '@/db';
 import { stories, chapters, chapterContent, bookmarks, follows, reads, subscriptions, adUnlocks, comments } from '@/db/schema';
 
@@ -189,6 +189,67 @@ export async function getFollowing(userId: string) {
     with: { author: true },
   });
   return rows.map((r) => r.author);
+}
+
+// ============================================================
+// HOME — "continue reading" + reading streak (mobile home screen)
+// ============================================================
+// The reader's most recently opened chapter, with the story it belongs to
+// and how far they got. Powers the home screen's "Continue reading" card.
+export async function getContinueReading(userId: string) {
+  const [row] = await db
+    .select({
+      progressPct: reads.progressPct,
+      completedAt: reads.completedAt,
+      chapterId: chapters.id,
+      chapterNumber: chapters.number,
+      chapterTitle: chapters.title,
+      storyId: stories.id,
+      storySlug: stories.slug,
+      storyTitle: stories.title,
+      coverUrl: stories.coverUrl,
+      coverColor: stories.coverColor,
+    })
+    .from(reads)
+    .innerJoin(chapters, eq(chapters.id, reads.chapterId))
+    .innerJoin(stories, eq(stories.id, chapters.storyId))
+    .where(eq(reads.readerId, userId))
+    .orderBy(desc(reads.createdAt))
+    .limit(1);
+  if (!row) return null;
+
+  const [counted] = await db
+    .select({ total: sql<number>`count(*)::int` })
+    .from(chapters)
+    .where(and(eq(chapters.storyId, row.storyId), isNotNull(chapters.publishedAt)));
+  return { ...row, totalChapters: counted?.total ?? 0 };
+}
+
+// Count of consecutive days (ending today or yesterday) on which the reader
+// opened at least one chapter — the home screen's streak chip.
+export async function getReadingStreak(userId: string): Promise<number> {
+  const rows = await db
+    .select({ day: sql<string>`to_char(${reads.createdAt} at time zone 'UTC', 'YYYY-MM-DD')` })
+    .from(reads)
+    .where(eq(reads.readerId, userId))
+    .groupBy(sql`to_char(${reads.createdAt} at time zone 'UTC', 'YYYY-MM-DD')`);
+
+  const days = new Set(rows.map((r) => r.day));
+  if (days.size === 0) return 0;
+
+  const iso = (d: Date) => d.toISOString().slice(0, 10);
+  const cursor = new Date();
+  // The streak is still "alive" if they read today or yesterday.
+  if (!days.has(iso(cursor))) {
+    cursor.setUTCDate(cursor.getUTCDate() - 1);
+    if (!days.has(iso(cursor))) return 0;
+  }
+  let streak = 0;
+  while (days.has(iso(cursor))) {
+    streak++;
+    cursor.setUTCDate(cursor.getUTCDate() - 1);
+  }
+  return streak;
 }
 
 export async function getAuthorByUsername(username: string) {

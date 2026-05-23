@@ -71,6 +71,27 @@ export type Shelf = {
   following: User[];
 };
 
+// GET /api/me/home — extras for the home screen.
+export type ContinueReading = {
+  progressPct: number;
+  completedAt: string | null;
+  chapterId: string;
+  chapterNumber: number;
+  chapterTitle: string;
+  storyId: string;
+  storySlug: string;
+  storyTitle: string;
+  coverUrl: string | null;
+  coverColor: string | null;
+  totalChapters: number;
+};
+
+export type HomeExtras = {
+  continueReading: ContinueReading | null;
+  streak: number;
+  name: string | null;
+};
+
 export type Comment = {
   id: string;
   userId: string;

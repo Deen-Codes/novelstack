@@ -1,48 +1,57 @@
 import { useEffect, useRef, useState } from 'react';
 import { View, Text, ActivityIndicator, Pressable, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
-import * as Linking from 'expo-linking';
+import { router, useLocalSearchParams } from 'expo-router';
 import { apiSend, setSessionToken } from '@/lib/api';
 import type { User } from '@/lib/types';
 import { colors, spacing, radius } from '@/theme/tokens';
 
-// Deep-link landing for the magic link. The email link points back at
-// novelstack://auth-callback?token=… — we POST that token to /api/auth/verify,
-// store the returned session JWT, retry once on a transient network failure,
-// and only run the exchange once.
+// Deep-link landing for the magic link. The email link bounces the device
+// into novelstack://auth-callback?token=… — expo-router parses the token
+// straight into this screen's params, so we read it from useLocalSearchParams
+// rather than re-parsing the raw URL ourselves. We POST the token to
+// /api/auth/verify, store the returned session JWT, and retry once on a
+// transient network failure.
 
 function isNetworkError(msg: string) {
   return /network request failed|failed to fetch|network error/i.test(msg);
 }
 
+// useLocalSearchParams values can be string | string[] — normalise to string.
+function first(v: string | string[] | undefined): string | null {
+  if (Array.isArray(v)) return v[0] ?? null;
+  return v ?? null;
+}
+
 export default function AuthCallback() {
-  const url = Linking.useURL();
+  const params = useLocalSearchParams<{
+    token?: string | string[];
+    error?: string | string[];
+    error_description?: string | string[];
+  }>();
+  const token = first(params.token);
+  const errParam = first(params.error_description) ?? first(params.error);
+
   const [error, setError] = useState<string | null>(null);
   const handled = useRef(false);
 
   useEffect(() => {
-    if (handled.current || !url) return;
+    if (handled.current) return;
+
+    // The link carried an explicit error instead of a token.
+    if (errParam) {
+      handled.current = true;
+      setError(String(errParam));
+      return;
+    }
+
+    // Params can be empty for a frame while the deep link hydrates — wait
+    // for the token rather than failing early.
+    if (!token) return;
     handled.current = true;
 
     (async () => {
       try {
-        const parsed = Linking.parse(url);
-        const qp = parsed.queryParams ?? {};
-
-        const errDesc = qp.error_description ?? qp.error;
-        if (errDesc) {
-          setError(String(errDesc));
-          return;
-        }
-
-        // The magic link arrives as novelstack://auth-callback?token=…
-        const token = qp.token ? String(qp.token) : null;
-        if (!token) {
-          setError('No sign-in token in the link. Request a fresh one.');
-          return;
-        }
-
         // Swap the one-time token for a session JWT. A network failure means
         // the request never reached the server, so the token is still
         // unused — safe to retry once.
@@ -72,7 +81,18 @@ export default function AuthCallback() {
         );
       }
     })();
-  }, [url]);
+  }, [token, errParam]);
+
+  // Safety net: if no token ever arrives, don't spin forever.
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (!handled.current) {
+        handled.current = true;
+        setError('No sign-in token in the link. Request a fresh one.');
+      }
+    }, 8000);
+    return () => clearTimeout(timer);
+  }, []);
 
   return (
     <SafeAreaView style={styles.safe}>
