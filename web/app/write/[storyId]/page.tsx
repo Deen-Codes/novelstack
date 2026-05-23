@@ -5,6 +5,7 @@ import { db } from '@/db';
 import { stories, chapters as chaptersTable } from '@/db/schema';
 import { getSessionUser } from '@/lib/auth';
 import { AppHeader } from '@/components/AppHeader';
+import { CoverUploader } from '@/components/CoverUploader';
 import { createChapter, toggleChapterFree } from '../actions';
 
 export default async function ManageStory({
@@ -35,6 +36,15 @@ export default async function ManageStory({
         <p className="text-[13px] text-ink-faint capitalize mt-1">
           {story.genre} · {story.status}
         </p>
+
+        <div className="mt-8 border border-border-soft rounded-xl bg-white p-4">
+          <CoverUploader
+            storyId={story.id}
+            title={story.title}
+            initialCoverUrl={story.coverUrl}
+            coverColor={story.coverColor}
+          />
+        </div>
 
         <div className="flex justify-between items-center mt-8 mb-3">
           <h2 className="font-serif text-xl font-medium">Chapters</h2>

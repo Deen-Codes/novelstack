@@ -99,3 +99,55 @@ export function apiSend<T>(
     body: body === undefined ? undefined : JSON.stringify(body),
   });
 }
+
+// Uploads a local image file (multipart/form-data). The Content-Type header
+// is deliberately left unset so fetch adds the multipart boundary itself.
+export async function apiUpload<T>(
+  path: string,
+  file: { uri: string; name: string; type: string },
+): Promise<T> {
+  const token = await getSessionToken();
+  const form = new FormData();
+  // React Native's FormData accepts this {uri,name,type} shape for files.
+  form.append('file', file as unknown as Blob);
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  let res: Response;
+  try {
+    res = await fetch(`${BASE_URL}${path}`, {
+      method: 'POST',
+      body: form,
+      headers: {
+        Accept: 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      signal: controller.signal,
+    });
+  } catch (e) {
+    if (controller.signal.aborted) {
+      throw new Error("Couldn't reach NovelStack — check your connection and try again.");
+    }
+    throw e;
+  } finally {
+    clearTimeout(timer);
+  }
+
+  let data: unknown = null;
+  const text = await res.text();
+  if (text) {
+    try {
+      data = JSON.parse(text);
+    } catch {
+      data = null;
+    }
+  }
+  if (!res.ok) {
+    const message =
+      (data && typeof data === 'object' && 'error' in data
+        ? String((data as { error: unknown }).error)
+        : null) ?? `Upload failed (${res.status}).`;
+    throw new Error(message);
+  }
+  return data as T;
+}

@@ -122,7 +122,14 @@ export async function addComment(
 // --- Stories (write flow) --------------------------------------------------
 export async function createStory(
   authorId: string,
-  data: { title: string; description?: string; genre?: Genre; isMature?: boolean; coverColor?: string },
+  data: {
+    title: string;
+    description?: string;
+    genre?: Genre;
+    isMature?: boolean;
+    coverColor?: string;
+    coverUrl?: string;
+  },
 ) {
   const [row] = await db
     .insert(stories)
@@ -134,6 +141,7 @@ export async function createStory(
       genre: data.genre ?? 'other',
       isMature: data.isMature ?? false,
       coverColor: data.coverColor ?? '#D85A30',
+      coverUrl: data.coverUrl ?? null,
       status: 'draft',
     })
     .returning();
@@ -144,7 +152,14 @@ export async function createStory(
 export async function updateStory(
   authorId: string,
   storyId: string,
-  patch: Partial<{ title: string; description: string; genre: Genre; isMature: boolean; coverColor: string }>,
+  patch: Partial<{
+    title: string;
+    description: string;
+    genre: Genre;
+    isMature: boolean;
+    coverColor: string;
+    coverUrl: string;
+  }>,
 ) {
   const [row] = await db
     .update(stories)

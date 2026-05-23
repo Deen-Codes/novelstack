@@ -10,8 +10,10 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useFocusEffect, router } from 'expo-router';
+import * as ImagePicker from 'expo-image-picker';
 import { colors, spacing, radius } from '@/theme/tokens';
-import { apiGet, apiSend } from '@/lib/api';
+import { apiGet, apiSend, apiUpload } from '@/lib/api';
+import { Cover } from '@/components/Cover';
 import type { Shelf, Story, Chapter, StoryDetail, ChapterDetail } from '@/lib/types';
 
 export default function StoryWriter() {
@@ -21,6 +23,8 @@ export default function StoryWriter() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState('');
+  const [coverBusy, setCoverBusy] = useState(false);
+  const [coverError, setCoverError] = useState('');
 
   // Inline editor state — which chapter is open + its draft fields. `null`
   // means nothing open; 'new' means the create-chapter form.
@@ -132,6 +136,46 @@ export default function StoryWriter() {
     }
   }
 
+  // Picks an image from the library, uploads it to R2, saves it on the story.
+  async function pickCover() {
+    if (coverBusy || !story) return;
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      setCoverError('Photo access is needed to choose a cover.');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [3, 4],
+      quality: 0.85,
+    });
+    if (result.canceled) return;
+
+    const asset = result.assets[0];
+    setCoverBusy(true);
+    setCoverError('');
+    try {
+      const ext = (asset.uri.split('.').pop() || 'jpg').toLowerCase();
+      const type =
+        ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg';
+      const { coverUrl } = await apiUpload<{ coverUrl: string }>('/api/me/cover', {
+        uri: asset.uri,
+        name: `cover.${ext}`,
+        type,
+      });
+      const updated = await apiSend<Story>(
+        `/api/me/stories/${storyId}`,
+        'PATCH',
+        { coverUrl },
+      );
+      setStory(updated);
+    } catch (e) {
+      setCoverError(e instanceof Error ? e.message : 'Could not upload cover.');
+    }
+    setCoverBusy(false);
+  }
+
   // Marks the whole story as live (ongoing).
   async function publishStory() {
     if (busy || !story) return;
@@ -180,6 +224,29 @@ export default function StoryWriter() {
         <Text style={styles.sub}>
           {story.genre} · {story.status}
         </Text>
+
+        <View style={styles.coverCard}>
+          <Cover
+            coverUrl={story.coverUrl}
+            coverColor={story.coverColor}
+            title={story.title}
+            style={styles.coverThumb}
+          />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.coverLabel}>Cover image</Text>
+            <Text style={styles.coverHint}>JPEG, PNG or WebP · up to 5 MB</Text>
+            <Pressable
+              style={[styles.coverBtn, coverBusy && { opacity: 0.6 }]}
+              onPress={pickCover}
+              disabled={coverBusy}
+            >
+              <Text style={styles.coverBtnText}>
+                {coverBusy ? 'Uploading…' : story.coverUrl ? 'Replace cover' : 'Upload cover'}
+              </Text>
+            </Pressable>
+            {!!coverError && <Text style={styles.coverError}>{coverError}</Text>}
+          </View>
+        </View>
 
         {story.status === 'draft' && (
           <Pressable
@@ -306,6 +373,34 @@ const styles = StyleSheet.create({
   h1: { fontSize: 26, fontWeight: '500', color: colors.ink, letterSpacing: -0.5 },
   sub: { fontSize: 13, color: colors.inkFaint, marginTop: 4, textTransform: 'capitalize' },
   empty: { fontSize: 13, color: colors.inkMuted, marginTop: spacing.md },
+  coverCard: {
+    flexDirection: 'row',
+    gap: spacing.md,
+    marginTop: spacing.lg,
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.borderSoft,
+    borderRadius: radius.lg,
+    padding: spacing.md,
+  },
+  coverThumb: {
+    width: 64,
+    aspectRatio: 3 / 4,
+    borderRadius: radius.md,
+    overflow: 'hidden',
+  },
+  coverLabel: { fontSize: 14, fontWeight: '500', color: colors.ink },
+  coverHint: { fontSize: 12, color: colors.inkFaint, marginTop: 2, marginBottom: 8 },
+  coverBtn: {
+    alignSelf: 'flex-start',
+    borderWidth: 1,
+    borderColor: colors.borderSoft,
+    borderRadius: radius.pill,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+  },
+  coverBtnText: { fontSize: 13, fontWeight: '500', color: colors.ink },
+  coverError: { fontSize: 12, color: '#C0392B', marginTop: 6 },
   addBtn: {
     backgroundColor: colors.signal,
     paddingVertical: 12,
