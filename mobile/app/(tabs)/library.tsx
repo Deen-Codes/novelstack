@@ -92,9 +92,14 @@ export default function Library() {
 
         <Text style={styles.section}>Saved books</Text>
         {saved.length === 0 ? (
-          <Text style={styles.empty}>
-            Stories you open and start reading are saved here automatically.
-          </Text>
+          <View>
+            <Text style={styles.empty}>
+              Stories you open and start reading are saved here automatically.
+            </Text>
+            <Pressable style={styles.browseBtn} onPress={() => router.push('/')}>
+              <Text style={styles.browseBtnText}>Browse stories</Text>
+            </Pressable>
+          </View>
         ) : (
           <View style={styles.grid}>
             {saved.map((s) => (
@@ -146,6 +151,15 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   empty: { fontSize: 13, color: colors.inkMuted, lineHeight: 20 },
+  browseBtn: {
+    alignSelf: 'flex-start',
+    backgroundColor: colors.signal,
+    borderRadius: radius.pill,
+    paddingHorizontal: 22,
+    paddingVertical: 11,
+    marginTop: spacing.md,
+  },
+  browseBtnText: { fontSize: 14, fontWeight: '600', color: '#FFFFFF' },
 
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   gridItem: { width: '31%' },

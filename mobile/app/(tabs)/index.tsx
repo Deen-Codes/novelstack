@@ -1,5 +1,6 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  Animated,
   ScrollView,
   View,
   Text,
@@ -29,6 +30,8 @@ export default function Home() {
   const [extras, setExtras] = useState<HomeExtras | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  // Cinematic entrance — content fades + eases up once the feed has loaded.
+  const fade = useRef(new Animated.Value(0)).current;
 
   const load = useCallback(async () => {
     const [feedRes, extrasRes] = await Promise.allSettled([
@@ -52,6 +55,17 @@ export default function Home() {
     setRefreshing(false);
   }
 
+  useEffect(() => {
+    if (!loading) {
+      Animated.timing(fade, { toValue: 1, duration: 420, useNativeDriver: true }).start();
+    }
+  }, [loading, fade]);
+
+  const entrance = {
+    opacity: fade,
+    transform: [{ translateY: fade.interpolate({ inputRange: [0, 1], outputRange: [18, 0] }) }],
+  };
+
   const cont = extras?.continueReading ?? null;
   const trending = [...feed]
     .sort((a, b) => (b.totalReads ?? 0) - (a.totalReads ?? 0))
@@ -70,6 +84,7 @@ export default function Home() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.signal} />
         }
       >
+        <Animated.View style={entrance}>
         <Text style={styles.greeting}>
           {greeting()}
           {extras?.name ? `, ${extras.name}` : ''}
@@ -129,7 +144,6 @@ export default function Home() {
                   <Cover
                     coverUrl={spotlight.coverUrl}
                     coverColor={spotlight.coverColor}
-                    title={spotlight.title}
                     style={StyleSheet.absoluteFill}
                   />
                   <View style={styles.spotScrim} />
@@ -162,6 +176,7 @@ export default function Home() {
           </>
         )}
         <View style={{ height: spacing.xl }} />
+        </Animated.View>
       </ScrollView>
     </SafeAreaView>
   );

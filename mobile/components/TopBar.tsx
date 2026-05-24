@@ -39,15 +39,21 @@ export function TopBar() {
             <Ionicons name="create-outline" size={19} color={colors.signal} />
           </Pressable>
           <Pressable hitSlop={8} onPress={() => setSheetOpen(true)}>
-            <View style={styles.avatar}>
-              {user?.avatarUrl ? (
-                <Image source={{ uri: user.avatarUrl }} style={styles.avatarImg} />
-              ) : (
-                <Text style={styles.avatarText}>
-                  {(user?.displayName ?? '?').slice(0, 1).toUpperCase()}
-                </Text>
-              )}
-            </View>
+            {user ? (
+              <View style={styles.avatar}>
+                {user.avatarUrl ? (
+                  <Image source={{ uri: user.avatarUrl }} style={styles.avatarImg} />
+                ) : (
+                  <Text style={styles.avatarText}>
+                    {(user.displayName || '?').slice(0, 1).toUpperCase()}
+                  </Text>
+                )}
+              </View>
+            ) : (
+              <View style={styles.icon}>
+                <Ionicons name="person-outline" size={18} color={colors.inkMuted} />
+              </View>
+            )}
           </Pressable>
         </View>
       </View>

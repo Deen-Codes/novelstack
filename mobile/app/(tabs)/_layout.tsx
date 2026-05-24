@@ -11,38 +11,38 @@ export default function TabLayout() {
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: colors.signal,
-        tabBarInactiveTintColor: '#6A6056',
+        tabBarInactiveTintColor: '#8A7F73',
         tabBarStyle: {
           backgroundColor: '#100D0C',
           borderTopColor: colors.borderSoft,
+          borderTopWidth: 1,
+          height: 94,
+          paddingTop: 12,
+          paddingBottom: 32,
         },
+        tabBarLabelStyle: { fontSize: 11, fontWeight: '500', marginTop: 3 },
+        tabBarIconStyle: { marginTop: 2 },
       }}
     >
       <Tabs.Screen
         name="community"
         options={{
           title: 'Community',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="people-outline" size={size} color={color} />
-          ),
+          tabBarIcon: ({ color }) => <Ionicons name="people-outline" size={27} color={color} />,
         }}
       />
       <Tabs.Screen
         name="index"
         options={{
           title: 'Home',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="home-outline" size={size} color={color} />
-          ),
+          tabBarIcon: ({ color }) => <Ionicons name="home-outline" size={27} color={color} />,
         }}
       />
       <Tabs.Screen
         name="library"
         options={{
           title: 'Library',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="library-outline" size={size} color={color} />
-          ),
+          tabBarIcon: ({ color }) => <Ionicons name="library-outline" size={27} color={color} />,
         }}
       />
       {/* Reached from the top bar — navigable, but not shown in the tab bar. */}
