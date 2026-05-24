@@ -109,10 +109,8 @@ export default function Community() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      <TopBar />
+      <TopBar page="community" />
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        <Text style={styles.pageTitle}>Community</Text>
-
         {loading ? (
           <ActivityIndicator color={colors.signal} style={{ marginTop: spacing.xl }} />
         ) : (

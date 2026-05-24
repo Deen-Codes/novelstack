@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>NovelStack — Book detail</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --bg:#100D0C; --bg2:#1A1512; --card:#221C18; --line:#332B25; --line2:#3F352D;
+    --text:#F4ECDF; --muted:#A2968A; --faint:#6F6459; --ember:#C8414E;
+    --display:'Bricolage Grotesque',sans-serif; --ui:'Inter',sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:#0A0908;font-family:var(--ui);color:var(--text);
+    padding:34px 16px 56px;display:flex;flex-direction:column;align-items:center;}
+  .intro{max-width:760px;text-align:center;margin-bottom:28px;}
+  .intro h1{font-family:var(--display);font-weight:700;font-size:23px;}
+  .intro p{font-size:13px;color:#8A7F73;margin-top:8px;line-height:1.6;}
+  .frames{display:flex;gap:40px;flex-wrap:wrap;justify-content:center;align-items:flex-start;}
+  .cap{text-align:center;font-size:12px;color:#7A6F63;margin-top:14px;
+    letter-spacing:.05em;text-transform:uppercase;}
+
+  .bezel{width:392px;background:#000;border-radius:48px;padding:11px;
+    box-shadow:0 36px 80px -24px rgba(0,0,0,.85),0 0 0 1px #2a2420;}
+  .screen{position:relative;height:812px;background:var(--bg);border-radius:38px;
+    overflow:hidden;}
+  .notch{position:absolute;top:0;left:50%;transform:translateX(-50%);
+    width:122px;height:26px;background:#000;border-radius:0 0 16px 16px;z-index:50;}
+
+  .ambient{position:absolute;top:0;left:0;right:0;height:430px;z-index:0;}
+  .ambient.violet::before,.ambient.teal::before{content:'';position:absolute;inset:-60px -40px 0;}
+  .ambient.violet::before{background:radial-gradient(70% 55% at 50% 8%,rgba(150,80,200,.6),transparent 70%);}
+  .ambient.teal::before{background:radial-gradient(70% 55% at 50% 8%,rgba(40,150,130,.55),transparent 70%);}
+  .ambient::after{content:'';position:absolute;inset:0;
+    background:linear-gradient(to bottom,transparent 40%,var(--bg) 94%);}
+
+  .scr{position:relative;z-index:10;height:100%;overflow:hidden;}
+
+  .topbtns{display:flex;justify-content:space-between;padding:48px 18px 0;}
+  .cbtn{width:38px;height:38px;border-radius:50%;background:rgba(0,0,0,.4);
+    backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;}
+  .cbtn svg{width:18px;height:18px;}
+
+  .cover{width:158px;height:222px;border-radius:14px;margin:14px auto 0;
+    box-shadow:0 22px 44px -16px rgba(0,0,0,.85);position:relative;overflow:hidden;}
+  .cover .badge{position:absolute;top:8px;right:8px;background:#15100E;color:#fff;
+    font-size:9px;font-weight:700;padding:3px 6px;border-radius:5px;}
+
+  .title{font-family:var(--display);font-weight:800;font-size:27px;text-align:center;
+    letter-spacing:-.02em;margin:16px 22px 0;line-height:1.1;}
+  .meta{text-align:center;font-size:12.5px;color:var(--muted);margin-top:8px;font-weight:500;}
+  .author{display:flex;align-items:center;justify-content:center;gap:9px;margin-top:12px;}
+  .av{width:26px;height:26px;border-radius:50%;background:linear-gradient(140deg,#8E2C38,#C8414E);
+    display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;}
+  .author .nm{font-size:13px;font-weight:600;}
+  .followpill{font-size:11px;font-weight:600;color:#F2C9CD;
+    border:1px solid rgba(200,65,78,.55);border-radius:99px;padding:4px 11px;}
+
+  .btns{display:flex;gap:10px;padding:16px 18px 0;}
+  .btn{height:50px;border-radius:12px;display:flex;align-items:center;justify-content:center;
+    gap:8px;font-weight:700;font-size:15px;}
+  .btn svg{width:17px;height:17px;}
+  .read{flex:1.7;background:#F4ECDF;color:#15100E;}
+  .read small{font-weight:500;font-size:11px;opacity:.7;}
+  .save{flex:1;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.15);color:#fff;}
+
+  .blurb{font-size:13.5px;color:var(--muted);line-height:1.62;margin:16px 20px 0;}
+
+  .actions{display:flex;justify-content:space-around;padding:18px 30px 4px;}
+  .act{display:flex;flex-direction:column;align-items:center;gap:5px;}
+  .act svg{width:22px;height:22px;color:var(--text);}
+  .act span{font-size:11px;color:var(--muted);font-weight:500;}
+
+  .tabs{display:flex;gap:24px;padding:14px 20px 0;border-bottom:1px solid var(--line);
+    margin-top:10px;}
+  .tab{font-family:var(--display);font-weight:700;font-size:15px;color:var(--faint);
+    padding-bottom:11px;}
+  .tab.on{color:var(--text);box-shadow:inset 0 -2px 0 var(--ember);}
+
+  .chap{display:flex;align-items:center;gap:12px;padding:13px 20px;
+    border-bottom:1px solid #241E1A;}
+  .chnum{font-family:var(--display);font-weight:700;font-size:15px;color:var(--faint);width:22px;}
+  .chmid{flex:1;min-width:0;}
+  .chttl{font-size:14px;font-weight:500;}
+  .chsub{font-size:11px;color:var(--faint);margin-top:2px;}
+  .chap.now .chnum,.chap.now .chttl{color:var(--ember);}
+  .chtag{font-size:10px;color:var(--faint);}
+  .chtag.free{color:#7FB08A;}
+  .lock svg{width:14px;height:14px;color:var(--faint);}
+
+  .grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;padding:16px 20px;}
+  .gc{width:100%;}
+  .gcart{width:100%;aspect-ratio:3/4;border-radius:10px;
+    box-shadow:0 8px 18px -8px rgba(0,0,0,.7);}
+  .gct{font-size:11px;font-weight:600;margin-top:6px;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+</style>
+</head>
+<body>
+
+<div class="intro">
+  <h1>NovelStack — Book detail page</h1>
+  <p>Cover up top · adaptive Start / Continue button + Save · blurb · Share to
+  every platform · Chapters and More-like-this as tabs. No download button —
+  Save covers it.</p>
+</div>
+
+<div class="frames">
+
+  <!-- ===== FRAME A — in progress, Chapters tab ===== -->
+  <div>
+    <div class="bezel"><div class="screen">
+      <div class="notch"></div>
+      <div class="ambient violet"></div>
+      <div class="scr">
+        <div class="topbtns">
+          <div class="cbtn"><svg viewBox="0 0 24 24" fill="none" stroke="#F4ECDF"
+            stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m15 18-6-6 6-6"/></svg></div>
+          <div class="cbtn"><svg viewBox="0 0 24 24" fill="none" stroke="#F4ECDF"
+            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg></div>
+        </div>
+
+        <div class="cover" style="background:
+          radial-gradient(80% 60% at 70% 22%,rgba(190,120,230,.7),transparent 65%),
+          linear-gradient(160deg,#3a2150,#140d1c)"></div>
+
+        <div class="title">The Quiet Between Stars</div>
+        <div class="meta">Fantasy · 28 chapters · 18.2k reads</div>
+        <div class="author">
+          <div class="av">HC</div>
+          <span class="nm">Helena Cruz</span>
+          <span class="followpill">Follow</span>
+        </div>
+
+        <div class="btns">
+          <div class="btn read">
+            <svg viewBox="0 0 24 24" fill="#15100E"><path d="M8 5v14l11-7z"/></svg>
+            Continue&nbsp;<small>· Ch 12</small></div>
+          <div class="btn save">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4"
+              stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg>
+            Saved</div>
+        </div>
+
+        <div class="blurb">A cartographer of dead stars is hired to chart a route
+          no ship has survived — and the only crew who'll take the job already
+          knows how she dies. A slow-burn space fantasy about maps, fate, and the
+          people worth getting lost for.</div>
+
+        <div class="actions">
+          <div class="act">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+            <span>Share</span></div>
+          <div class="act">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M19 14c1.5-1.5 3-3.3 3-5.5A3.5 3.5 0 0 0 12 6 3.5 3.5 0 0 0 2 8.5C2 12 5 14 12 20c3-2.5 5-4 7-6Z"/></svg>
+            <span>Tip writer</span></div>
+          <div class="act">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 21V4h13l-2 4 2 4H4"/></svg>
+            <span>Report</span></div>
+        </div>
+
+        <div class="tabs">
+          <div class="tab on">Chapters</div>
+          <div class="tab">More like this</div>
+        </div>
+
+        <div class="chap"><div class="chnum">1</div>
+          <div class="chmid"><div class="chttl">The Salt Gate</div>
+            <div class="chsub">Read</div></div><div class="chtag free">Free</div></div>
+        <div class="chap now"><div class="chnum">12</div>
+          <div class="chmid"><div class="chttl">A Bargain of Light</div>
+            <div class="chsub">Currently reading · 41%</div></div></div>
+        <div class="chap"><div class="chnum">13</div>
+          <div class="chmid"><div class="chttl">The Tenth Corridor</div></div>
+          <div class="lock"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2"><rect x="5" y="11" width="14" height="10" rx="2"/>
+            <path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></div></div>
+        <div class="chap"><div class="chnum">14</div>
+          <div class="chmid"><div class="chttl">Ashfall</div></div>
+          <div class="lock"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2"><rect x="5" y="11" width="14" height="10" rx="2"/>
+            <path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></div></div>
+      </div>
+    </div></div>
+    <div class="cap">Detail — in progress · Chapters</div>
+  </div>
+
+  <!-- ===== FRAME B — fresh book, More-like-this tab ===== -->
+  <div>
+    <div class="bezel"><div class="screen">
+      <div class="notch"></div>
+      <div class="ambient teal"></div>
+      <div class="scr">
+        <div class="topbtns">
+          <div class="cbtn"><svg viewBox="0 0 24 24" fill="none" stroke="#F4ECDF"
+            stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m15 18-6-6 6-6"/></svg></div>
+          <div class="cbtn"><svg viewBox="0 0 24 24" fill="none" stroke="#F4ECDF"
+            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg></div>
+        </div>
+
+        <div class="cover" style="background:linear-gradient(160deg,#1f4d44,#0c1715)"></div>
+
+        <div class="title">Saltwater Saints</div>
+        <div class="meta">Literary · 22 chapters · 4.1k reads</div>
+        <div class="author">
+          <div class="av">MV</div>
+          <span class="nm">Marian Vale</span>
+          <span class="followpill">Follow</span>
+        </div>
+
+        <div class="btns">
+          <div class="btn read">
+            <svg viewBox="0 0 24 24" fill="#15100E"><path d="M8 5v14l11-7z"/></svg>
+            Start reading</div>
+          <div class="btn save">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4"
+              stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+            Save</div>
+        </div>
+
+        <div class="blurb">Three generations of women in a fishing town that the
+          sea is slowly taking back. A quiet, aching family saga about the things
+          we inherit and the tides we can't argue with.</div>
+
+        <div class="actions">
+          <div class="act">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+            <span>Share</span></div>
+          <div class="act">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M19 14c1.5-1.5 3-3.3 3-5.5A3.5 3.5 0 0 0 12 6 3.5 3.5 0 0 0 2 8.5C2 12 5 14 12 20c3-2.5 5-4 7-6Z"/></svg>
+            <span>Tip writer</span></div>
+          <div class="act">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 21V4h13l-2 4 2 4H4"/></svg>
+            <span>Report</span></div>
+        </div>
+
+        <div class="tabs">
+          <div class="tab">Chapters</div>
+          <div class="tab on">More like this</div>
+        </div>
+
+        <div class="grid">
+          <div class="gc"><div class="gcart" style="background:linear-gradient(160deg,#2b3a63,#0e1119)"></div>
+            <div class="gct">North of Never</div></div>
+          <div class="gc"><div class="gcart" style="background:linear-gradient(160deg,#5a2233,#1a0d12)"></div>
+            <div class="gct">Glass Hour</div></div>
+          <div class="gc"><div class="gcart" style="background:linear-gradient(160deg,#46355f,#15101d)"></div>
+            <div class="gct">Paint the Town</div></div>
+          <div class="gc"><div class="gcart" style="background:linear-gradient(160deg,#6b3b1f,#1c0f08)"></div>
+            <div class="gct">The Tuesday We&hellip;</div></div>
+          <div class="gc"><div class="gcart" style="background:linear-gradient(160deg,#33485a,#101519)"></div>
+            <div class="gct">The Vault of&hellip;</div></div>
+          <div class="gc"><div class="gcart" style="background:linear-gradient(160deg,#7a3550,#1f0f18)"></div>
+            <div class="gct">The Summer We&hellip;</div></div>
+        </div>
+      </div>
+    </div></div>
+    <div class="cap">Detail — fresh book · More like this</div>
+  </div>
+
+</div>
+</body>
+</html>

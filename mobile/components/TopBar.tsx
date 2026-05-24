@@ -7,9 +7,10 @@ import { getCurrentUser } from '@/lib/auth';
 import { ProfileSheet } from './ProfileSheet';
 import type { User } from '@/lib/types';
 
-// Shared top bar for the three tab screens: the `n.` mark on the left, and
-// search · write · avatar on the right. The avatar opens the profile sheet.
-export function TopBar() {
+// Shared top bar for the tab screens: the `n.{page}` mark on the left (e.g.
+// n.home, n.search) and write · avatar on the right. The avatar opens the
+// profile sheet.
+export function TopBar({ page }: { page?: string }) {
   const [user, setUser] = useState<User | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
 
@@ -30,6 +31,7 @@ export function TopBar() {
       <View style={styles.bar}>
         <Text style={styles.mark}>
           n<Text style={styles.dot}>.</Text>
+          {page ? <Text style={styles.markPage}>{page}</Text> : null}
         </Text>
         <View style={styles.right}>
           <Pressable style={styles.icon} hitSlop={8} onPress={() => router.push('/write')}>
@@ -68,8 +70,9 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 10,
   },
-  mark: { fontSize: 26, fontFamily: fonts.displayXl, color: colors.ink, letterSpacing: -1 },
+  mark: { fontSize: 24, fontFamily: fonts.displayXl, color: colors.ink, letterSpacing: -1 },
   dot: { color: colors.signal },
+  markPage: { color: colors.inkMuted },
   right: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   icon: {
     width: 38,

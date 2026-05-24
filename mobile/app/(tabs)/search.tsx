@@ -25,6 +25,7 @@ export default function Search() {
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const inputRef = useRef<TextInput>(null);
 
   // Recommended titles fill the screen before the reader types anything.
   const loadRecommended = useCallback(async () => {
@@ -35,9 +36,13 @@ export default function Search() {
     }
   }, []);
 
+  // Open the keyboard as soon as Search is entered, so you can type right
+  // away — the recommended list stays visible above it.
   useFocusEffect(
     useCallback(() => {
       loadRecommended();
+      const t = setTimeout(() => inputRef.current?.focus(), 350);
+      return () => clearTimeout(t);
     }, [loadRecommended]),
   );
 
@@ -71,12 +76,15 @@ export default function Search() {
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <TopBar />
-      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-        <Text style={styles.pageTitle}>Search</Text>
-
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+      >
         <View style={styles.field}>
           <Ionicons name="search" size={18} color={colors.inkFaint} />
           <TextInput
+            ref={inputRef}
             value={q}
             onChangeText={setQ}
             placeholder="Search stories and authors…"

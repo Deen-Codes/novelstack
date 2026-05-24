@@ -143,7 +143,7 @@ export default function Home() {
         </Animated.View>
       )}
 
-      <TopBar />
+      <TopBar page="home" />
 
       <ScrollView
         contentContainerStyle={styles.scroll}

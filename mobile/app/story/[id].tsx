@@ -4,20 +4,26 @@ import {
   View,
   Text,
   TextInput,
+  Image,
   Pressable,
   ActivityIndicator,
+  Share,
   StyleSheet,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useFocusEffect, router } from 'expo-router';
 import { colors, spacing, radius, fonts } from '@/theme/tokens';
 import { apiGet, apiSend } from '@/lib/api';
 import { getCurrentUser } from '@/lib/auth';
+import { genreLabel } from '@/lib/genres';
 import { Cover } from '@/components/Cover';
 import { DobField } from '@/components/DobField';
-import type { StoryDetail, Shelf, User } from '@/lib/types';
+import type { StoryDetail, Shelf, User, Story, HomeExtras } from '@/lib/types';
 
-// 18 or older. Mature stories stay gated until a date of birth proves it.
+const SITE = 'https://novelstack.app';
+
 function isAdult(dob?: string | null): boolean {
   if (!dob) return false;
   const d = new Date(`${dob}T00:00:00`);
@@ -27,7 +33,14 @@ function isAdult(dob?: string | null): boolean {
   return d <= eighteen;
 }
 
-// Reader-to-writer tip amounts, in cents.
+function hexA(hex: string, a: number): string {
+  const h = (hex || '#3a2150').replace('#', '');
+  const r = parseInt(h.slice(0, 2), 16) || 58;
+  const g = parseInt(h.slice(2, 4), 16) || 33;
+  const b = parseInt(h.slice(4, 6), 16) || 80;
+  return `rgba(${r},${g},${b},${a})`;
+}
+
 const TIP_AMOUNTS = [300, 500, 1000];
 const REPORT_REASONS = [
   { v: 'csam', l: 'Child exploitation (CSAM)' },
@@ -40,8 +53,6 @@ const REPORT_REASONS = [
   { v: 'other', l: 'Something else' },
 ];
 
-// Story detail — chapter list plus the social surfaces (bookmark, follow,
-// tip, report). The route param carries the story slug.
 export default function StoryScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [story, setStory] = useState<StoryDetail | null>(null);
@@ -52,12 +63,13 @@ export default function StoryScreen() {
   const [bookmarked, setBookmarked] = useState(false);
   const [following, setFollowing] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [tab, setTab] = useState<'chapters' | 'more'>('chapters');
+  const [moreLikeThis, setMoreLikeThis] = useState<Story[]>([]);
+  const [continueId, setContinueId] = useState<string | null>(null);
+  const [continueNum, setContinueNum] = useState<number | null>(null);
 
-  // 18+ age-gate state.
   const [gateDob, setGateDob] = useState<string | null>(null);
   const [gateErr, setGateErr] = useState('');
-
-  const userId = user?.id ?? null;
 
   const [tipOpen, setTipOpen] = useState(false);
   const [tipAmount, setTipAmount] = useState(500);
@@ -68,6 +80,8 @@ export default function StoryScreen() {
   const [reportReason, setReportReason] = useState('harassment');
   const [reportDetail, setReportDetail] = useState('');
   const [reportDone, setReportDone] = useState(false);
+
+  const userId = user?.id ?? null;
 
   const load = useCallback(async () => {
     let s: StoryDetail;
@@ -83,14 +97,29 @@ export default function StoryScreen() {
     const me = await getCurrentUser();
     setUser(me ?? null);
     if (me) {
-      // The shelf tells us which stories are saved and which authors followed.
       try {
         const shelf = await apiGet<Shelf>('/api/me/shelf');
         setBookmarked(shelf.saved.some((b) => b.id === s.id));
         setFollowing(shelf.following.some((f) => f.id === s.authorId));
       } catch {
-        // No shelf — leave toggles in their default off state.
+        // Leave toggles off.
       }
+      try {
+        const home = await apiGet<HomeExtras>('/api/me/home');
+        if (home.continueReading && home.continueReading.storyId === s.id) {
+          setContinueId(home.continueReading.chapterId);
+          setContinueNum(home.continueReading.chapterNumber);
+        }
+      } catch {
+        // No continue point.
+      }
+    }
+    // "More like this" — same genre, minus this story.
+    try {
+      const similar = await apiGet<Story[]>(`/api/feed?genre=${encodeURIComponent(s.genre)}`);
+      setMoreLikeThis(similar.filter((x) => x.id !== s.id).slice(0, 12));
+    } catch {
+      setMoreLikeThis([]);
     }
     setLoading(false);
   }, [id]);
@@ -122,7 +151,7 @@ export default function StoryScreen() {
       );
       setBookmarked(next);
     } catch {
-      // Leave state unchanged on failure.
+      // Leave unchanged.
     }
     setBusy(false);
   }
@@ -138,15 +167,24 @@ export default function StoryScreen() {
       );
       setFollowing(next);
     } catch {
-      // Leave state unchanged on failure.
+      // Leave unchanged.
     }
     setBusy(false);
   }
 
-  // Tipping and reporting have no API endpoint yet — these confirm locally.
+  async function shareStory() {
+    if (!story) return;
+    try {
+      await Share.share({
+        message: `Read "${story.title}" by ${story.author?.displayName ?? 'a NovelStack writer'} on NovelStack — ${SITE}/story/${story.slug}`,
+      });
+    } catch {
+      // Share cancelled — no-op.
+    }
+  }
+
   function sendTip() {
-    if (requireSignIn() || busy || !story) return;
-    if (story.authorId === userId) return; // can't tip yourself
+    if (requireSignIn() || busy) return;
     setTipDone(true);
     setTipOpen(false);
   }
@@ -157,8 +195,6 @@ export default function StoryScreen() {
     setReportOpen(false);
   }
 
-  // Saves the reader's date of birth, then reloads — which lifts the gate
-  // if it confirms they're 18+.
   async function confirmAge() {
     if (busy) return;
     if (!gateDob) {
@@ -191,55 +227,86 @@ export default function StoryScreen() {
   if (notFound || !story) {
     return (
       <SafeAreaView style={styles.safe} edges={['top']}>
-        <View style={styles.body}>
-          <Pressable onPress={() => router.back()}>
-            <Text style={styles.back}>‹ Back</Text>
+        <View style={styles.topRow}>
+          <Pressable style={styles.circleBtn} onPress={() => router.back()} hitSlop={8}>
+            <Ionicons name="chevron-back" size={20} color={colors.ink} />
           </Pressable>
-          <Text style={styles.sub}>Story not found.</Text>
         </View>
+        <Text style={styles.notFound}>Story not found.</Text>
       </SafeAreaView>
     );
   }
 
   const isOwnStory = userId === story.authorId;
-  const chapters = story.chapters.filter((c) => c.publishedAt);
-  // Mature stories are gated until the reader proves they're 18+. Authors
-  // always see their own story.
+  const chapters = story.chapters
+    .filter((c) => c.publishedAt)
+    .sort((a, b) => a.number - b.number);
+  const firstChapterId = chapters[0]?.id ?? null;
   const gated = story.isMature && !isOwnStory && !isAdult(user?.dateOfBirth);
+  const ambient = story.coverColor ?? '#3a2150';
+
+  const readTarget = continueId ?? firstChapterId;
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
+      <LinearGradient
+        colors={[hexA(ambient, 0.55), hexA(ambient, 0.1), 'transparent']}
+        locations={[0, 0.55, 1]}
+        style={styles.ambient}
+        pointerEvents="none"
+      />
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-        <Pressable onPress={() => router.back()}>
-          <Text style={styles.back}>‹ Back</Text>
-        </Pressable>
-
-        <View style={styles.head}>
-          <Cover
-            coverUrl={story.coverUrl}
-            coverColor={story.coverColor}
-            title={story.title}
-            mature={story.isMature}
-            style={styles.cover}
-          />
-          <View style={styles.headText}>
-            <View style={styles.metaRow}>
-              <Text style={styles.genre}>{story.genre}</Text>
-              {story.isMature && (
-                <View style={styles.maturePill}>
-                  <Text style={styles.maturePillText}>18+</Text>
-                </View>
-              )}
-            </View>
-            <Text style={styles.h1}>{story.title}</Text>
-            <Text style={styles.author}>
-              by {story.author?.displayName ?? 'a NovelStack writer'}
-              {story.author?.isVerified ? ' ✓' : ''}
-            </Text>
-          </View>
+        <View style={styles.topRow}>
+          <Pressable style={styles.circleBtn} onPress={() => router.back()} hitSlop={8}>
+            <Ionicons name="chevron-back" size={20} color={colors.ink} />
+          </Pressable>
+          <Pressable style={styles.circleBtn} onPress={shareStory} hitSlop={8}>
+            <Ionicons name="paper-plane-outline" size={18} color={colors.ink} />
+          </Pressable>
         </View>
 
-        {!!story.description && <Text style={styles.desc}>{story.description}</Text>}
+        <Cover
+          coverUrl={story.coverUrl}
+          coverColor={story.coverColor}
+          title={story.title}
+          mature={story.isMature}
+          style={styles.cover}
+        />
+
+        <Text style={styles.title}>{story.title}</Text>
+        <View style={styles.metaRow}>
+          <Text style={styles.meta}>
+            {genreLabel(story.genre)} · {chapters.length} chapter
+            {chapters.length === 1 ? '' : 's'} · {(story.totalReads ?? 0).toLocaleString()} reads
+          </Text>
+          {story.isMature && (
+            <View style={styles.maturePill}>
+              <Text style={styles.maturePillText}>18+</Text>
+            </View>
+          )}
+        </View>
+
+        <View style={styles.authorRow}>
+          <View style={styles.authorAv}>
+            <Text style={styles.authorAvText}>
+              {(story.author?.displayName ?? '?').slice(0, 1).toUpperCase()}
+            </Text>
+          </View>
+          <Text style={styles.authorName}>
+            {story.author?.displayName ?? 'a NovelStack writer'}
+          </Text>
+          {!isOwnStory && (
+            <Pressable
+              style={[styles.followPill, following && styles.followPillOn]}
+              onPress={toggleFollow}
+              disabled={busy}
+            >
+              <Text style={[styles.followPillText, following && styles.followPillTextOn]}>
+                {following ? 'Following' : 'Follow'}
+              </Text>
+            </Pressable>
+          )}
+        </View>
 
         {gated ? (
           <View style={styles.gate}>
@@ -258,13 +325,11 @@ export default function StoryScreen() {
                 />
                 {!!gateErr && <Text style={styles.gateErr}>{gateErr}</Text>}
                 <Pressable
-                  style={[styles.primaryBtn, busy && { opacity: 0.6 }]}
+                  style={[styles.gateBtn, busy && { opacity: 0.6 }]}
                   onPress={confirmAge}
                   disabled={busy}
                 >
-                  <Text style={styles.primaryBtnText}>
-                    {busy ? 'Saving…' : 'Confirm & continue'}
-                  </Text>
+                  <Text style={styles.gateBtnText}>{busy ? 'Saving…' : 'Confirm & continue'}</Text>
                 </Pressable>
               </>
             ) : (
@@ -272,149 +337,180 @@ export default function StoryScreen() {
                 <Text style={styles.gateBody}>
                   Sign in and confirm your date of birth to read mature stories.
                 </Text>
-                <Pressable style={styles.primaryBtn} onPress={() => router.push('/signin')}>
-                  <Text style={styles.primaryBtnText}>Sign in</Text>
+                <Pressable style={styles.gateBtn} onPress={() => router.push('/signin')}>
+                  <Text style={styles.gateBtnText}>Sign in</Text>
                 </Pressable>
               </>
             )}
           </View>
         ) : (
           <>
-        {/* Actions */}
-        <View style={styles.actions}>
-          <Pressable
-            style={[styles.actionBtn, bookmarked && styles.actionBtnOn]}
-            onPress={toggleBookmark}
-            disabled={busy}
-          >
-            <Text style={[styles.actionText, bookmarked && styles.actionTextOn]}>
-              {bookmarked ? 'Saved ✓' : 'Save story'}
-            </Text>
-          </Pressable>
-          {!isOwnStory && (
-            <Pressable
-              style={[styles.actionBtn, following && styles.actionBtnOn]}
-              onPress={toggleFollow}
-              disabled={busy}
-            >
-              <Text style={[styles.actionText, following && styles.actionTextOn]}>
-                {following ? 'Following' : 'Follow writer'}
-              </Text>
-            </Pressable>
-          )}
-        </View>
-
-        {!isOwnStory && (
-          <View style={styles.linkRow}>
-            {tipDone ? (
-              <Text style={styles.tinyMuted}>Tip sent — thank you</Text>
-            ) : (
-              <Pressable onPress={() => setTipOpen(!tipOpen)}>
-                <Text style={styles.link}>Tip the writer</Text>
+            <View style={styles.btns}>
+              <Pressable
+                style={[styles.btn, styles.btnRead, !readTarget && { opacity: 0.5 }]}
+                disabled={!readTarget}
+                onPress={() => readTarget && router.push(`/read/${readTarget}`)}
+              >
+                <Ionicons name="play" size={16} color="#15100E" />
+                <Text style={styles.btnReadText}>
+                  {continueId ? 'Continue' : 'Start reading'}
+                </Text>
+                {continueId && continueNum != null && (
+                  <Text style={styles.btnReadSub}> · Ch {continueNum}</Text>
+                )}
               </Pressable>
-            )}
-            {reportDone ? (
-              <Text style={styles.tinyMuted}>Reported — thank you</Text>
-            ) : (
-              <Pressable onPress={() => setReportOpen(!reportOpen)}>
-                <Text style={styles.linkFaint}>Report</Text>
+              <Pressable style={[styles.btn, styles.btnSave]} onPress={toggleBookmark} disabled={busy}>
+                <Ionicons
+                  name={bookmarked ? 'checkmark' : 'add'}
+                  size={18}
+                  color={colors.ink}
+                />
+                <Text style={styles.btnSaveText}>{bookmarked ? 'Saved' : 'Save'}</Text>
               </Pressable>
-            )}
-          </View>
-        )}
-
-        {/* Tip panel */}
-        {tipOpen && !tipDone && (
-          <View style={styles.panel}>
-            <Text style={styles.panelTitle}>Send a tip</Text>
-            <View style={styles.tipRow}>
-              {TIP_AMOUNTS.map((a) => (
-                <Pressable
-                  key={a}
-                  style={[styles.tipChip, tipAmount === a && styles.tipChipOn]}
-                  onPress={() => setTipAmount(a)}
-                >
-                  <Text style={[styles.tipChipText, tipAmount === a && styles.tipChipTextOn]}>
-                    ${a / 100}
-                  </Text>
-                </Pressable>
-              ))}
             </View>
-            <TextInput
-              value={tipMsg}
-              onChangeText={setTipMsg}
-              placeholder="Add a message (optional)"
-              placeholderTextColor={colors.inkFaint}
-              style={styles.input}
-            />
-            <Pressable
-              style={[styles.primaryBtn, busy && { opacity: 0.6 }]}
-              onPress={sendTip}
-              disabled={busy}
-            >
-              <Text style={styles.primaryBtnText}>Send ${tipAmount / 100} tip</Text>
-            </Pressable>
-            <Text style={styles.tinyMuted}>
-              Writers keep 70%. Charges settle once payouts go live.
-            </Text>
-          </View>
-        )}
 
-        {/* Report panel */}
-        {reportOpen && !reportDone && (
-          <View style={styles.panel}>
-            <Text style={styles.panelTitle}>Report this story</Text>
-            <View style={styles.reasonWrap}>
-              {REPORT_REASONS.map((r) => (
-                <Pressable
-                  key={r.v}
-                  style={[styles.reason, reportReason === r.v && styles.reasonOn]}
-                  onPress={() => setReportReason(r.v)}
-                >
-                  <Text
-                    style={[styles.reasonText, reportReason === r.v && styles.reasonTextOn]}
+            {!!story.description && <Text style={styles.desc}>{story.description}</Text>}
+
+            <View style={styles.actions}>
+              <Pressable style={styles.act} onPress={shareStory}>
+                <Ionicons name="paper-plane-outline" size={21} color={colors.ink} />
+                <Text style={styles.actText}>Share</Text>
+              </Pressable>
+              {!isOwnStory && (
+                <Pressable style={styles.act} onPress={() => setTipOpen((o) => !o)}>
+                  <Ionicons name="heart-outline" size={21} color={colors.ink} />
+                  <Text style={styles.actText}>{tipDone ? 'Tipped' : 'Tip writer'}</Text>
+                </Pressable>
+              )}
+              {!isOwnStory && (
+                <Pressable style={styles.act} onPress={() => setReportOpen((o) => !o)}>
+                  <Ionicons name="flag-outline" size={21} color={colors.ink} />
+                  <Text style={styles.actText}>{reportDone ? 'Reported' : 'Report'}</Text>
+                </Pressable>
+              )}
+            </View>
+
+            {tipOpen && !tipDone && (
+              <View style={styles.panel}>
+                <Text style={styles.panelTitle}>Send a tip</Text>
+                <View style={styles.tipRow}>
+                  {TIP_AMOUNTS.map((a) => (
+                    <Pressable
+                      key={a}
+                      style={[styles.tipChip, tipAmount === a && styles.tipChipOn]}
+                      onPress={() => setTipAmount(a)}
+                    >
+                      <Text style={[styles.tipChipText, tipAmount === a && styles.tipChipTextOn]}>
+                        ${a / 100}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+                <TextInput
+                  value={tipMsg}
+                  onChangeText={setTipMsg}
+                  placeholder="Add a message (optional)"
+                  placeholderTextColor={colors.inkFaint}
+                  style={styles.input}
+                />
+                <Pressable style={styles.gateBtn} onPress={sendTip} disabled={busy}>
+                  <Text style={styles.gateBtnText}>Send ${tipAmount / 100} tip</Text>
+                </Pressable>
+                <Text style={styles.tinyMuted}>Writers keep 70%. Charges settle once payouts go live.</Text>
+              </View>
+            )}
+
+            {reportOpen && !reportDone && (
+              <View style={styles.panel}>
+                <Text style={styles.panelTitle}>Report this story</Text>
+                <View style={styles.reasonWrap}>
+                  {REPORT_REASONS.map((r) => (
+                    <Pressable
+                      key={r.v}
+                      style={[styles.reason, reportReason === r.v && styles.reasonOn]}
+                      onPress={() => setReportReason(r.v)}
+                    >
+                      <Text style={[styles.reasonText, reportReason === r.v && styles.reasonTextOn]}>
+                        {r.l}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+                <TextInput
+                  value={reportDetail}
+                  onChangeText={setReportDetail}
+                  placeholder="Anything else? (optional)"
+                  placeholderTextColor={colors.inkFaint}
+                  multiline
+                  style={[styles.input, { height: 64, textAlignVertical: 'top' }]}
+                />
+                <Pressable style={styles.gateBtn} onPress={submitReport} disabled={busy}>
+                  <Text style={styles.gateBtnText}>Submit report</Text>
+                </Pressable>
+              </View>
+            )}
+
+            <View style={styles.tabs}>
+              <Pressable onPress={() => setTab('chapters')}>
+                <Text style={[styles.tab, tab === 'chapters' && styles.tabOn]}>Chapters</Text>
+              </Pressable>
+              <Pressable onPress={() => setTab('more')}>
+                <Text style={[styles.tab, tab === 'more' && styles.tabOn]}>More like this</Text>
+              </Pressable>
+            </View>
+
+            {tab === 'chapters' ? (
+              chapters.length === 0 ? (
+                <Text style={styles.emptyNote}>No published chapters yet.</Text>
+              ) : (
+                chapters.map((ch) => {
+                  const isCurrent = ch.id === continueId;
+                  return (
+                    <Pressable
+                      key={ch.id}
+                      style={styles.chapterRow}
+                      onPress={() => router.push(`/read/${ch.id}`)}
+                    >
+                      <Text style={[styles.chNum, isCurrent && styles.chCurrent]}>
+                        {ch.number}
+                      </Text>
+                      <View style={{ flex: 1, minWidth: 0 }}>
+                        <Text style={[styles.chTitle, isCurrent && styles.chCurrent]} numberOfLines={1}>
+                          {ch.title}
+                        </Text>
+                        {isCurrent && <Text style={styles.chSub}>Currently reading</Text>}
+                      </View>
+                      <Text style={[styles.chTag, ch.isFree && styles.chTagFree]}>
+                        {ch.isFree ? 'Free' : 'Ad / NS+'}
+                      </Text>
+                    </Pressable>
+                  );
+                })
+              )
+            ) : moreLikeThis.length === 0 ? (
+              <Text style={styles.emptyNote}>Nothing similar yet.</Text>
+            ) : (
+              <View style={styles.grid}>
+                {moreLikeThis.map((s) => (
+                  <Pressable
+                    key={s.id}
+                    style={styles.gridItem}
+                    onPress={() => router.push(`/story/${s.slug}`)}
                   >
-                    {r.l}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-            <TextInput
-              value={reportDetail}
-              onChangeText={setReportDetail}
-              placeholder="Anything else? (optional)"
-              placeholderTextColor={colors.inkFaint}
-              multiline
-              style={[styles.input, { height: 64, textAlignVertical: 'top' }]}
-            />
-            <Pressable
-              style={[styles.primaryBtn, busy && { opacity: 0.6 }]}
-              onPress={submitReport}
-              disabled={busy}
-            >
-              <Text style={styles.primaryBtnText}>Submit report</Text>
-            </Pressable>
-          </View>
-        )}
-
-        {/* Chapters */}
-        <Text style={styles.section}>Chapters</Text>
-        {chapters.length === 0 ? (
-          <Text style={styles.sub}>No published chapters yet.</Text>
-        ) : (
-          chapters.map((ch) => (
-            <Pressable
-              key={ch.id}
-              style={styles.chapterRow}
-              onPress={() => router.push(`/read/${ch.id}`)}
-            >
-              <Text style={styles.chapterTitle}>
-                {ch.number}. {ch.title}
-              </Text>
-              <Text style={styles.chapterTag}>{ch.isFree ? 'Free' : 'Ad / NovelStack+'}</Text>
-            </Pressable>
-          ))
-        )}
+                    <Cover
+                      coverUrl={s.coverUrl}
+                      coverColor={s.coverColor}
+                      title={s.title}
+                      mature={s.isMature}
+                      style={styles.gridCover}
+                    />
+                    <Text style={styles.gridTitle} numberOfLines={2}>
+                      {s.title}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            )}
           </>
         )}
       </ScrollView>
@@ -424,14 +520,43 @@ export default function StoryScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.paper },
-  body: { padding: spacing.lg },
-  scroll: { padding: spacing.lg, paddingBottom: spacing.xl * 3 },
-  back: { fontSize: 14, color: colors.inkMuted, marginBottom: spacing.lg },
-  head: { flexDirection: 'row', gap: spacing.md },
-  cover: { width: 110, height: 146, borderRadius: radius.md },
-  headText: { flex: 1, justifyContent: 'center' },
-  metaRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  genre: { fontSize: 12, color: colors.signal, fontWeight: '500', textTransform: 'capitalize' },
+  ambient: { position: 'absolute', top: 0, left: 0, right: 0, height: 360 },
+  scroll: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: spacing.xl * 2 },
+
+  topRow: { flexDirection: 'row', justifyContent: 'space-between' },
+  circleBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: radius.pill,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  notFound: { fontSize: 15, color: colors.inkMuted, textAlign: 'center', marginTop: 80 },
+
+  cover: {
+    width: 158,
+    height: 222,
+    borderRadius: 14,
+    alignSelf: 'center',
+    marginTop: 14,
+  },
+  title: {
+    fontFamily: fonts.displayXl,
+    fontSize: 26,
+    color: colors.ink,
+    textAlign: 'center',
+    marginTop: 16,
+    letterSpacing: -0.5,
+  },
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 8,
+  },
+  meta: { fontSize: 12.5, color: colors.inkMuted, fontWeight: '500' },
   maturePill: {
     backgroundColor: colors.ink,
     borderRadius: radius.sm,
@@ -439,46 +564,76 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
   },
   maturePillText: { fontSize: 10, fontWeight: '700', color: colors.paper },
-  gate: {
-    marginTop: spacing.lg,
-    backgroundColor: colors.white,
-    borderWidth: 1,
-    borderColor: colors.borderSoft,
-    borderRadius: radius.lg,
-    padding: spacing.lg,
-    gap: spacing.md,
+
+  authorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 9,
+    marginTop: 12,
   },
-  gateTitle: { fontSize: 17, fontWeight: '500', color: colors.ink },
-  gateBody: { fontSize: 14, color: colors.inkMuted, lineHeight: 21 },
-  gateErr: { fontSize: 13, color: colors.signal },
-  h1: { fontFamily: fonts.displayXl, fontSize: 25, color: colors.ink, marginTop: 4, letterSpacing: -0.5 },
-  author: { fontSize: 14, color: colors.inkMuted, marginTop: 6 },
-  desc: { fontSize: 14, color: colors.inkMuted, lineHeight: 21, marginTop: spacing.lg },
-  actions: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.lg },
-  actionBtn: {
-    borderWidth: 1,
-    borderColor: colors.borderSoft,
+  authorAv: {
+    width: 26,
+    height: 26,
     borderRadius: radius.pill,
-    paddingVertical: 10,
-    paddingHorizontal: 18,
+    backgroundColor: colors.signalDeep,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  actionBtnOn: { backgroundColor: colors.signal, borderColor: colors.signal },
-  actionText: { fontSize: 13, fontWeight: '500', color: colors.ink },
-  actionTextOn: { color: colors.paper },
-  linkRow: { flexDirection: 'row', gap: spacing.lg, marginTop: spacing.md, alignItems: 'center' },
-  link: { fontSize: 13, color: colors.signal, fontWeight: '500' },
-  linkFaint: { fontSize: 12, color: colors.inkFaint, textDecorationLine: 'underline' },
-  tinyMuted: { fontSize: 12, color: colors.inkFaint },
+  authorAvText: { fontSize: 11, fontWeight: '700', color: '#FFFFFF' },
+  authorName: { fontSize: 13, fontWeight: '600', color: colors.ink },
+  followPill: {
+    borderWidth: 1,
+    borderColor: 'rgba(200,65,78,0.55)',
+    borderRadius: radius.pill,
+    paddingHorizontal: 11,
+    paddingVertical: 4,
+  },
+  followPillOn: { backgroundColor: colors.signal, borderColor: colors.signal },
+  followPillText: { fontSize: 11, fontWeight: '600', color: '#F2C9CD' },
+  followPillTextOn: { color: '#FFFFFF' },
+
+  btns: { flexDirection: 'row', gap: 10, marginTop: spacing.lg },
+  btn: {
+    height: 50,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
+  },
+  btnRead: { flex: 1.7, backgroundColor: '#F4ECDF' },
+  btnReadText: { fontSize: 15, fontWeight: '700', color: '#15100E' },
+  btnReadSub: { fontSize: 12, fontWeight: '500', color: 'rgba(21,16,14,0.65)' },
+  btnSave: {
+    flex: 1,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  btnSaveText: { fontSize: 15, fontWeight: '600', color: colors.ink },
+
+  desc: { fontSize: 13.5, color: colors.inkMuted, lineHeight: 21, marginTop: spacing.lg },
+
+  actions: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginTop: spacing.lg,
+    paddingHorizontal: 10,
+  },
+  act: { alignItems: 'center', gap: 5 },
+  actText: { fontSize: 11, color: colors.inkMuted, fontWeight: '500' },
+
   panel: {
     marginTop: spacing.md,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.borderSoft,
     borderRadius: radius.lg,
     padding: spacing.md,
     gap: spacing.sm,
   },
-  panelTitle: { fontSize: 15, fontWeight: '500', color: colors.ink },
+  panelTitle: { fontSize: 15, fontWeight: '600', color: colors.ink },
   tipRow: { flexDirection: 'row', gap: spacing.sm },
   tipChip: {
     borderWidth: 1,
@@ -489,10 +644,10 @@ const styles = StyleSheet.create({
   },
   tipChipOn: { backgroundColor: colors.signal, borderColor: colors.signal },
   tipChipText: { fontSize: 14, fontWeight: '500', color: colors.ink },
-  tipChipTextOn: { color: colors.paper },
+  tipChipTextOn: { color: '#FFFFFF' },
   reasonWrap: { gap: 4 },
   reason: { paddingVertical: 7, paddingHorizontal: 10, borderRadius: radius.sm },
-  reasonOn: { backgroundColor: colors.paperSoft },
+  reasonOn: { backgroundColor: colors.cardHi },
   reasonText: { fontSize: 13, color: colors.inkMuted },
   reasonTextOn: { color: colors.ink, fontWeight: '500' },
   input: {
@@ -505,29 +660,67 @@ const styles = StyleSheet.create({
     backgroundColor: colors.paperSoft,
     color: colors.ink,
   },
-  primaryBtn: {
+  tinyMuted: { fontSize: 12, color: colors.inkFaint },
+  gateBtn: {
     backgroundColor: colors.signal,
-    paddingVertical: 11,
+    paddingVertical: 12,
     borderRadius: radius.pill,
     alignItems: 'center',
   },
-  primaryBtnText: { color: colors.paper, fontSize: 14, fontWeight: '500' },
-  section: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: colors.ink,
-    marginTop: spacing.xl,
-    marginBottom: spacing.sm,
+  gateBtnText: { color: '#FFFFFF', fontSize: 14, fontWeight: '600' },
+
+  gate: {
+    marginTop: spacing.lg,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.borderSoft,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+    gap: spacing.md,
   },
-  sub: { fontSize: 14, color: colors.inkMuted, marginTop: spacing.sm, lineHeight: 21 },
-  chapterRow: {
+  gateTitle: { fontFamily: fonts.display, fontSize: 17, color: colors.ink },
+  gateBody: { fontSize: 14, color: colors.inkMuted, lineHeight: 21 },
+  gateErr: { fontSize: 13, color: colors.signal },
+
+  tabs: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: spacing.md,
+    gap: 24,
+    marginTop: spacing.xl,
     borderBottomWidth: 1,
     borderBottomColor: colors.borderSoft,
   },
-  chapterTitle: { fontSize: 15, color: colors.ink, flex: 1 },
-  chapterTag: { fontSize: 12, color: colors.inkFaint, marginLeft: spacing.sm },
+  tab: {
+    fontFamily: fonts.display,
+    fontSize: 15,
+    color: colors.inkFaint,
+    paddingBottom: 11,
+  },
+  tabOn: { color: colors.ink, borderBottomWidth: 2, borderBottomColor: colors.signal },
+
+  emptyNote: { fontSize: 14, color: colors.inkMuted, marginTop: spacing.lg },
+
+  chapterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#241E1A',
+  },
+  chNum: { fontFamily: fonts.display, fontSize: 15, color: colors.inkFaint, width: 24 },
+  chTitle: { fontSize: 14.5, color: colors.ink, fontWeight: '500' },
+  chSub: { fontSize: 11, color: colors.signal, marginTop: 2 },
+  chCurrent: { color: colors.signal },
+  chTag: { fontSize: 11, color: colors.inkFaint },
+  chTagFree: { color: '#7FB08A' },
+
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginTop: spacing.md,
+  },
+  gridItem: { width: '31%' },
+  gridCover: { width: '100%', aspectRatio: 3 / 4, borderRadius: 10 },
+  gridTitle: { fontSize: 12, fontWeight: '600', color: colors.ink, marginTop: 7 },
 });

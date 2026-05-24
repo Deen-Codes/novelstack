@@ -61,7 +61,7 @@ export default function Library() {
   if (loading) {
     return (
       <SafeAreaView style={styles.safe} edges={['top']}>
-        <TopBar />
+        <TopBar page="library" />
         <ActivityIndicator color={colors.signal} style={{ marginTop: 80 }} />
       </SafeAreaView>
     );
@@ -70,7 +70,7 @@ export default function Library() {
   if (signedIn === false) {
     return (
       <SafeAreaView style={styles.safe} edges={['top']}>
-        <TopBar />
+        <TopBar page="library" />
         <View style={styles.body}>
           <Text style={styles.h1}>Library</Text>
           <Text style={styles.sub}>
@@ -86,10 +86,8 @@ export default function Library() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      <TopBar />
+      <TopBar page="library" />
       <ScrollView contentContainerStyle={styles.scroll}>
-        <Text style={styles.h1}>Library</Text>
-
         <Text style={styles.section}>Saved books</Text>
         {saved.length === 0 ? (
           <View>
