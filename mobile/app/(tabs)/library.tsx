@@ -85,20 +85,29 @@ export default function Library() {
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <TopBar page="library" />
-      <ScrollView contentContainerStyle={styles.scroll}>
-        <Text style={styles.section}>Saved books</Text>
+      <ScrollView
+        contentContainerStyle={saved.length === 0 ? styles.scrollEmpty : styles.scroll}
+      >
         {saved.length === 0 ? (
-          <View>
-            <Text style={styles.empty}>
-              Stories you open and start reading are saved here automatically.
+          <View style={styles.emptyWrap}>
+            <View style={styles.emptyIcon}>
+              <Ionicons name="bookmark" size={28} color={colors.signal} />
+            </View>
+            <Text style={styles.emptyTitle}>Your library is empty</Text>
+            <Text style={styles.emptyBody}>
+              Save a story and it lands here — every book you start reading is
+              kept in sync, ready to pick back up.
             </Text>
             <Pressable style={styles.browseBtn} onPress={() => router.push('/')}>
+              <Ionicons name="compass-outline" size={18} color="#15100E" />
               <Text style={styles.browseBtnText}>Browse stories</Text>
             </Pressable>
           </View>
         ) : (
-          <View style={styles.grid}>
-            {saved.map((s) => (
+          <>
+            <Text style={styles.section}>Saved books</Text>
+            <View style={styles.grid}>
+              {saved.map((s) => (
               <View key={s.id} style={styles.gridItem}>
                 <Pressable onPress={() => router.push(`/story/${s.slug}`)}>
                   <Cover
@@ -125,8 +134,9 @@ export default function Library() {
                   {s.title}
                 </Text>
               </View>
-            ))}
-          </View>
+              ))}
+            </View>
+          </>
         )}
       </ScrollView>
     </SafeAreaView>
@@ -137,25 +147,56 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.paper },
   body: { padding: spacing.lg },
   scroll: { padding: spacing.lg, paddingBottom: spacing.xl * 2 },
-  h1: { fontFamily: fonts.displayXl, fontSize: 27, color: colors.ink, letterSpacing: -0.6 },
-  sub: { fontSize: 14, color: colors.inkMuted, marginTop: spacing.sm, lineHeight: 21 },
+  scrollEmpty: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    padding: spacing.lg,
+    paddingBottom: 90,
+  },
   section: {
     fontFamily: fonts.display,
     fontSize: 18,
     color: colors.ink,
-    marginTop: spacing.xl,
+    marginTop: spacing.sm,
     marginBottom: spacing.md,
   },
-  empty: { fontSize: 13, color: colors.inkMuted, lineHeight: 20 },
-  browseBtn: {
-    alignSelf: 'flex-start',
-    backgroundColor: colors.signal,
+
+  emptyWrap: { alignItems: 'center', paddingHorizontal: 16 },
+  emptyIcon: {
+    width: 76,
+    height: 76,
     borderRadius: radius.pill,
-    paddingHorizontal: 22,
-    paddingVertical: 11,
-    marginTop: spacing.md,
+    backgroundColor: colors.signalSoft,
+    borderWidth: 1,
+    borderColor: '#6E3138',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  browseBtnText: { fontSize: 14, fontWeight: '600', color: '#FFFFFF' },
+  emptyTitle: {
+    fontFamily: fonts.display,
+    fontSize: 21,
+    color: colors.ink,
+    marginTop: spacing.lg,
+  },
+  emptyBody: {
+    fontSize: 14,
+    color: colors.inkMuted,
+    textAlign: 'center',
+    lineHeight: 21,
+    marginTop: 8,
+  },
+  browseBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#F4ECDF',
+    borderRadius: 13,
+    paddingHorizontal: 22,
+    height: 50,
+    marginTop: spacing.xl,
+  },
+  browseBtnText: { fontSize: 14, fontWeight: '700', color: '#15100E' },
 
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   gridItem: { width: '31%' },

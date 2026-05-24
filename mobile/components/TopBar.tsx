@@ -1,9 +1,9 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { View, Text, Image, Pressable, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 import { colors, radius, fonts } from '@/theme/tokens';
-import { getCurrentUser } from '@/lib/auth';
+import { getCurrentUser, subscribeAuthChange } from '@/lib/auth';
 import { ProfileSheet } from './ProfileSheet';
 import type { User } from '@/lib/types';
 
@@ -25,6 +25,14 @@ export function TopBar({ page }: { page?: string }) {
       };
     }, []),
   );
+
+  // Refresh the moment the session changes — chiefly so signing out clears
+  // the avatar instead of leaving the old user's initial behind.
+  useEffect(() => {
+    return subscribeAuthChange(() => {
+      getCurrentUser().then((u) => setUser(u ?? null));
+    });
+  }, []);
 
   return (
     <>
@@ -90,7 +98,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.pill,
     backgroundColor: colors.signalDeep,
     borderWidth: 1,
-    borderColor: '#D9636E',
+    borderColor: colors.borderSoft,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',

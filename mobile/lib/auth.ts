@@ -41,8 +41,28 @@ export async function isSignedIn(): Promise<boolean> {
   return (await getCurrentUser()) !== null;
 }
 
-// Sign out — drop the stored JWT and the cached user.
+// --- Auth-change notifications --------------------------------------------
+// The top bar shows the signed-in avatar on every screen. A plain focus
+// effect can miss a sign-out (no re-navigation fires), leaving the previous
+// user's initial stuck in the avatar. Screens subscribe here instead so they
+// refresh the instant the session changes.
+type AuthListener = () => void;
+const authListeners = new Set<AuthListener>();
+
+export function subscribeAuthChange(listener: AuthListener): () => void {
+  authListeners.add(listener);
+  return () => {
+    authListeners.delete(listener);
+  };
+}
+
+function notifyAuthChange(): void {
+  for (const fn of [...authListeners]) fn();
+}
+
+// Sign out — drop the stored JWT and the cached user, then tell the UI.
 export async function signOut(): Promise<void> {
   cache = null;
   await clearSession();
+  notifyAuthChange();
 }

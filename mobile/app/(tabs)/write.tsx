@@ -10,9 +10,11 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, radius, fonts } from '@/theme/tokens';
-import { apiGet, apiSend, getSessionToken } from '@/lib/api';
-import { GENRES } from '@/lib/genres';
+import { apiGetCached, apiSend, getSessionToken } from '@/lib/api';
+import { GENRES, genreLabel } from '@/lib/genres';
+import { Cover } from '@/components/Cover';
 import { AmbientGlow } from '@/components/AmbientGlow';
 import { SignInPitch } from '@/components/SignInPitch';
 import type { Shelf, Story } from '@/lib/types';
@@ -36,7 +38,7 @@ export default function Write() {
       return;
     }
     try {
-      const shelf = await apiGet<Shelf>('/api/me/shelf');
+      const shelf = await apiGetCached<Shelf>('/api/me/shelf');
       setStories(shelf.writing);
       setSignedIn(true);
     } catch {
@@ -97,14 +99,22 @@ export default function Write() {
     <SafeAreaView style={styles.safe} edges={['top']}>
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
         <Text style={styles.h1}>Write</Text>
-        <Text style={styles.sub}>Draft and publish chapters. Tap a story to manage it.</Text>
+        <Text style={styles.sub}>Your stories, drafts and chapters — all in one place.</Text>
 
         {!creating ? (
-          <Pressable style={styles.primaryBtn} onPress={() => setCreating(true)}>
-            <Text style={styles.primaryBtnText}>+ New story</Text>
+          <Pressable style={styles.newCard} onPress={() => setCreating(true)}>
+            <View style={styles.newIcon}>
+              <Ionicons name="add" size={24} color={colors.signal} />
+            </View>
+            <View style={styles.newText}>
+              <Text style={styles.newTitle}>Start a new story</Text>
+              <Text style={styles.newSub}>Set the basics, then write and publish chapters.</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.inkFaint} />
           </Pressable>
         ) : (
           <View style={styles.form}>
+            <Text style={styles.formTitle}>New story</Text>
             <TextInput
               value={title}
               onChangeText={setTitle}
@@ -131,11 +141,11 @@ export default function Write() {
               placeholder="Short description"
               placeholderTextColor={colors.inkFaint}
               multiline
-              style={[styles.input, { height: 72, textAlignVertical: 'top' }]}
+              style={[styles.input, { height: 76, textAlignVertical: 'top' }]}
             />
             <Pressable style={styles.matureRow} onPress={() => setMature((m) => !m)}>
               <View style={[styles.checkbox, mature && styles.checkboxOn]}>
-                {mature && <Text style={styles.checkMark}>✓</Text>}
+                {mature && <Ionicons name="checkmark" size={13} color="#FFFFFF" />}
               </View>
               <Text style={styles.matureText}>
                 Mature (18+) — adult content. Readers confirm their age first.
@@ -146,11 +156,11 @@ export default function Write() {
                 <Text style={styles.ghostBtnText}>Cancel</Text>
               </Pressable>
               <Pressable
-                style={[styles.primaryBtn, { flex: 1 }, busy && { opacity: 0.6 }]}
+                style={[styles.createBtn, busy && { opacity: 0.6 }]}
                 onPress={createStory}
                 disabled={busy}
               >
-                <Text style={styles.primaryBtnText}>{busy ? 'Creating…' : 'Create story'}</Text>
+                <Text style={styles.createBtnText}>{busy ? 'Creating…' : 'Create story'}</Text>
               </Pressable>
             </View>
           </View>
@@ -158,17 +168,45 @@ export default function Write() {
 
         <Text style={styles.section}>Your stories</Text>
         {stories.length === 0 ? (
-          <Text style={styles.empty}>No stories yet. Start your first one above.</Text>
+          <View style={styles.emptyCard}>
+            <Ionicons name="book-outline" size={22} color={colors.inkFaint} />
+            <Text style={styles.empty}>
+              No stories yet. Tap “Start a new story” to begin your first.
+            </Text>
+          </View>
         ) : (
           stories.map((s) => (
-            <Pressable key={s.id} style={styles.card} onPress={() => router.push(`/write/${s.id}`)}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.cardTitle}>{s.title}</Text>
-                <Text style={styles.cardMeta}>{s.genre}</Text>
+            <Pressable
+              key={s.id}
+              style={styles.storyCard}
+              onPress={() => router.push(`/write/${s.id}`)}
+            >
+              <Cover
+                coverUrl={s.coverUrl}
+                coverColor={s.coverColor}
+                title={s.title}
+                mature={s.isMature}
+                style={styles.storyCover}
+              />
+              <View style={styles.storyText}>
+                <Text style={styles.storyTitle} numberOfLines={2}>
+                  {s.title}
+                </Text>
+                <Text style={styles.storyGenre}>{genreLabel(s.genre)}</Text>
+                <View
+                  style={[styles.statusPill, s.status === 'draft' && styles.statusDraft]}
+                >
+                  <Text
+                    style={[
+                      styles.statusText,
+                      s.status === 'draft' && styles.statusTextDraft,
+                    ]}
+                  >
+                    {s.status}
+                  </Text>
+                </View>
               </View>
-              <Text style={[styles.badge, s.status === 'draft' && styles.badgeDraft]}>
-                {s.status}
-              </Text>
+              <Ionicons name="chevron-forward" size={18} color={colors.inkFaint} />
             </Pressable>
           ))
         )}
@@ -179,87 +217,151 @@ export default function Write() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.paper },
-  body: { padding: spacing.lg },
   scroll: { padding: spacing.lg, paddingBottom: spacing.xl * 2 },
   h1: { fontFamily: fonts.displayXl, fontSize: 28, color: colors.ink, letterSpacing: -0.6 },
-  sub: { fontSize: 14, color: colors.inkMuted, marginTop: spacing.sm, lineHeight: 21, marginBottom: spacing.lg },
-  section: { fontSize: 16, fontWeight: '500', color: colors.ink, marginTop: spacing.xl, marginBottom: spacing.md },
-  empty: { fontSize: 13, color: colors.inkMuted },
-  primaryBtn: {
-    backgroundColor: colors.signal,
-    paddingVertical: 13,
-    borderRadius: radius.pill,
+  sub: {
+    fontSize: 14,
+    color: colors.inkMuted,
+    marginTop: spacing.sm,
+    lineHeight: 21,
+    marginBottom: spacing.lg,
+  },
+
+  // New-story call to action.
+  newCard: {
+    flexDirection: 'row',
     alignItems: 'center',
-  },
-  primaryBtnText: { color: colors.paper, fontSize: 14, fontWeight: '500' },
-  ghostBtn: {
-    paddingVertical: 13,
-    paddingHorizontal: 18,
-    borderRadius: radius.pill,
+    gap: 13,
+    backgroundColor: colors.card,
     borderWidth: 1,
-    borderColor: colors.borderSoft,
+    borderColor: colors.border,
+    borderRadius: radius.lg,
+    padding: 14,
   },
-  ghostBtnText: { color: colors.inkMuted, fontSize: 14, fontWeight: '500' },
+  newIcon: {
+    width: 46,
+    height: 46,
+    borderRadius: 13,
+    backgroundColor: colors.signalSoft,
+    borderWidth: 1,
+    borderColor: '#6E3138',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  newText: { flex: 1, minWidth: 0 },
+  newTitle: { fontFamily: fonts.display, fontSize: 16, color: colors.ink },
+  newSub: { fontSize: 12.5, color: colors.inkMuted, marginTop: 2, lineHeight: 17 },
+
+  // Create form.
   form: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
     borderWidth: 1,
-    borderColor: colors.borderSoft,
+    borderColor: colors.border,
     borderRadius: radius.lg,
     padding: spacing.md,
     gap: spacing.md,
   },
+  formTitle: { fontFamily: fonts.display, fontSize: 17, color: colors.ink },
   input: {
     borderWidth: 1,
-    borderColor: colors.borderSoft,
+    borderColor: colors.border,
     borderRadius: radius.md,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingHorizontal: 13,
+    paddingVertical: 11,
     fontSize: 15,
-    backgroundColor: colors.paperSoft,
+    backgroundColor: colors.paper,
     color: colors.ink,
   },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   chip: {
     borderWidth: 1,
-    borderColor: colors.borderSoft,
+    borderColor: colors.border,
     borderRadius: radius.pill,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+    paddingHorizontal: 11,
+    paddingVertical: 6,
   },
   chipActive: { backgroundColor: colors.signal, borderColor: colors.signal },
   chipText: { fontSize: 12, color: colors.inkMuted, textTransform: 'capitalize' },
-  chipTextActive: { color: colors.paper },
-  matureRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  chipTextActive: { color: '#FFFFFF' },
+  matureRow: { flexDirection: 'row', alignItems: 'center', gap: 9 },
   checkbox: {
-    width: 20,
-    height: 20,
-    borderRadius: 5,
+    width: 22,
+    height: 22,
+    borderRadius: 6,
     borderWidth: 1,
-    borderColor: colors.borderSoft,
+    borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
   checkboxOn: { backgroundColor: colors.signal, borderColor: colors.signal },
-  checkMark: { color: colors.paper, fontSize: 12, fontWeight: '700' },
   matureText: { fontSize: 12, color: colors.inkMuted, flex: 1, lineHeight: 17 },
   formBtns: { flexDirection: 'row', gap: spacing.sm },
-  card: {
+  ghostBtn: {
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  ghostBtnText: { color: colors.inkMuted, fontSize: 14, fontWeight: '600' },
+  createBtn: {
+    flex: 1,
+    height: 48,
+    backgroundColor: '#F4ECDF',
+    borderRadius: radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  createBtnText: { color: '#15100E', fontSize: 15, fontWeight: '700' },
+
+  // Your stories.
+  section: {
+    fontFamily: fonts.display,
+    fontSize: 18,
+    color: colors.ink,
+    marginTop: spacing.xl,
+    marginBottom: spacing.md,
+  },
+  emptyCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.white,
+    gap: 10,
+    backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.borderSoft,
     borderRadius: radius.lg,
     padding: spacing.md,
+  },
+  empty: { flex: 1, fontSize: 13, color: colors.inkMuted, lineHeight: 19 },
+  storyCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 13,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.borderSoft,
+    borderRadius: radius.lg,
+    padding: 11,
     marginBottom: spacing.sm,
   },
-  cardTitle: { fontSize: 16, fontWeight: '500', color: colors.ink },
-  cardMeta: { fontSize: 12, color: colors.inkFaint, marginTop: 3, textTransform: 'capitalize' },
-  badge: {
-    fontSize: 11,
-    fontWeight: '500',
+  storyCover: { width: 50, height: 68, borderRadius: 7 },
+  storyText: { flex: 1, minWidth: 0, gap: 5 },
+  storyTitle: { fontFamily: fonts.display, fontSize: 15.5, color: colors.ink },
+  storyGenre: { fontSize: 12, color: colors.inkFaint, textTransform: 'capitalize' },
+  statusPill: {
+    alignSelf: 'flex-start',
+    backgroundColor: colors.signalSoft,
+    borderRadius: radius.sm,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  statusDraft: { backgroundColor: colors.cardHi },
+  statusText: {
+    fontSize: 10.5,
+    fontWeight: '700',
     color: colors.signal,
     textTransform: 'capitalize',
+    letterSpacing: 0.3,
   },
-  badgeDraft: { color: colors.inkFaint },
+  statusTextDraft: { color: colors.inkFaint },
 });
