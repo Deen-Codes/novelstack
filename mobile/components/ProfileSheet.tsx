@@ -183,7 +183,7 @@ export function ProfileSheet({
               </Pressable>
 
               <View style={styles.menu}>
-                <Pressable style={styles.mrow} onPress={() => go('/profile?edit=1')}>
+                <Pressable style={styles.mrow} onPress={() => go('/profile')}>
                   <View style={styles.mico}>
                     <Ionicons name="person-outline" size={17} color={colors.inkMuted} />
                   </View>

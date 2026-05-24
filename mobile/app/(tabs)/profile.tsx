@@ -10,31 +10,35 @@ import {
   StyleSheet,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { colors, spacing, radius, fonts } from '@/theme/tokens';
 import { apiSend, apiUpload, getSessionToken } from '@/lib/api';
 import { getCurrentUser, signOut as clearSessionAuth } from '@/lib/auth';
 import { DobField } from '@/components/DobField';
+import { AmbientGlow } from '@/components/AmbientGlow';
+import { SignInPitch } from '@/components/SignInPitch';
 import type { User } from '@/lib/types';
 
+// One screen, no modes: the photo, name and username are tap-to-edit, the bio
+// and date of birth edit inline, and a single Save persists everything.
 export default function ProfileScreen() {
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
   const [profile, setProfile] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Inline bio editor. Opening Profile with ?edit=1 (from the profile sheet's
-  // "Edit profile") drops straight into the form — no second tap needed.
-  const params = useLocalSearchParams<{ edit?: string }>();
-  const [editing, setEditing] = useState(params.edit === '1');
   const [displayName, setDisplayName] = useState('');
   const [username, setUsername] = useState('');
   const [bio, setBio] = useState('');
   const [dob, setDob] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [avatarBusy, setAvatarBusy] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const [saved, setSaved] = useState(false);
+  // Which inline field is open for editing (name / username), if any.
+  const [editField, setEditField] = useState<'name' | 'username' | null>(null);
 
   const load = useCallback(async () => {
     const token = await getSessionToken();
@@ -66,8 +70,6 @@ export default function ProfileScreen() {
     }, [load]),
   );
 
-  // Picks a photo, uploads it to R2, and previews it. It persists when the
-  // user taps Save (avatarUrl is included in the profile PATCH).
   async function pickAvatar() {
     if (avatarBusy) return;
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -105,20 +107,20 @@ export default function ProfileScreen() {
     if (!profile || busy) return;
     setBusy(true);
     setError('');
+    setSaved(false);
     try {
       const updated = await apiSend<User>('/api/me/profile', 'PATCH', {
         displayName: displayName.trim() || profile.displayName,
         username: username.trim().toLowerCase(),
         bio: bio.trim(),
-        // Only write DOB when supplied — never clears a stored value.
         ...(dob.trim() ? { dateOfBirth: dob.trim() } : {}),
         ...(avatarUrl ? { avatarUrl } : {}),
       });
       setProfile(updated);
-      setEditing(false);
-      await load();
+      setEditField(null);
+      setSaved(true);
     } catch (e) {
-      // Keep the editor open and show why (e.g. username taken).
+      // The server rejects a taken username — surface it here.
       setError(e instanceof Error ? e.message : 'Could not save. Please try again.');
     }
     setBusy(false);
@@ -141,139 +143,144 @@ export default function ProfileScreen() {
   if (signedIn === false) {
     return (
       <SafeAreaView style={styles.safe} edges={['top']}>
-        <View style={styles.body}>
-          <Text style={styles.h1}>Profile</Text>
-          <Text style={styles.sub}>Sign in to manage your account, stories, and NovelStack+.</Text>
-          <Pressable style={styles.primaryBtn} onPress={() => router.push('/signin')}>
-            <Text style={styles.primaryBtnText}>Sign in</Text>
-          </Pressable>
-        </View>
+        <AmbientGlow />
+        <SignInPitch
+          headline="Your NovelStack account"
+          sub="Sign in to manage your profile, your library and NovelStack+."
+        />
       </SafeAreaView>
     );
   }
 
+  const initial = (displayName || '?').slice(0, 1).toUpperCase();
+
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-        <View style={styles.header}>
+        {/* Photo — tap anywhere on it to change */}
+        <Pressable style={styles.avatarWrap} onPress={pickAvatar} disabled={avatarBusy}>
           <View style={styles.avatar}>
-            {profile?.avatarUrl ? (
-              <Image source={{ uri: profile.avatarUrl }} style={styles.avatarImg} />
+            {avatarUrl ? (
+              <Image source={{ uri: avatarUrl }} style={styles.avatarImg} />
             ) : (
-              <Text style={styles.avatarText}>
-                {(profile?.displayName ?? '?').slice(0, 1).toUpperCase()}
-              </Text>
+              <Text style={styles.avatarText}>{initial}</Text>
             )}
           </View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.name}>
-              {profile?.displayName}
-              {profile?.isVerified && <Text style={styles.tick}> ✓</Text>}
-            </Text>
-            <Text style={styles.handle}>@{profile?.username}</Text>
+          <View style={styles.cameraBadge}>
+            {avatarBusy ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <Ionicons name="camera" size={15} color="#FFFFFF" />
+            )}
           </View>
-        </View>
+        </Pressable>
 
-        {editing ? (
-          <View style={styles.form}>
-            <View style={styles.avatarRow}>
-              <View style={styles.avatarLg}>
-                {avatarUrl ? (
-                  <Image source={{ uri: avatarUrl }} style={styles.avatarLgImg} />
-                ) : (
-                  <Text style={styles.avatarText}>
-                    {(displayName || '?').slice(0, 1).toUpperCase()}
-                  </Text>
-                )}
-              </View>
-              <Pressable
-                style={[styles.photoBtn, avatarBusy && { opacity: 0.6 }]}
-                onPress={pickAvatar}
-                disabled={avatarBusy}
-              >
-                <Text style={styles.photoBtnText}>
-                  {avatarBusy ? 'Uploading…' : avatarUrl ? 'Change photo' : 'Add photo'}
-                </Text>
-              </Pressable>
-            </View>
-            <View>
-              <Text style={styles.fieldLabel}>Display name</Text>
+        {/* Name + username — tap the pencil to edit each */}
+        <View style={styles.field}>
+          <View style={styles.fieldMain}>
+            <Text style={styles.fieldLabel}>Name</Text>
+            {editField === 'name' ? (
               <TextInput
                 value={displayName}
                 onChangeText={setDisplayName}
                 placeholder="Display name"
                 placeholderTextColor={colors.inkFaint}
-                style={styles.input}
+                autoFocus
+                onBlur={() => setEditField(null)}
+                style={styles.fieldInput}
               />
-            </View>
-            <View>
-              <Text style={styles.fieldLabel}>Username</Text>
+            ) : (
+              <Text style={styles.fieldValue}>{displayName || '—'}</Text>
+            )}
+          </View>
+          <Pressable
+            style={styles.editBtn}
+            hitSlop={8}
+            onPress={() => setEditField(editField === 'name' ? null : 'name')}
+          >
+            <Ionicons name="pencil" size={15} color={colors.signal} />
+          </Pressable>
+        </View>
+
+        <View style={styles.field}>
+          <View style={styles.fieldMain}>
+            <Text style={styles.fieldLabel}>Username</Text>
+            {editField === 'username' ? (
               <TextInput
                 value={username}
-                onChangeText={(t) => setUsername(t.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
+                onChangeText={(t) =>
+                  setUsername(t.toLowerCase().replace(/[^a-z0-9_]/g, ''))
+                }
                 placeholder="username"
                 placeholderTextColor={colors.inkFaint}
                 autoCapitalize="none"
                 autoCorrect={false}
-                style={styles.input}
+                autoFocus
+                onBlur={() => setEditField(null)}
+                style={styles.fieldInput}
               />
-              <Text style={styles.fieldHint}>
-                Your @handle — 3–24 letters, numbers or underscores. Must be unused.
-              </Text>
-            </View>
-            <View>
-              <Text style={styles.fieldLabel}>Bio</Text>
-              <TextInput
-                value={bio}
-                onChangeText={setBio}
-                placeholder="A short bio"
-                placeholderTextColor={colors.inkFaint}
-                multiline
-                style={[styles.input, { height: 80, textAlignVertical: 'top' }]}
-              />
-            </View>
-            <View>
-              <Text style={styles.fieldLabel}>Date of birth</Text>
-              <DobField value={dob || null} onChange={setDob} />
-              <Text style={styles.fieldHint}>
-                Used to confirm your age — mature (18+) stories stay hidden until this is set.
-              </Text>
-            </View>
-            {!!error && <Text style={styles.errorText}>{error}</Text>}
-            <View style={styles.formBtns}>
-              <Pressable
-                style={styles.ghostBtn}
-                onPress={() => {
-                  setEditing(false);
-                  setError('');
-                }}
-              >
-                <Text style={styles.ghostBtnText}>Cancel</Text>
-              </Pressable>
-              <Pressable
-                style={[styles.primaryBtn, { flex: 1 }, busy && { opacity: 0.6 }]}
-                onPress={saveProfile}
-                disabled={busy}
-              >
-                <Text style={styles.primaryBtnText}>{busy ? 'Saving…' : 'Save'}</Text>
-              </Pressable>
-            </View>
+            ) : (
+              <Text style={styles.fieldValue}>@{username}</Text>
+            )}
           </View>
-        ) : (
-          <>
-            {!!profile?.bio && <Text style={styles.bio}>{profile.bio}</Text>}
-            <Pressable style={styles.editLink} onPress={() => setEditing(true)}>
-              <Text style={styles.editLinkText}>Edit profile</Text>
-            </Pressable>
-          </>
+          <Pressable
+            style={styles.editBtn}
+            hitSlop={8}
+            onPress={() => setEditField(editField === 'username' ? null : 'username')}
+          >
+            <Ionicons name="pencil" size={15} color={colors.signal} />
+          </Pressable>
+        </View>
+        {editField === 'username' && (
+          <Text style={styles.hint}>
+            3–24 letters, numbers or underscores. Must be unused.
+          </Text>
         )}
 
-        <Pressable style={styles.plusCard} onPress={() => router.push('/plus')}>
-          <Text style={styles.plusTitle}>NovelStack+</Text>
-          <Text style={styles.plusBody}>
-            Ad-free reading, every chapter unlocked, offline downloads — $6.99/month.
-          </Text>
+        {/* Bio */}
+        <Text style={styles.blockLabel}>Bio</Text>
+        <TextInput
+          value={bio}
+          onChangeText={setBio}
+          placeholder="A short bio"
+          placeholderTextColor={colors.inkFaint}
+          multiline
+          style={styles.bioInput}
+        />
+
+        {/* Date of birth */}
+        <Text style={styles.blockLabel}>Date of birth</Text>
+        <DobField value={dob || null} onChange={setDob} />
+        <Text style={styles.hint}>
+          Confirms your age — mature (18+) stories stay hidden until this is set.
+        </Text>
+
+        {!!error && <Text style={styles.error}>{error}</Text>}
+        {saved && !error && <Text style={styles.savedNote}>Profile saved.</Text>}
+
+        <Pressable
+          style={[styles.saveBtn, busy && { opacity: 0.6 }]}
+          onPress={saveProfile}
+          disabled={busy}
+        >
+          <Text style={styles.saveBtnText}>{busy ? 'Saving…' : 'Save changes'}</Text>
         </Pressable>
+
+        {/* Membership */}
+        <View style={styles.plusCard}>
+          <View style={styles.plusTop}>
+            <View style={styles.plusIcon}>
+              <Ionicons name="sparkles" size={17} color={colors.signal} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.plusTitle}>NovelStack+</Text>
+              <Text style={styles.plusPlan}>You&apos;re on the Free plan</Text>
+            </View>
+          </View>
+          <Pressable style={styles.plusBtn} onPress={() => router.push('/plus')}>
+            <Text style={styles.plusBtnText}>Go NovelStack+</Text>
+          </Pressable>
+        </View>
 
         <Pressable style={styles.signOut} onPress={signOut}>
           <Text style={styles.signOutText}>Sign out</Text>
@@ -285,105 +292,130 @@ export default function ProfileScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.paper },
-  body: { padding: spacing.lg },
   scroll: { padding: spacing.lg, paddingBottom: spacing.xl * 2 },
-  h1: { fontFamily: fonts.displayXl, fontSize: 28, color: colors.ink, letterSpacing: -0.6 },
-  sub: { fontSize: 14, color: colors.inkMuted, marginTop: spacing.sm, lineHeight: 21 },
-  header: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+
+  avatarWrap: { alignSelf: 'center', marginTop: spacing.sm },
   avatar: {
-    width: 60,
-    height: 60,
+    width: 96,
+    height: 96,
     borderRadius: radius.pill,
-    backgroundColor: colors.paperSoft,
-    borderWidth: 1,
-    borderColor: colors.borderSoft,
+    backgroundColor: colors.signalDeep,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
   },
-  avatarImg: { width: 60, height: 60 },
-  avatarText: { fontSize: 24, color: colors.signal, fontWeight: '500' },
-  avatarRow: { flexDirection: 'row', alignItems: 'center', gap: 14 },
-  avatarLg: {
-    width: 72,
-    height: 72,
+  avatarImg: { width: 96, height: 96 },
+  avatarText: { fontSize: 38, color: colors.ink, fontWeight: '600' },
+  cameraBadge: {
+    position: 'absolute',
+    bottom: -2,
+    right: -2,
+    width: 32,
+    height: 32,
     borderRadius: radius.pill,
-    backgroundColor: colors.paperSoft,
-    borderWidth: 1,
-    borderColor: colors.borderSoft,
+    backgroundColor: colors.signal,
+    borderWidth: 3,
+    borderColor: colors.paper,
     alignItems: 'center',
     justifyContent: 'center',
-    overflow: 'hidden',
   },
-  avatarLgImg: { width: 72, height: 72 },
-  photoBtn: {
-    borderWidth: 1,
-    borderColor: colors.borderSoft,
+
+  field: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderSoft,
+  },
+  fieldMain: { flex: 1, minWidth: 0 },
+  fieldLabel: {
+    fontSize: 11,
+    color: colors.inkFaint,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+    marginBottom: 3,
+  },
+  fieldValue: { fontSize: 17, color: colors.ink, fontWeight: '500' },
+  fieldInput: { fontSize: 17, color: colors.ink, fontWeight: '500', padding: 0 },
+  editBtn: {
+    width: 34,
+    height: 34,
     borderRadius: radius.pill,
-    paddingHorizontal: 16,
-    paddingVertical: 9,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  photoBtnText: { fontSize: 13, fontWeight: '500', color: colors.ink },
-  name: { fontFamily: fonts.display, fontSize: 22, color: colors.ink },
-  tick: { fontSize: 15, color: colors.signal },
-  handle: { fontSize: 13, color: colors.inkFaint, marginTop: 2 },
-  bio: { fontSize: 14, color: colors.inkMuted, marginTop: spacing.md, lineHeight: 21 },
-  editLink: { marginTop: spacing.sm },
-  editLinkText: { fontSize: 13, color: colors.signal, fontWeight: '500' },
-  form: {
-    marginTop: spacing.md,
-    gap: spacing.md,
+
+  blockLabel: {
+    fontSize: 11,
+    color: colors.inkFaint,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+    marginTop: spacing.lg,
+    marginBottom: 8,
   },
-  input: {
+  bioInput: {
     borderWidth: 1,
-    borderColor: colors.borderSoft,
+    borderColor: colors.border,
     borderRadius: radius.md,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingHorizontal: 13,
+    paddingVertical: 11,
     fontSize: 15,
-    backgroundColor: colors.white,
+    minHeight: 78,
+    textAlignVertical: 'top',
+    backgroundColor: colors.card,
     color: colors.ink,
   },
-  errorText: { fontSize: 13, color: colors.signal, lineHeight: 19 },
-  fieldLabel: { fontSize: 13, color: colors.inkMuted, marginBottom: 6 },
-  fieldHint: { fontSize: 12, color: colors.inkFaint, marginTop: 6, lineHeight: 17 },
-  formBtns: { flexDirection: 'row', gap: spacing.sm },
-  primaryBtn: {
-    backgroundColor: colors.signal,
-    paddingVertical: 12,
-    borderRadius: radius.pill,
+  hint: { fontSize: 12, color: colors.inkFaint, marginTop: 7, lineHeight: 17 },
+  error: { fontSize: 13, color: colors.signal, marginTop: spacing.md },
+  savedNote: { fontSize: 13, color: '#7FB08A', marginTop: spacing.md },
+
+  saveBtn: {
+    height: 52,
+    borderRadius: 14,
+    backgroundColor: '#F4ECDF',
     alignItems: 'center',
-  },
-  primaryBtnText: { color: colors.paper, fontSize: 14, fontWeight: '500' },
-  ghostBtn: {
-    paddingVertical: 12,
-    paddingHorizontal: 18,
-    borderRadius: radius.pill,
-    borderWidth: 1,
-    borderColor: colors.borderSoft,
-  },
-  ghostBtnText: { color: colors.inkMuted, fontSize: 14, fontWeight: '500' },
-  plusCard: {
+    justifyContent: 'center',
     marginTop: spacing.lg,
-    backgroundColor: colors.paperSoft,
+  },
+  saveBtnText: { color: '#15100E', fontSize: 15, fontWeight: '700' },
+
+  plusCard: {
+    marginTop: spacing.xl,
+    backgroundColor: colors.card,
     borderWidth: 1,
-    borderColor: colors.borderSoft,
+    borderColor: colors.border,
     borderRadius: radius.lg,
     padding: spacing.md,
   },
-  plusTitle: { fontSize: 15, fontWeight: '500', color: colors.ink },
-  plusBody: { fontSize: 13, color: colors.inkMuted, marginTop: 4, lineHeight: 19 },
-  section: { fontSize: 16, fontWeight: '500', color: colors.ink, marginTop: spacing.xl, marginBottom: spacing.md },
-  empty: { fontSize: 13, color: colors.inkMuted },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  gridItem: { width: '47%' },
-  gridCover: { width: '100%', aspectRatio: 3 / 4, borderRadius: radius.md },
-  gridTitle: { fontSize: 13, fontWeight: '500', color: colors.ink, marginTop: 6 },
+  plusTop: { flexDirection: 'row', alignItems: 'center', gap: 11 },
+  plusIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 11,
+    backgroundColor: colors.signalSoft,
+    borderWidth: 1,
+    borderColor: '#6E3138',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  plusTitle: { fontFamily: fonts.display, fontSize: 15.5, color: colors.ink },
+  plusPlan: { fontSize: 12.5, color: colors.inkMuted, marginTop: 1 },
+  plusBtn: {
+    marginTop: spacing.md,
+    height: 46,
+    borderRadius: 12,
+    backgroundColor: colors.signal,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  plusBtnText: { color: '#FFFFFF', fontSize: 14, fontWeight: '700' },
+
   signOut: {
-    marginTop: spacing.xl,
-    paddingVertical: 12,
-    borderRadius: radius.pill,
+    marginTop: spacing.lg,
+    paddingVertical: 13,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: colors.borderSoft,
     alignItems: 'center',
