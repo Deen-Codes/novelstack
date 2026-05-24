@@ -4,7 +4,7 @@
 import 'server-only';
 import { and, asc, desc, eq, ilike, inArray, isNotNull, ne, or, sql } from 'drizzle-orm';
 import { db } from '@/db';
-import { stories, chapters, chapterContent, bookmarks, follows, reads, subscriptions, adUnlocks, comments } from '@/db/schema';
+import { stories, chapters, chapterContent, bookmarks, follows, reads, subscriptions, adUnlocks, comments, posts } from '@/db/schema';
 
 // 18 is adult. Mature stories stay hidden until a date of birth proves it.
 export function isAdult(dateOfBirth: string | null | undefined): boolean {
@@ -220,6 +220,25 @@ export async function getFollowing(userId: string) {
     with: { author: true },
   });
   return rows.map((r) => r.author);
+}
+
+// ============================================================
+// COMMUNITY — the author-updates feed
+// ============================================================
+// Update posts from the writers the reader follows, plus their own, newest
+// first, each with the author and any attached book.
+export async function getCommunityFeed(userId: string) {
+  const myFollows = await db
+    .select({ authorId: follows.authorId })
+    .from(follows)
+    .where(eq(follows.followerId, userId));
+  const authorIds = [userId, ...myFollows.map((f) => f.authorId)];
+  return db.query.posts.findMany({
+    where: inArray(posts.authorId, authorIds),
+    with: { author: true, story: true },
+    orderBy: [desc(posts.createdAt)],
+    limit: 50,
+  });
 }
 
 // ============================================================

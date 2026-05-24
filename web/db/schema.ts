@@ -291,6 +291,22 @@ export const payouts = pgTable('payouts', {
 });
 
 // ============================================================
+// COMMUNITY — author updates (the social feed)
+// ============================================================
+// A short text "update" an author posts to their followers. Optionally
+// attaches one of their books. Kept separate from chapters so posting an
+// update never touches anyone's reading progress.
+export const posts = pgTable('posts', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  authorId: uuid('author_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  body: text('body').notNull(),
+  storyId: uuid('story_id').references(() => stories.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+// ============================================================
 // RELATIONS — let Drizzle's query API fetch nested data
 // (story.author, story.chapters, chapter.content, …)
 // ============================================================
@@ -329,4 +345,9 @@ export const bookmarksRelations = relations(bookmarks, ({ one }) => ({
 export const followsRelations = relations(follows, ({ one }) => ({
   author: one(users, { fields: [follows.authorId], references: [users.id] }),
   follower: one(users, { fields: [follows.followerId], references: [users.id] }),
+}));
+
+export const postsRelations = relations(posts, ({ one }) => ({
+  author: one(users, { fields: [posts.authorId], references: [users.id] }),
+  story: one(stories, { fields: [posts.storyId], references: [stories.id] }),
 }));

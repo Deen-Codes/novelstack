@@ -15,6 +15,7 @@ import {
   reads,
   comments,
   users,
+  posts,
 } from '@/db/schema';
 
 type Genre = typeof stories.$inferSelect.genre;
@@ -138,6 +139,31 @@ export async function addComment(
 }
 
 // --- Stories (write flow) --------------------------------------------------
+// Community — create an author update, optionally attaching one of the
+// author's own books. Updates are short and never touch reading progress.
+export async function createPost(
+  authorId: string,
+  body: string,
+  storyId: string | null,
+) {
+  const text = body.trim();
+  if (!text) throw new Error('Write something to share.');
+  if (text.length > 500) throw new Error('Updates are limited to 500 characters.');
+  if (storyId) {
+    const [own] = await db
+      .select({ id: stories.id })
+      .from(stories)
+      .where(and(eq(stories.id, storyId), eq(stories.authorId, authorId)))
+      .limit(1);
+    if (!own) throw new Error('You can only attach one of your own books.');
+  }
+  const [row] = await db
+    .insert(posts)
+    .values({ authorId, body: text, storyId: storyId ?? null })
+    .returning();
+  return row;
+}
+
 export async function createStory(
   authorId: string,
   data: {

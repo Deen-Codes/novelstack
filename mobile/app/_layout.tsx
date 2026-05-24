@@ -36,6 +36,7 @@ export default function RootLayout() {
         <Stack.Screen name="watch-ad" />
         <Stack.Screen name="following" />
         <Stack.Screen name="notifications" />
+        <Stack.Screen name="compose" options={{ presentation: 'modal' }} />
       </Stack>
     </>
   );

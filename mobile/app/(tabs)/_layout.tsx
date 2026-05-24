@@ -56,7 +56,7 @@ export default function TabLayout() {
         name="write"
         options={{
           title: 'Write',
-          tabBarIcon: ({ color }) => <Ionicons name="create-outline" size={26} color={color} />,
+          tabBarIcon: ({ color }) => <Ionicons name="pencil-outline" size={26} color={color} />,
         }}
       />
       {/* Reached from the top-bar avatar — navigable, but not in the tab bar. */}

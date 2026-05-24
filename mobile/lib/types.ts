@@ -97,6 +97,17 @@ export type HomeExtras = {
   name: string | null;
 };
 
+// GET /api/community — an author update post, with author + attached book.
+export type CommunityPost = {
+  id: string;
+  authorId: string;
+  body: string;
+  storyId: string | null;
+  createdAt: string;
+  author: User | null;
+  story: Story | null;
+};
+
 export type Comment = {
   id: string;
   userId: string;
