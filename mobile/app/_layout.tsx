@@ -35,6 +35,7 @@ export default function RootLayout() {
         <Stack.Screen name="plus" />
         <Stack.Screen name="watch-ad" />
         <Stack.Screen name="following" />
+        <Stack.Screen name="notifications" />
       </Stack>
     </>
   );

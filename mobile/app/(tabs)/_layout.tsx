@@ -2,9 +2,9 @@ import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '@/theme/tokens';
 
-// Four tabs: Home · Library · Search · Community. Write and Profile are
-// reached from the top bar, so they're hidden from the tab bar (href: null)
-// while still being navigable routes.
+// Five tabs with Home dead-centre: Library · Search · Home · Community · Write.
+// Home (index) stays the default route the app opens on. Profile is reached
+// from the top-bar avatar, so it stays off the tab bar (href: null).
 export default function TabLayout() {
   return (
     <Tabs
@@ -25,35 +25,41 @@ export default function TabLayout() {
       }}
     >
       <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <Ionicons name="home-outline" size={27} color={color} />,
-        }}
-      />
-      <Tabs.Screen
         name="library"
         options={{
           title: 'Library',
-          tabBarIcon: ({ color }) => <Ionicons name="library-outline" size={27} color={color} />,
+          tabBarIcon: ({ color }) => <Ionicons name="library-outline" size={26} color={color} />,
         }}
       />
       <Tabs.Screen
         name="search"
         options={{
           title: 'Search',
-          tabBarIcon: ({ color }) => <Ionicons name="search-outline" size={27} color={color} />,
+          tabBarIcon: ({ color }) => <Ionicons name="search-outline" size={26} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="index"
+        options={{
+          title: 'Home',
+          tabBarIcon: ({ color }) => <Ionicons name="home-outline" size={26} color={color} />,
         }}
       />
       <Tabs.Screen
         name="community"
         options={{
           title: 'Community',
-          tabBarIcon: ({ color }) => <Ionicons name="people-outline" size={27} color={color} />,
+          tabBarIcon: ({ color }) => <Ionicons name="people-outline" size={26} color={color} />,
         }}
       />
-      {/* Reached from the top bar — navigable, but not shown in the tab bar. */}
-      <Tabs.Screen name="write" options={{ href: null }} />
+      <Tabs.Screen
+        name="write"
+        options={{
+          title: 'Write',
+          tabBarIcon: ({ color }) => <Ionicons name="create-outline" size={26} color={color} />,
+        }}
+      />
+      {/* Reached from the top-bar avatar — navigable, but not in the tab bar. */}
       <Tabs.Screen name="profile" options={{ href: null }} />
     </Tabs>
   );

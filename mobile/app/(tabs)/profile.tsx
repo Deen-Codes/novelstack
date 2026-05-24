@@ -10,7 +10,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router, useFocusEffect } from 'expo-router';
+import { useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { colors, spacing, radius, fonts } from '@/theme/tokens';
@@ -66,6 +66,7 @@ export default function ProfileScreen() {
   useFocusEffect(
     useCallback(() => {
       setLoading(true);
+      setSaved(false);
       load();
     }, [load]),
   );
@@ -265,22 +266,6 @@ export default function ProfileScreen() {
         >
           <Text style={styles.saveBtnText}>{busy ? 'Saving…' : 'Save changes'}</Text>
         </Pressable>
-
-        {/* Membership */}
-        <View style={styles.plusCard}>
-          <View style={styles.plusTop}>
-            <View style={styles.plusIcon}>
-              <Ionicons name="sparkles" size={17} color={colors.signal} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.plusTitle}>NovelStack+</Text>
-              <Text style={styles.plusPlan}>You&apos;re on the Free plan</Text>
-            </View>
-          </View>
-          <Pressable style={styles.plusBtn} onPress={() => router.push('/plus')}>
-            <Text style={styles.plusBtnText}>Go NovelStack+</Text>
-          </Pressable>
-        </View>
 
         <Pressable style={styles.signOut} onPress={signOut}>
           <Text style={styles.signOutText}>Sign out</Text>

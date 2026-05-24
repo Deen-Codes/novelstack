@@ -4,21 +4,25 @@ import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 import { colors, radius, fonts } from '@/theme/tokens';
 import { getCurrentUser, subscribeAuthChange } from '@/lib/auth';
+import { getUnreadCount } from '@/lib/notifications';
 import { ProfileSheet } from './ProfileSheet';
 import type { User } from '@/lib/types';
 
 // Shared top bar for the tab screens: the `n.{page}` mark on the left (e.g.
-// n.home, n.search) and write · avatar on the right. The avatar opens the
-// profile sheet.
+// n.home, n.search) and a notification bell · avatar on the right.
 export function TopBar({ page }: { page?: string }) {
   const [user, setUser] = useState<User | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [unread, setUnread] = useState(0);
 
   useFocusEffect(
     useCallback(() => {
       let cancelled = false;
       getCurrentUser().then((u) => {
         if (!cancelled) setUser(u ?? null);
+      });
+      getUnreadCount().then((n) => {
+        if (!cancelled) setUnread(n);
       });
       return () => {
         cancelled = true;
@@ -42,8 +46,17 @@ export function TopBar({ page }: { page?: string }) {
           {page ? <Text style={styles.markPage}>{page}</Text> : null}
         </Text>
         <View style={styles.right}>
-          <Pressable style={styles.icon} hitSlop={8} onPress={() => router.push('/write')}>
-            <Ionicons name="create-outline" size={19} color={colors.signal} />
+          <Pressable
+            style={styles.icon}
+            hitSlop={8}
+            onPress={() => router.push('/notifications')}
+          >
+            <Ionicons name="notifications-outline" size={19} color={colors.ink} />
+            {unread > 0 && (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{unread > 9 ? '9+' : unread}</Text>
+              </View>
+            )}
           </Pressable>
           <Pressable hitSlop={8} onPress={() => setSheetOpen(true)}>
             {user ? (
@@ -101,4 +114,19 @@ const styles = StyleSheet.create({
   },
   avatarImg: { width: 38, height: 38 },
   avatarText: { color: '#FFFFFF', fontSize: 14, fontWeight: '600' },
+  badge: {
+    position: 'absolute',
+    top: -3,
+    right: -3,
+    minWidth: 18,
+    height: 18,
+    borderRadius: radius.pill,
+    backgroundColor: colors.signal,
+    borderWidth: 2,
+    borderColor: colors.paper,
+    paddingHorizontal: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  badgeText: { color: '#FFFFFF', fontSize: 10, fontWeight: '700' },
 });
