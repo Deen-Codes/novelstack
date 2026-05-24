@@ -160,7 +160,7 @@ export default function Library() {
           <>
             {reading.length > 0 && (
               <>
-                <Text style={styles.section}>Saved books</Text>
+                <Text style={styles.section}>In progress</Text>
                 <View style={styles.grid}>{reading.map((s) => bookCell(s, true))}</View>
               </>
             )}
@@ -168,7 +168,7 @@ export default function Library() {
               <>
                 <View style={styles.completedHead}>
                   <Ionicons name="checkmark-circle" size={17} color={colors.signal} />
-                  <Text style={styles.section}>Completed</Text>
+                  <Text style={styles.section}>Completed &amp; up to date</Text>
                 </View>
                 <View style={styles.grid}>{finished.map((s) => bookCell(s, false))}</View>
               </>
