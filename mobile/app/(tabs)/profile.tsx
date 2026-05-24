@@ -13,16 +13,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { colors, spacing, radius, fonts } from '@/theme/tokens';
-import { apiGet, apiSend, apiUpload, getSessionToken } from '@/lib/api';
+import { apiSend, apiUpload, getSessionToken } from '@/lib/api';
 import { getCurrentUser, signOut as clearSessionAuth } from '@/lib/auth';
-import { Cover } from '@/components/Cover';
 import { DobField } from '@/components/DobField';
-import type { User, Shelf, Story } from '@/lib/types';
+import type { User } from '@/lib/types';
 
 export default function ProfileScreen() {
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
   const [profile, setProfile] = useState<User | null>(null);
-  const [stories, setStories] = useState<Story[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Inline bio editor. Opening Profile with ?edit=1 (from the profile sheet's
@@ -58,14 +56,6 @@ export default function ProfileScreen() {
     setBio(user.bio ?? '');
     setDob(user.dateOfBirth ?? '');
     setAvatarUrl(user.avatarUrl ?? null);
-
-    // Published stories come from the shelf's `writing` list.
-    try {
-      const shelf = await apiGet<Shelf>('/api/me/shelf');
-      setStories(shelf.writing.filter((s) => s.status !== 'draft'));
-    } catch {
-      setStories([]);
-    }
     setLoading(false);
   }, []);
 
@@ -284,28 +274,6 @@ export default function ProfileScreen() {
             Ad-free reading, every chapter unlocked, offline downloads — $6.99/month.
           </Text>
         </Pressable>
-
-        <Text style={styles.section}>Your published stories</Text>
-        {stories.length === 0 ? (
-          <Text style={styles.empty}>Nothing published yet. Head to the Write tab to start.</Text>
-        ) : (
-          <View style={styles.grid}>
-            {stories.map((s) => (
-              <Pressable
-                key={s.id}
-                style={styles.gridItem}
-                onPress={() => router.push(`/story/${s.slug}`)}
-              >
-                <Cover
-                  coverUrl={s.coverUrl}
-                  coverColor={s.coverColor}
-                  style={styles.gridCover}
-                />
-                <Text style={styles.gridTitle}>{s.title}</Text>
-              </Pressable>
-            ))}
-          </View>
-        )}
 
         <Pressable style={styles.signOut} onPress={signOut}>
           <Text style={styles.signOutText}>Sign out</Text>

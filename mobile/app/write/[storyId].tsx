@@ -191,19 +191,39 @@ export default function StoryWriter() {
     }
   }
 
-  // Marks the whole story as live (ongoing).
-  async function publishStory() {
-    if (busy || !story) return;
+  // Sets the story's status — draft → ongoing (live), or ongoing ⟷ complete.
+  async function changeStatus(next: 'ongoing' | 'complete') {
+    if (busy || !story || story.status === next) return;
     setBusy(true);
     try {
       const updated = await apiSend<Story>(
         `/api/me/stories/${storyId}/status`,
         'POST',
-        { status: 'ongoing' },
+        { status: next },
       );
       setStory(updated);
     } catch {
       // Ignore failure.
+    }
+    setBusy(false);
+  }
+
+  // Ad-gating cutoff: makes the first `n` chapters free and gates the rest.
+  async function setFreeChapters(n: number) {
+    if (busy) return;
+    setBusy(true);
+    try {
+      await Promise.all(
+        chapters.map((c, i) => {
+          const shouldBeFree = i < n;
+          return c.isFree === shouldBeFree
+            ? Promise.resolve()
+            : apiSend(`/api/me/chapters/${c.id}`, 'PATCH', { isFree: shouldBeFree });
+        }),
+      );
+      await load();
+    } catch {
+      // UI reflects server state on next load.
     }
     setBusy(false);
   }
@@ -250,6 +270,8 @@ export default function StoryWriter() {
     );
   }
 
+  const freeCount = chapters.filter((c) => c.isFree).length;
+
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
@@ -291,14 +313,78 @@ export default function StoryWriter() {
           <Text style={styles.freeText}>Mature (18+) — readers confirm their age first</Text>
         </Pressable>
 
-        {story.status === 'draft' && (
+        {story.status === 'draft' ? (
           <Pressable
             style={[styles.addBtn, busy && { opacity: 0.6 }]}
-            onPress={publishStory}
+            onPress={() => changeStatus('ongoing')}
             disabled={busy}
           >
             <Text style={styles.addBtnText}>Make story live</Text>
           </Pressable>
+        ) : (
+          <View style={styles.settingCard}>
+            <Text style={styles.cardLabel}>Story status</Text>
+            <View style={styles.segment}>
+              <Pressable
+                style={[styles.segBtn, story.status === 'ongoing' && styles.segOn]}
+                onPress={() => changeStatus('ongoing')}
+                disabled={busy}
+              >
+                <Text
+                  style={[styles.segText, story.status === 'ongoing' && styles.segTextOn]}
+                >
+                  Ongoing
+                </Text>
+              </Pressable>
+              <Pressable
+                style={[styles.segBtn, story.status === 'complete' && styles.segOn]}
+                onPress={() => changeStatus('complete')}
+                disabled={busy}
+              >
+                <Text
+                  style={[styles.segText, story.status === 'complete' && styles.segTextOn]}
+                >
+                  Complete
+                </Text>
+              </Pressable>
+            </View>
+            <Text style={styles.cardHint}>
+              {story.status === 'complete'
+                ? 'Readers see this as a finished book.'
+                : 'Readers know more chapters are still coming.'}
+            </Text>
+          </View>
+        )}
+
+        {chapters.length > 0 && (
+          <View style={styles.settingCard}>
+            <Text style={styles.cardLabel}>Reader access</Text>
+            <View style={styles.stepper}>
+              <Pressable
+                style={[styles.stepBtn, busy && { opacity: 0.5 }]}
+                onPress={() => setFreeChapters(Math.max(0, freeCount - 1))}
+                disabled={busy || freeCount === 0}
+              >
+                <Text style={styles.stepBtnText}>−</Text>
+              </Pressable>
+              <Text style={styles.stepValue}>{freeCount}</Text>
+              <Pressable
+                style={[styles.stepBtn, busy && { opacity: 0.5 }]}
+                onPress={() => setFreeChapters(Math.min(chapters.length, freeCount + 1))}
+                disabled={busy || freeCount >= chapters.length}
+              >
+                <Text style={styles.stepBtnText}>+</Text>
+              </Pressable>
+              <Text style={styles.stepLabel}>
+                free chapter{freeCount === 1 ? '' : 's'}
+              </Text>
+            </View>
+            <Text style={styles.cardHint}>
+              {freeCount >= chapters.length
+                ? 'Every chapter is free to read.'
+                : `Chapter ${freeCount + 1} onward is gated behind an ad or NovelStack+.`}
+            </Text>
+          </View>
         )}
 
         <Pressable style={[styles.addBtn, busy && { opacity: 0.6 }]} onPress={openNew} disabled={busy}>
@@ -518,4 +604,53 @@ const styles = StyleSheet.create({
   },
   ghostBtnText: { color: colors.inkMuted, fontSize: 14, fontWeight: '500' },
   status: { fontSize: 12, color: colors.signal, textAlign: 'right' },
+
+  settingCard: {
+    marginTop: spacing.lg,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.lg,
+    padding: spacing.md,
+  },
+  cardLabel: { fontSize: 14, fontWeight: '600', color: colors.ink, marginBottom: 10 },
+  cardHint: { fontSize: 12, color: colors.inkFaint, marginTop: 10, lineHeight: 17 },
+  segment: {
+    flexDirection: 'row',
+    backgroundColor: colors.paper,
+    borderWidth: 1,
+    borderColor: colors.borderSoft,
+    borderRadius: radius.md,
+    padding: 3,
+    gap: 3,
+  },
+  segBtn: {
+    flex: 1,
+    paddingVertical: 9,
+    borderRadius: radius.sm,
+    alignItems: 'center',
+  },
+  segOn: { backgroundColor: colors.signal },
+  segText: { fontSize: 13, fontWeight: '600', color: colors.inkMuted },
+  segTextOn: { color: '#FFFFFF' },
+  stepper: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  stepBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: radius.md,
+    backgroundColor: colors.paper,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stepBtnText: { fontSize: 20, color: colors.ink, fontWeight: '600' },
+  stepValue: {
+    fontFamily: fonts.displayXl,
+    fontSize: 22,
+    color: colors.ink,
+    minWidth: 26,
+    textAlign: 'center',
+  },
+  stepLabel: { fontSize: 13, color: colors.inkMuted },
 });
