@@ -15,10 +15,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useFocusEffect } from 'expo-router';
 import { colors, spacing, radius, fonts } from '@/theme/tokens';
-import { apiGet, apiSend } from '@/lib/api';
+import { apiGetCached, apiSend } from '@/lib/api';
 import { Cover } from '@/components/Cover';
 import { TopBar } from '@/components/TopBar';
-import type { FeedStory, HomeExtras } from '@/lib/types';
+import type { FeedStory, HomeExtras, Shelf } from '@/lib/types';
 
 // hex → rgba, used to derive the ambient glow from a book's cover colour.
 function hexA(hex: string, a: number): string {
@@ -42,12 +42,18 @@ export default function Home() {
   const drift = useRef(new Animated.Value(0)).current; // ambient drift loop
 
   const load = useCallback(async () => {
-    const [f, e] = await Promise.allSettled([
-      apiGet<FeedStory[]>('/api/feed'),
-      apiGet<HomeExtras>('/api/me/home'),
+    const [f, e, sh] = await Promise.allSettled([
+      apiGetCached<FeedStory[]>('/api/feed'),
+      apiGetCached<HomeExtras>('/api/me/home'),
+      apiGetCached<Shelf>('/api/me/shelf'),
     ]);
     setFeed(f.status === 'fulfilled' ? f.value : []);
     setExtras(e.status === 'fulfilled' ? e.value : null);
+    // Reflect the reader's real saved shelf so the spotlight Save button is
+    // always accurate — including after they unsave a book elsewhere.
+    if (sh.status === 'fulfilled') {
+      setSavedIds(new Set(sh.value.saved.map((s) => s.id)));
+    }
     setLoading(false);
   }, []);
 
@@ -108,11 +114,23 @@ export default function Home() {
   const following = feed.filter((s) => s._reason === 'From a writer you follow').slice(0, 10);
   const moreForYou = feed.slice(1, 13);
 
-  async function saveSpot() {
+  async function toggleSave() {
     if (!spot) return;
+    const story = spot;
     try {
-      await apiSend('/api/bookmarks', 'POST', { storyId: spot.id, action: 'add' });
-      setSavedIds((s) => new Set(s).add(spot.id));
+      // The bookmarks endpoint toggles and returns the resulting state, so
+      // the button stays in sync whether saving or unsaving.
+      const { bookmarked } = await apiSend<{ bookmarked: boolean }>(
+        '/api/bookmarks',
+        'POST',
+        { storyId: story.id },
+      );
+      setSavedIds((prev) => {
+        const next = new Set(prev);
+        if (bookmarked) next.add(story.id);
+        else next.delete(story.id);
+        return next;
+      });
     } catch {
       router.push('/signin');
     }
@@ -205,7 +223,7 @@ export default function Home() {
                       <Ionicons name="play" size={17} color="#15100E" />
                       <Text style={styles.btnReadText}>Read</Text>
                     </Pressable>
-                    <Pressable style={[styles.btn, styles.btnSave]} onPress={saveSpot}>
+                    <Pressable style={[styles.btn, styles.btnSave]} onPress={toggleSave}>
                       <Ionicons
                         name={savedIds.has(spot.id) ? 'checkmark' : 'add'}
                         size={18}

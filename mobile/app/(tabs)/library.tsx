@@ -11,7 +11,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, radius, fonts } from '@/theme/tokens';
-import { apiGet, apiSend, getSessionToken } from '@/lib/api';
+import { apiGetCached, apiSend, getSessionToken } from '@/lib/api';
 import { TopBar } from '@/components/TopBar';
 import { Cover } from '@/components/Cover';
 import { SignInPitch } from '@/components/SignInPitch';
@@ -32,7 +32,7 @@ export default function Library() {
       return;
     }
     try {
-      const data = await apiGet<Shelf>('/api/me/shelf');
+      const data = await apiGetCached<Shelf>('/api/me/shelf');
       setSaved(data.saved ?? []);
       setSignedIn(true);
     } catch {

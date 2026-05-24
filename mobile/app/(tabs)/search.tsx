@@ -13,7 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 import { colors, spacing, fonts } from '@/theme/tokens';
-import { apiGet } from '@/lib/api';
+import { apiGet, apiGetCached } from '@/lib/api';
 import { Cover } from '@/components/Cover';
 import { TopBar } from '@/components/TopBar';
 import type { Story } from '@/lib/types';
@@ -37,7 +37,7 @@ export default function Search() {
   // Recommended titles fill the screen before the reader types anything.
   const loadRecommended = useCallback(async () => {
     try {
-      setRecommended(await apiGet<Story[]>('/api/feed'));
+      setRecommended(await apiGetCached<Story[]>('/api/feed'));
     } catch {
       setRecommended([]);
     }

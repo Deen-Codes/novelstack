@@ -35,12 +35,14 @@ export async function getSessionToken(): Promise<string | null> {
 export async function setSessionToken(token: string): Promise<void> {
   cachedToken = token;
   loaded = true;
+  bustCaches();
   await AsyncStorage.setItem(SESSION_KEY, token);
 }
 
 export async function clearSession(): Promise<void> {
   cachedToken = null;
   loaded = true;
+  bustCaches();
   await AsyncStorage.removeItem(SESSION_KEY);
 }
 
@@ -93,15 +95,51 @@ export function apiGet<T>(path: string): Promise<T> {
   return request<T>(path, { method: 'GET' });
 }
 
-export function apiSend<T>(
+// --- In-memory GET cache --------------------------------------------------
+// Re-entering a screen — or opening another screen that reads the same
+// endpoint — is served instantly from here instead of waiting on the
+// network. Any mutation (apiSend / apiUpload) clears the cache, and sign in
+// / sign out clears it too, so reads never go stale.
+type CacheEntry = { at: number; data: unknown };
+const getCache = new Map<string, CacheEntry>();
+
+// Bumped on every mutation so other in-memory caches (the signed-in user in
+// lib/auth) can tell when their data may be out of date.
+let mutationSeq = 0;
+export function mutationSeqNo(): number {
+  return mutationSeq;
+}
+
+function bustCaches(): void {
+  getCache.clear();
+  mutationSeq += 1;
+}
+
+// Like apiGet, but serves a recent response from memory when one exists.
+// `ttlMs` controls how long a cached response stays fresh (default 60s).
+export async function apiGetCached<T>(path: string, ttlMs = 60000): Promise<T> {
+  const hit = getCache.get(path);
+  if (hit && Date.now() - hit.at < ttlMs) {
+    return hit.data as T;
+  }
+  const data = await apiGet<T>(path);
+  getCache.set(path, { at: Date.now(), data });
+  return data;
+}
+
+export async function apiSend<T>(
   path: string,
   method: 'POST' | 'PATCH' | 'PUT' | 'DELETE',
   body?: unknown,
 ): Promise<T> {
-  return request<T>(path, {
+  const result = await request<T>(path, {
     method,
     body: body === undefined ? undefined : JSON.stringify(body),
   });
+  // A write may have changed anything — drop cached reads so the next
+  // fetch reflects the new state.
+  bustCaches();
+  return result;
 }
 
 // Uploads a local image file (multipart/form-data). The Content-Type header
@@ -153,5 +191,6 @@ export async function apiUpload<T>(
         : null) ?? `Upload failed (${res.status}).`;
     throw new Error(message);
   }
+  bustCaches();
   return data as T;
 }

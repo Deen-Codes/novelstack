@@ -12,7 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 import { colors, spacing, radius, fonts } from '@/theme/tokens';
-import { apiGet, apiSend, getSessionToken } from '@/lib/api';
+import { apiGetCached, apiSend, getSessionToken } from '@/lib/api';
 import { getCurrentUser } from '@/lib/auth';
 import { Cover } from '@/components/Cover';
 import { TopBar } from '@/components/TopBar';
@@ -37,7 +37,7 @@ export default function Community() {
     let id: string | null = null;
     if (token) {
       try {
-        const shelf = await apiGet<Shelf>('/api/me/shelf');
+        const shelf = await apiGetCached<Shelf>('/api/me/shelf');
         follows = shelf.following ?? [];
       } catch {
         follows = [];
@@ -47,7 +47,7 @@ export default function Community() {
     }
     let stories: FeedStory[] = [];
     try {
-      stories = await apiGet<FeedStory[]>('/api/feed');
+      stories = await apiGetCached<FeedStory[]>('/api/feed');
     } catch {
       stories = [];
     }

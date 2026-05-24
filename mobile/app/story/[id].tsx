@@ -15,7 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useFocusEffect, router } from 'expo-router';
 import { colors, spacing, radius, fonts } from '@/theme/tokens';
-import { apiGet, apiSend } from '@/lib/api';
+import { apiGetCached, apiSend } from '@/lib/api';
 import { getCurrentUser } from '@/lib/auth';
 import { genreLabel } from '@/lib/genres';
 import { Cover } from '@/components/Cover';
@@ -85,9 +85,12 @@ export default function StoryScreen() {
   const userId = user?.id ?? null;
 
   const load = useCallback(async () => {
+    // Critical path: the story itself, plus who we are (the user lookup is
+    // cached, so it's effectively free after the first call). As soon as
+    // these land the page renders — everything else streams in after.
     let s: StoryDetail;
     try {
-      s = await apiGet<StoryDetail>(`/api/stories/${id}`);
+      s = await apiGetCached<StoryDetail>(`/api/stories/${id}`);
     } catch {
       setNotFound(true);
       setLoading(false);
@@ -97,32 +100,39 @@ export default function StoryScreen() {
 
     const me = await getCurrentUser();
     setUser(me ?? null);
-    if (me) {
-      try {
-        const shelf = await apiGet<Shelf>('/api/me/shelf');
-        setBookmarked(shelf.saved.some((b) => b.id === s.id));
-        setFollowing(shelf.following.some((f) => f.id === s.authorId));
-      } catch {
-        // Leave toggles off.
-      }
-      try {
-        const home = await apiGet<HomeExtras>('/api/me/home');
-        if (home.continueReading && home.continueReading.storyId === s.id) {
-          setContinueId(home.continueReading.chapterId);
-          setContinueNum(home.continueReading.chapterNumber);
-        }
-      } catch {
-        // No continue point.
-      }
-    }
-    // "More like this" — same genre, minus this story.
-    try {
-      const similar = await apiGet<Story[]>(`/api/feed?genre=${encodeURIComponent(s.genre)}`);
-      setMoreLikeThis(similar.filter((x) => x.id !== s.id).slice(0, 12));
-    } catch {
-      setMoreLikeThis([]);
-    }
     setLoading(false);
+
+    // Secondary data — fetched in parallel and applied as it arrives, so it
+    // never holds up the first paint.
+    const tasks: Promise<unknown>[] = [];
+    if (me) {
+      tasks.push(
+        apiGetCached<Shelf>('/api/me/shelf')
+          .then((shelf) => {
+            setBookmarked(shelf.saved.some((b) => b.id === s.id));
+            setFollowing(shelf.following.some((f) => f.id === s.authorId));
+          })
+          .catch(() => {}),
+      );
+      tasks.push(
+        apiGetCached<HomeExtras>('/api/me/home')
+          .then((home) => {
+            if (home.continueReading && home.continueReading.storyId === s.id) {
+              setContinueId(home.continueReading.chapterId);
+              setContinueNum(home.continueReading.chapterNumber);
+            }
+          })
+          .catch(() => {}),
+      );
+    }
+    tasks.push(
+      apiGetCached<Story[]>(`/api/feed?genre=${encodeURIComponent(s.genre)}`)
+        .then((similar) =>
+          setMoreLikeThis(similar.filter((x) => x.id !== s.id).slice(0, 12)),
+        )
+        .catch(() => setMoreLikeThis([])),
+    );
+    await Promise.allSettled(tasks);
   }, [id]);
 
   useFocusEffect(
