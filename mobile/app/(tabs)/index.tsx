@@ -248,7 +248,7 @@ export default function Home() {
                 </Animated.View>
               )}
 
-              {cont && (
+              {cont && !cont.storyCompleted && (
                 <Pressable
                   style={styles.contCard}
                   onPress={() => router.push(`/read/${cont.chapterId}`)}

@@ -98,7 +98,7 @@ export default function Search() {
       <TopBar page="search" />
       <ScrollView
         contentContainerStyle={styles.scroll}
-        keyboardShouldPersistTaps="handled"
+        keyboardShouldPersistTaps="never"
         keyboardDismissMode="on-drag"
       >
         <View style={styles.field}>

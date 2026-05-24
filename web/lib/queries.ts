@@ -2,7 +2,7 @@
 // These typed functions replace every Supabase read. Website server components
 // call them directly; the mobile API route handlers wrap them over HTTP.
 import 'server-only';
-import { and, asc, desc, eq, ilike, isNotNull, ne, or, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, ilike, inArray, isNotNull, ne, or, sql } from 'drizzle-orm';
 import { db } from '@/db';
 import { stories, chapters, chapterContent, bookmarks, follows, reads, subscriptions, adUnlocks, comments } from '@/db/schema';
 
@@ -167,13 +167,44 @@ export async function getChapterForReader(chapterId: string, viewerId?: string) 
 // ============================================================
 // PERSONAL SHELF
 // ============================================================
+// Saved stories, each tagged with the reader's progress: how many published
+// chapters they've completed out of the total. Lets the app split the shelf
+// into "in progress" and "completed", and show a progress bar.
 export async function getSavedStories(userId: string) {
   const rows = await db.query.bookmarks.findMany({
     where: eq(bookmarks.readerId, userId),
     with: { story: { with: { author: true } } },
     orderBy: [desc(bookmarks.createdAt)],
   });
-  return rows.map((r) => r.story);
+  const list = rows.map((r) => r.story);
+  if (list.length === 0) return list;
+
+  const ids = list.map((s) => s.id);
+  const totals = await db
+    .select({ storyId: chapters.storyId, n: sql<number>`count(*)::int` })
+    .from(chapters)
+    .where(and(inArray(chapters.storyId, ids), isNotNull(chapters.publishedAt)))
+    .groupBy(chapters.storyId);
+  const dones = await db
+    .select({ storyId: chapters.storyId, n: sql<number>`count(distinct ${chapters.id})::int` })
+    .from(reads)
+    .innerJoin(chapters, eq(chapters.id, reads.chapterId))
+    .where(
+      and(
+        eq(reads.readerId, userId),
+        inArray(chapters.storyId, ids),
+        isNotNull(reads.completedAt),
+        isNotNull(chapters.publishedAt),
+      ),
+    )
+    .groupBy(chapters.storyId);
+
+  const totalMap = new Map(totals.map((t) => [t.storyId, t.n]));
+  const doneMap = new Map(dones.map((d) => [d.storyId, d.n]));
+  return list.map((s) => ({
+    ...s,
+    progress: { completed: doneMap.get(s.id) ?? 0, total: totalMap.get(s.id) ?? 0 },
+  }));
 }
 
 export async function getMyStories(userId: string) {
@@ -222,7 +253,23 @@ export async function getContinueReading(userId: string) {
     .select({ total: sql<number>`count(*)::int` })
     .from(chapters)
     .where(and(eq(chapters.storyId, row.storyId), isNotNull(chapters.publishedAt)));
-  return { ...row, totalChapters: counted?.total ?? 0 };
+  const [doneRow] = await db
+    .select({ done: sql<number>`count(distinct ${chapters.id})::int` })
+    .from(reads)
+    .innerJoin(chapters, eq(chapters.id, reads.chapterId))
+    .where(
+      and(
+        eq(reads.readerId, userId),
+        eq(chapters.storyId, row.storyId),
+        isNotNull(reads.completedAt),
+        isNotNull(chapters.publishedAt),
+      ),
+    );
+  const total = counted?.total ?? 0;
+  // Whole-book completion — every published chapter finished. When a writer
+  // posts a new chapter the total rises, so the book re-opens as in-progress.
+  const storyCompleted = total > 0 && (doneRow?.done ?? 0) >= total;
+  return { ...row, totalChapters: total, storyCompleted };
 }
 
 // Count of consecutive days (ending today or yesterday) on which the reader

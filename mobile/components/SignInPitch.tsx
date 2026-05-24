@@ -10,6 +10,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, radius, fonts } from '@/theme/tokens';
 import { apiSend } from '@/lib/api';
+import { MailAppLinks } from './MailAppLinks';
 
 // An inline, animated sign-in pitch — used as the signed-out state of the
 // Library and Community tabs. The reader can request a magic link right here
@@ -71,6 +72,7 @@ export function SignInPitch({ headline, sub }: { headline: string; sub: string }
             <Text style={styles.sentBody}>
               We sent a sign-in link to {email.trim()}. Open it on this phone and you&apos;re in.
             </Text>
+            <MailAppLinks email={email.trim()} />
             <Pressable
               onPress={() => {
                 setSent(false);

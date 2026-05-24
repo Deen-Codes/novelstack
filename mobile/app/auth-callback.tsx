@@ -3,6 +3,7 @@ import { View, Text, ActivityIndicator, Pressable, StyleSheet } from 'react-nati
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { apiSend, setSessionToken } from '@/lib/api';
+import { markAuthChanged } from '@/lib/auth';
 import type { User } from '@/lib/types';
 import { colors, spacing, radius } from '@/theme/tokens';
 
@@ -54,6 +55,7 @@ export default function AuthCallback() {
       (async () => {
         try {
           await setSessionToken(session);
+          markAuthChanged();
           router.replace('/(tabs)');
         } catch {
           setError('Could not start that session. Open the link again.');
@@ -88,6 +90,7 @@ export default function AuthCallback() {
         }
 
         await setSessionToken(result.token);
+        markAuthChanged();
         router.replace('/(tabs)');
       } catch (e) {
         const msg = e instanceof Error ? e.message : 'Something went wrong signing you in.';

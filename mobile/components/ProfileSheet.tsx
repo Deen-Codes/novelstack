@@ -14,7 +14,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { colors, spacing, radius } from '@/theme/tokens';
-import { getCurrentUser, signOut } from '@/lib/auth';
+import { getCurrentUser, signOut, subscribeAuthChange } from '@/lib/auth';
 import { apiGet } from '@/lib/api';
 import { SignInPitch } from './SignInPitch';
 import type { User, Shelf } from '@/lib/types';
@@ -87,6 +87,14 @@ export function ProfileSheet({
       cancelled = true;
     };
   }, [visible]);
+
+  // Close the sheet the moment the session changes — chiefly so it dismisses
+  // itself once a sign-in (from the inline email form) completes.
+  useEffect(() => {
+    return subscribeAuthChange(() => {
+      if (visible) onClose();
+    });
+  }, [visible, onClose]);
 
   function go(path: string) {
     onClose();

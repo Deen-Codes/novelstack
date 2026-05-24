@@ -18,6 +18,12 @@ import { SignInPitch } from '@/components/SignInPitch';
 import { AmbientGlow } from '@/components/AmbientGlow';
 import type { Shelf, Story } from '@/lib/types';
 
+// A saved book counts as finished once every published chapter is read.
+function isFinished(s: Story): boolean {
+  const p = s.progress;
+  return !!p && p.total > 0 && p.completed >= p.total;
+}
+
 export default function Library() {
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
   const [saved, setSaved] = useState<Story[]>([]);
@@ -60,6 +66,51 @@ export default function Library() {
     setPendingId(null);
   }
 
+  function bookCell(s: Story, withProgress: boolean) {
+    const p = s.progress;
+    const total = p?.total ?? 0;
+    const done = p?.completed ?? 0;
+    const pct = total > 0 ? Math.max(3, Math.round((done / total) * 100)) : 0;
+    return (
+      <View key={s.id} style={styles.gridItem}>
+        <Pressable onPress={() => router.push(`/story/${s.slug}`)}>
+          <Cover
+            coverUrl={s.coverUrl}
+            coverColor={s.coverColor}
+            title={s.title}
+            mature={s.isMature}
+            style={styles.gridCover}
+          />
+        </Pressable>
+        <Pressable
+          style={[styles.removeBtn, pendingId === s.id && styles.btnBusy]}
+          onPress={() => removeSaved(s)}
+          disabled={pendingId === s.id}
+          hitSlop={8}
+        >
+          {pendingId === s.id ? (
+            <ActivityIndicator size="small" color="#FFFFFF" />
+          ) : (
+            <Ionicons name="close" size={14} color="#FFFFFF" />
+          )}
+        </Pressable>
+        {withProgress && total > 0 && (
+          <>
+            <View style={styles.track}>
+              <View style={[styles.fill, { width: `${pct}%` }]} />
+            </View>
+            <Text style={styles.progressText}>
+              {done} of {total} chapter{total === 1 ? '' : 's'}
+            </Text>
+          </>
+        )}
+        <Text style={styles.gridTitle} numberOfLines={2}>
+          {s.title}
+        </Text>
+      </View>
+    );
+  }
+
   if (loading) {
     return (
       <SafeAreaView style={styles.safe} edges={['top']}>
@@ -82,13 +133,15 @@ export default function Library() {
     );
   }
 
+  const reading = saved.filter((s) => !isFinished(s));
+  const finished = saved.filter(isFinished);
+  const isEmpty = saved.length === 0;
+
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <TopBar page="library" />
-      <ScrollView
-        contentContainerStyle={saved.length === 0 ? styles.scrollEmpty : styles.scroll}
-      >
-        {saved.length === 0 ? (
+      <ScrollView contentContainerStyle={isEmpty ? styles.scrollEmpty : styles.scroll}>
+        {isEmpty ? (
           <View style={styles.emptyWrap}>
             <View style={styles.emptyIcon}>
               <Ionicons name="bookmark" size={28} color={colors.signal} />
@@ -105,37 +158,21 @@ export default function Library() {
           </View>
         ) : (
           <>
-            <Text style={styles.section}>Saved books</Text>
-            <View style={styles.grid}>
-              {saved.map((s) => (
-              <View key={s.id} style={styles.gridItem}>
-                <Pressable onPress={() => router.push(`/story/${s.slug}`)}>
-                  <Cover
-                    coverUrl={s.coverUrl}
-                    coverColor={s.coverColor}
-                    title={s.title}
-                    mature={s.isMature}
-                    style={styles.gridCover}
-                  />
-                </Pressable>
-                <Pressable
-                  style={[styles.removeBtn, pendingId === s.id && styles.btnBusy]}
-                  onPress={() => removeSaved(s)}
-                  disabled={pendingId === s.id}
-                  hitSlop={8}
-                >
-                  {pendingId === s.id ? (
-                    <ActivityIndicator size="small" color="#FFFFFF" />
-                  ) : (
-                    <Ionicons name="close" size={14} color="#FFFFFF" />
-                  )}
-                </Pressable>
-                <Text style={styles.gridTitle} numberOfLines={2}>
-                  {s.title}
-                </Text>
-              </View>
-              ))}
-            </View>
+            {reading.length > 0 && (
+              <>
+                <Text style={styles.section}>Saved books</Text>
+                <View style={styles.grid}>{reading.map((s) => bookCell(s, true))}</View>
+              </>
+            )}
+            {finished.length > 0 && (
+              <>
+                <View style={styles.completedHead}>
+                  <Ionicons name="checkmark-circle" size={17} color={colors.signal} />
+                  <Text style={styles.section}>Completed</Text>
+                </View>
+                <View style={styles.grid}>{finished.map((s) => bookCell(s, false))}</View>
+              </>
+            )}
           </>
         )}
       </ScrollView>
@@ -145,7 +182,6 @@ export default function Library() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.paper },
-  body: { padding: spacing.lg },
   scroll: { padding: spacing.lg, paddingBottom: spacing.xl * 2 },
   scrollEmpty: {
     flexGrow: 1,
@@ -159,6 +195,12 @@ const styles = StyleSheet.create({
     color: colors.ink,
     marginTop: spacing.sm,
     marginBottom: spacing.md,
+  },
+  completedHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    marginTop: spacing.xl,
   },
 
   emptyWrap: { alignItems: 'center', paddingHorizontal: 16 },
@@ -215,13 +257,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   btnBusy: { opacity: 0.5 },
-  gridTitle: { fontSize: 11.5, fontWeight: '500', color: colors.ink, marginTop: 6 },
-  btn: {
-    marginTop: spacing.lg,
-    backgroundColor: colors.signal,
-    paddingVertical: 12,
+  track: {
+    height: 3,
     borderRadius: radius.pill,
-    alignItems: 'center',
+    backgroundColor: colors.borderSoft,
+    marginTop: 7,
   },
-  btnText: { color: colors.paper, fontSize: 14, fontWeight: '500' },
+  fill: { height: 3, borderRadius: radius.pill, backgroundColor: colors.signal },
+  progressText: { fontSize: 10, color: colors.inkFaint, marginTop: 4 },
+  gridTitle: { fontSize: 11.5, fontWeight: '500', color: colors.ink, marginTop: 5 },
 });

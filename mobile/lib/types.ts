@@ -32,6 +32,8 @@ export type Story = {
   createdAt: string;
   updatedAt: string;
   author?: User | null;
+  // Present on saved-shelf stories: the reader's completed/total chapters.
+  progress?: { completed: number; total: number } | null;
 };
 
 export type Chapter = {
@@ -84,6 +86,9 @@ export type ContinueReading = {
   coverUrl: string | null;
   coverColor: string | null;
   totalChapters: number;
+  // True once every published chapter is finished — the home screen then
+  // stops showing the "continue reading" card for this book.
+  storyCompleted: boolean;
 };
 
 export type HomeExtras = {

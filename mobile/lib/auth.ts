@@ -60,6 +60,13 @@ function notifyAuthChange(): void {
   for (const fn of [...authListeners]) fn();
 }
 
+// Call after a sign-in completes (auth-callback) so subscribed UI — the top
+// bar avatar, the sign-in sheet — refreshes and dismisses right away.
+export function markAuthChanged(): void {
+  cache = null;
+  notifyAuthChange();
+}
+
 // Sign out — drop the stored JWT and the cached user, then tell the UI.
 export async function signOut(): Promise<void> {
   cache = null;
