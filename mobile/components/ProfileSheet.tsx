@@ -161,7 +161,7 @@ export function ProfileSheet({
                 </View>
               </View>
 
-              <View style={styles.plus}>
+              <Pressable style={styles.plus} onPress={() => go('/plus')}>
                 <View style={styles.plusIcon}>
                   <Ionicons name="sparkles" size={20} color="#FFFFFF" />
                 </View>
@@ -172,7 +172,7 @@ export function ProfileSheet({
                 <View style={styles.plusGo}>
                   <Text style={styles.plusGoText}>Upgrade</Text>
                 </View>
-              </View>
+              </Pressable>
 
               <View style={styles.menu}>
                 <Pressable style={styles.mrow} onPress={() => go('/write')}>

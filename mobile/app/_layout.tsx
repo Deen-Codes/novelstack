@@ -32,6 +32,8 @@ export default function RootLayout() {
         <Stack.Screen name="write/[storyId]" />
         <Stack.Screen name="signin" />
         <Stack.Screen name="auth-callback" />
+        <Stack.Screen name="plus" />
+        <Stack.Screen name="watch-ad" />
       </Stack>
     </>
   );

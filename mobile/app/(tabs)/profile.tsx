@@ -276,12 +276,12 @@ export default function ProfileScreen() {
           </>
         )}
 
-        <View style={styles.plusCard}>
+        <Pressable style={styles.plusCard} onPress={() => router.push('/plus')}>
           <Text style={styles.plusTitle}>NovelStack+</Text>
           <Text style={styles.plusBody}>
-            Ad-free reading, every chapter unlocked — $6.99/month. Manage billing on the web.
+            Ad-free reading, every chapter unlocked, offline downloads — $6.99/month.
           </Text>
-        </View>
+        </Pressable>
 
         <Text style={styles.section}>Your published stories</Text>
         {stories.length === 0 ? (

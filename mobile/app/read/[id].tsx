@@ -25,7 +25,6 @@ export default function Reader() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [chapter, setChapter] = useState<ChapterDetail | null>(null);
   const [loading, setLoading] = useState(true);
-  const [unlocking, setUnlocking] = useState(false);
   const [prevId, setPrevId] = useState<string | null>(null);
   const [nextId, setNextId] = useState<string | null>(null);
   // Position of this chapter within the book, and the book's chapter count.
@@ -93,13 +92,6 @@ export default function Reader() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  async function watchAd() {
-    setUnlocking(true);
-    await new Promise((r) => setTimeout(r, 2000)); // simulated rewarded ad
-    await load();
-    setUnlocking(false);
-  }
-
   // Track scroll position within the current chapter. A chapter that doesn't
   // scroll contributes 0, so the bar simply rests at this chapter's mark.
   function onScroll(e: NativeSyntheticEvent<NativeScrollEvent>) {
@@ -129,6 +121,11 @@ export default function Reader() {
         border: colors.border,
         track: colors.borderSoft,
       };
+
+  // Primary-button palette — cream on the dark theme, ink on paper, so the
+  // call to action stays high-contrast in either reading mode.
+  const primaryBg = paper ? paperMode.ink : '#F4ECDF';
+  const primaryInk = paper ? paperMode.bg : '#15100E';
 
   if (loading) {
     return (
@@ -222,17 +219,19 @@ export default function Reader() {
               That&apos;s the preview — keep reading:
             </Text>
             <Pressable
-              style={[styles.adBtn, unlocking && { opacity: 0.6 }]}
-              onPress={watchAd}
-              disabled={unlocking}
+              style={[styles.adBtn, { backgroundColor: primaryBg }]}
+              onPress={() => router.replace(`/watch-ad?chapterId=${id}`)}
             >
-              <Text style={styles.adBtnText}>
-                {unlocking ? 'Loading ad…' : 'Watch a short ad to continue'}
+              <Ionicons name="play" size={15} color={primaryInk} />
+              <Text style={[styles.adBtnText, { color: primaryInk }]}>
+                Watch a short ad to continue
               </Text>
             </Pressable>
-            <Text style={[styles.plus, { color: theme.inkFaint }]}>
-              No ads with NovelStack+ — $6.99/month.
-            </Text>
+            <Pressable onPress={() => router.push('/plus')} hitSlop={6}>
+              <Text style={[styles.plus, { color: colors.signal }]}>
+                No ads with NovelStack+ — $6.99/month
+              </Text>
+            </Pressable>
           </View>
         )}
       </ScrollView>
@@ -255,12 +254,17 @@ export default function Reader() {
           </Pressable>
 
           <Pressable
-            style={[styles.navBtn, styles.navPrimary, !nextId && styles.navOff]}
+            style={[
+              styles.navBtn,
+              styles.navPrimary,
+              { backgroundColor: primaryBg },
+              !nextId && styles.navOff,
+            ]}
             disabled={!nextId}
             onPress={() => nextId && router.replace(`/read/${nextId}`)}
           >
-            <Text style={styles.navPrimaryText}>Next chapter</Text>
-            <Ionicons name="chevron-forward" size={18} color="#FFFFFF" />
+            <Text style={[styles.navPrimaryText, { color: primaryInk }]}>Next chapter</Text>
+            <Ionicons name="chevron-forward" size={18} color={primaryInk} />
           </Pressable>
         </View>
       </View>
@@ -318,13 +322,15 @@ const styles = StyleSheet.create({
   },
   endText: { fontSize: 13, marginBottom: spacing.md },
   adBtn: {
-    backgroundColor: colors.signal,
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: radius.pill,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    paddingVertical: 13,
+    paddingHorizontal: 22,
+    borderRadius: 13,
   },
-  adBtnText: { color: '#FFFFFF', fontSize: 14, fontWeight: '600' },
-  plus: { fontSize: 12, marginTop: spacing.md, textAlign: 'center' },
+  adBtnText: { fontSize: 14, fontWeight: '700' },
+  plus: { fontSize: 12.5, fontWeight: '600', marginTop: spacing.md, textAlign: 'center' },
 
   notFound: { alignItems: 'center', marginTop: 80 },
   notFoundText: { fontSize: 15 },
@@ -338,15 +344,15 @@ const styles = StyleSheet.create({
   navRow: { flexDirection: 'row', gap: spacing.sm },
   navBtn: {
     height: 54,
-    borderRadius: radius.md,
+    borderRadius: 14,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.xs,
   },
   navSecondary: { flex: 1, borderWidth: 1 },
-  navSecondaryText: { fontSize: 15, fontWeight: '500' },
-  navPrimary: { flex: 1.5, backgroundColor: colors.signal },
-  navPrimaryText: { fontSize: 15, fontWeight: '600', color: '#FFFFFF' },
+  navSecondaryText: { fontSize: 15, fontWeight: '600' },
+  navPrimary: { flex: 1.5 },
+  navPrimaryText: { fontSize: 15, fontWeight: '700' },
   navOff: { opacity: 0.35 },
 });
