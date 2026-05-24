@@ -1,5 +1,14 @@
 import { useEffect, useState } from 'react';
-import { ScrollView, View, Text, Pressable, ActivityIndicator, StyleSheet } from 'react-native';
+import {
+  ScrollView,
+  View,
+  Text,
+  Pressable,
+  ActivityIndicator,
+  StyleSheet,
+  type NativeSyntheticEvent,
+  type NativeScrollEvent,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -8,9 +17,10 @@ import { apiGet, apiSend } from '@/lib/api';
 import { getCurrentUser } from '@/lib/auth';
 import type { ChapterDetail, StoryDetail } from '@/lib/types';
 
-// Mirrors the web reader: full body if entitled, otherwise the excerpt
-// preview + a (simulated) rewarded-ad gate. Records reading progress so the
-// Home feed's genre affinity stays current, and offers prev/next navigation.
+// Reader: full body if entitled, otherwise the excerpt preview + a (simulated)
+// rewarded-ad gate. The top progress bar tracks position through the WHOLE
+// book — (chapters done + scroll within this chapter) / total chapters — so it
+// stays meaningful on both long and short chapters.
 export default function Reader() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [chapter, setChapter] = useState<ChapterDetail | null>(null);
@@ -18,33 +28,34 @@ export default function Reader() {
   const [unlocking, setUnlocking] = useState(false);
   const [prevId, setPrevId] = useState<string | null>(null);
   const [nextId, setNextId] = useState<string | null>(null);
+  // Position of this chapter within the book, and the book's chapter count.
+  const [chapterPos, setChapterPos] = useState(0);
+  const [chapterCount, setChapterCount] = useState(0);
+  // 0..1 scroll fraction within the current chapter.
+  const [scrollFrac, setScrollFrac] = useState(0);
   // Local-only reading-mode toggle: false = dark theme, true = light "paper".
   const [paper, setPaper] = useState(false);
 
   // When a signed-in reader opens a chapter they can read: record progress
-  // (keeps the feed's genre affinity fresh) and auto-save the story to their
-  // library, so opening a book and reading a bit shelves it automatically.
+  // (keeps the feed's genre affinity fresh) and auto-save the story.
   async function recordOpen(ch: ChapterDetail) {
     const user = await getCurrentUser();
     if (!user) return;
     try {
-      await apiSend('/api/reads', 'POST', {
-        chapterId: ch.id,
-        progressPct: 100,
-        completed: true,
-      });
+      await apiSend('/api/reads', 'POST', { chapterId: ch.id, progressPct: 100, completed: true });
     } catch {
-      // Best-effort — ignore failures.
+      // Best-effort.
     }
     try {
       await apiSend('/api/bookmarks', 'POST', { storyId: ch.story.id, action: 'add' });
     } catch {
-      // Best-effort — ignore failures.
+      // Best-effort.
     }
   }
 
   async function load() {
     setLoading(true);
+    setScrollFrac(0);
     let ch: ChapterDetail;
     try {
       ch = await apiGet<ChapterDetail>(`/api/chapters/${id}`);
@@ -55,7 +66,7 @@ export default function Reader() {
     }
     setChapter(ch);
 
-    // Prev / next within the story (published chapters only).
+    // Prev / next + this chapter's position within the book.
     try {
       const story = await apiGet<StoryDetail>(`/api/stories/${ch.story.slug}`);
       const list = story.chapters
@@ -64,12 +75,15 @@ export default function Reader() {
       const idx = list.findIndex((c) => c.id === id);
       setPrevId(idx > 0 ? list[idx - 1].id : null);
       setNextId(idx >= 0 && idx < list.length - 1 ? list[idx + 1].id : null);
+      setChapterPos(idx >= 0 ? idx : 0);
+      setChapterCount(list.length);
     } catch {
       setPrevId(null);
       setNextId(null);
+      setChapterPos(0);
+      setChapterCount(0);
     }
 
-    // Entitled read → record progress, interest signal, and auto-save.
     if (!ch.locked && ch.body) recordOpen(ch);
     setLoading(false);
   }
@@ -82,10 +96,17 @@ export default function Reader() {
   async function watchAd() {
     setUnlocking(true);
     await new Promise((r) => setTimeout(r, 2000)); // simulated rewarded ad
-    // The ad-unlock endpoint is not part of the current API; re-fetch so the
-    // chapter reflects any entitlement the viewer already has.
     await load();
     setUnlocking(false);
+  }
+
+  // Track scroll position within the current chapter. A chapter that doesn't
+  // scroll contributes 0, so the bar simply rests at this chapter's mark.
+  function onScroll(e: NativeSyntheticEvent<NativeScrollEvent>) {
+    const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
+    const scrollable = contentSize.height - layoutMeasurement.height;
+    const frac = scrollable > 4 ? Math.min(1, Math.max(0, contentOffset.y / scrollable)) : 0;
+    setScrollFrac((prev) => (Math.abs(frac - prev) > 0.004 ? frac : prev));
   }
 
   // Active palette derived from the reading-mode toggle.
@@ -121,7 +142,11 @@ export default function Reader() {
     return (
       <SafeAreaView style={[styles.safe, { backgroundColor: theme.bg }]} edges={['top']}>
         <View style={styles.topBar}>
-          <Pressable style={[styles.circleBtn, { backgroundColor: theme.surface }]} onPress={() => router.back()} hitSlop={8}>
+          <Pressable
+            style={[styles.circleBtn, { backgroundColor: theme.surface }]}
+            onPress={() => router.back()}
+            hitSlop={8}
+          >
             <Ionicons name="chevron-back" size={22} color={theme.ink} />
           </Pressable>
           <View style={{ flex: 1 }} />
@@ -135,12 +160,15 @@ export default function Reader() {
   }
 
   const locked = chapter.locked || !chapter.body;
-  // Progress is full once an entitled chapter is open; preview-only otherwise.
-  const progress = locked ? 0.12 : 1;
+  // Whole-book progress: chapters fully behind us + scroll through this one.
+  const bookProgress =
+    chapterCount > 0
+      ? Math.min(1, Math.max(0, (chapterPos + scrollFrac) / chapterCount))
+      : 0;
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: theme.bg }]} edges={['top']}>
-      {/* Top bar: back / story title / Aa reading-mode toggle */}
+      {/* Top bar: back / story title + chapter count / Aa toggle */}
       <View style={styles.topBar}>
         <Pressable
           style={[styles.circleBtn, { backgroundColor: theme.surface }]}
@@ -150,9 +178,16 @@ export default function Reader() {
           <Ionicons name="chevron-back" size={22} color={theme.ink} />
         </Pressable>
 
-        <Text style={[styles.topTitle, { color: theme.inkMuted }]} numberOfLines={1}>
-          {chapter.story?.title ?? ''}
-        </Text>
+        <View style={styles.topCenter}>
+          <Text style={[styles.topTitle, { color: theme.ink }]} numberOfLines={1}>
+            {chapter.story?.title ?? ''}
+          </Text>
+          <Text style={[styles.topSub, { color: theme.inkMuted }]} numberOfLines={1}>
+            Chapter {chapter.number ?? ''}
+            {chapterCount > 0 ? ` of ${chapterCount}` : ''}
+            {chapterCount > 0 ? `  ·  ${Math.round(bookProgress * 100)}% read` : ''}
+          </Text>
+        </View>
 
         <Pressable
           style={[styles.circleBtn, { backgroundColor: theme.surface }]}
@@ -163,8 +198,17 @@ export default function Reader() {
         </Pressable>
       </View>
 
+      {/* Whole-book progress bar */}
+      <View style={[styles.progressTrack, { backgroundColor: theme.track }]}>
+        <View style={[styles.progressFill, { width: `${bookProgress * 100}%` }]} />
+      </View>
+
       {/* Body */}
-      <ScrollView contentContainerStyle={styles.scroll}>
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        onScroll={onScroll}
+        scrollEventThrottle={32}
+      >
         <Text style={styles.chLabel}>Chapter {chapter.number ?? ''}</Text>
         <Text style={[styles.chTitle, { color: theme.ink }]}>{chapter.title ?? 'Chapter'}</Text>
 
@@ -193,12 +237,8 @@ export default function Reader() {
         )}
       </ScrollView>
 
-      {/* Footer: progress bar + big prev / next buttons */}
+      {/* Footer: big prev / next buttons */}
       <View style={[styles.footer, { backgroundColor: theme.bg, borderTopColor: theme.border }]}>
-        <View style={[styles.track, { backgroundColor: theme.track }]}>
-          <View style={[styles.fill, { width: `${Math.round(progress * 100)}%` }]} />
-        </View>
-
         <View style={styles.navRow}>
           <Pressable
             style={[
@@ -220,7 +260,7 @@ export default function Reader() {
             onPress={() => nextId && router.replace(`/read/${nextId}`)}
           >
             <Text style={styles.navPrimaryText}>Next chapter</Text>
-            <Ionicons name="chevron-forward" size={18} color={colors.ink} />
+            <Ionicons name="chevron-forward" size={18} color="#FFFFFF" />
           </Pressable>
         </View>
       </View>
@@ -245,8 +285,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  topTitle: { flex: 1, fontSize: 13, textAlign: 'center', fontWeight: '500' },
+  topCenter: { flex: 1, alignItems: 'center' },
+  topTitle: { fontSize: 13, fontWeight: '600' },
+  topSub: { fontSize: 11, marginTop: 1 },
   aa: { fontFamily: 'serif', fontSize: 18, fontWeight: '600' },
+
+  progressTrack: { height: 3, width: '100%' },
+  progressFill: { height: 3, backgroundColor: colors.signal },
 
   scroll: { padding: spacing.lg, paddingBottom: spacing.xl },
   chLabel: {
@@ -279,7 +324,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     borderRadius: radius.pill,
   },
-  adBtnText: { color: colors.ink, fontSize: 14, fontWeight: '500' },
+  adBtnText: { color: '#FFFFFF', fontSize: 14, fontWeight: '600' },
   plus: { fontSize: 12, marginTop: spacing.md, textAlign: 'center' },
 
   notFound: { alignItems: 'center', marginTop: 80 },
@@ -291,14 +336,6 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.lg,
     borderTopWidth: 1,
   },
-  track: {
-    height: 3,
-    borderRadius: radius.pill,
-    overflow: 'hidden',
-    marginBottom: spacing.md,
-  },
-  fill: { height: 3, backgroundColor: colors.signal, borderRadius: radius.pill },
-
   navRow: { flexDirection: 'row', gap: spacing.sm },
   navBtn: {
     height: 54,
@@ -308,15 +345,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: spacing.xs,
   },
-  navSecondary: {
-    flex: 1,
-    borderWidth: 1,
-  },
+  navSecondary: { flex: 1, borderWidth: 1 },
   navSecondaryText: { fontSize: 15, fontWeight: '500' },
-  navPrimary: {
-    flex: 1.5,
-    backgroundColor: colors.signal,
-  },
-  navPrimaryText: { fontSize: 15, fontWeight: '600', color: colors.ink },
+  navPrimary: { flex: 1.5, backgroundColor: colors.signal },
+  navPrimaryText: { fontSize: 15, fontWeight: '600', color: '#FFFFFF' },
   navOff: { opacity: 0.35 },
 });
