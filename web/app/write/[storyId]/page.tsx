@@ -6,6 +6,7 @@ import { stories, chapters as chaptersTable } from '@/db/schema';
 import { getSessionUser } from '@/lib/auth';
 import { AppHeader } from '@/components/AppHeader';
 import { CoverUploader } from '@/components/CoverUploader';
+import { DeleteStoryButton } from '@/components/DeleteStoryButton';
 import { createChapter, toggleChapterFree } from '../actions';
 
 export default async function ManageStory({
@@ -84,6 +85,10 @@ export default async function ManageStory({
             ))}
           </div>
         )}
+
+        <div className="mt-12 pt-6 border-t border-border-soft">
+          <DeleteStoryButton storyId={story.id} />
+        </div>
       </main>
     </>
   );

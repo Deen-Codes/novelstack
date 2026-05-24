@@ -201,6 +201,17 @@ export async function setStoryStatus(authorId: string, storyId: string, status: 
   return row ?? null;
 }
 
+// Deletes a story — only if it belongs to the acting user. Its chapters,
+// chapter content, bookmarks, reads, comments and likes are removed too via
+// the schema's ON DELETE CASCADE foreign keys. Returns true if removed.
+export async function deleteStory(authorId: string, storyId: string): Promise<boolean> {
+  const rows = await db
+    .delete(stories)
+    .where(and(eq(stories.id, storyId), eq(stories.authorId, authorId)))
+    .returning({ id: stories.id });
+  return rows.length > 0;
+}
+
 // --- Chapters --------------------------------------------------------------
 async function ownsStory(authorId: string, storyId: string): Promise<boolean> {
   const [row] = await db

@@ -6,6 +6,7 @@ import {
   TextInput,
   Pressable,
   ActivityIndicator,
+  Alert,
   StyleSheet,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -207,6 +208,27 @@ export default function StoryWriter() {
     setBusy(false);
   }
 
+  // Permanently deletes the story (chapters cascade). Confirmed first.
+  async function deleteStoryNow() {
+    try {
+      await apiSend(`/api/me/stories/${storyId}`, 'DELETE');
+      router.replace('/write');
+    } catch {
+      setStatus('Could not delete the story. Try again.');
+    }
+  }
+
+  function confirmDelete() {
+    Alert.alert(
+      'Delete this story?',
+      'This permanently removes the story and all its chapters. It cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete', style: 'destructive', onPress: deleteStoryNow },
+      ],
+    );
+  }
+
   if (loading) {
     return (
       <SafeAreaView style={styles.safe} edges={['top']}>
@@ -382,6 +404,10 @@ export default function StoryWriter() {
             )}
           </View>
         ))}
+
+        <Pressable style={styles.deleteBtn} onPress={confirmDelete}>
+          <Text style={styles.deleteBtnText}>Delete story</Text>
+        </Pressable>
       </ScrollView>
     </SafeAreaView>
   );
@@ -422,6 +448,15 @@ const styles = StyleSheet.create({
   },
   coverBtnText: { fontSize: 13, fontWeight: '500', color: colors.ink },
   coverError: { fontSize: 12, color: '#C0392B', marginTop: 6 },
+  deleteBtn: {
+    marginTop: spacing.xl,
+    paddingVertical: 13,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: '#5A2A2E',
+    alignItems: 'center',
+  },
+  deleteBtnText: { fontSize: 14, color: '#D9656F', fontWeight: '500' },
   addBtn: {
     backgroundColor: colors.signal,
     paddingVertical: 12,

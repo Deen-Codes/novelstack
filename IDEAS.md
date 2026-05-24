@@ -9,8 +9,8 @@ build them. Newest ideas go at the top of Open.
 - **Web parity** for the CRUD controls just added on mobile — remove-from-saved
   and unfollow in the web library/following views (web SavedView/FollowingView
   are server components; needs small client components).
-- **Delete a story / chapter** you wrote — the Write flow has no delete; an
-  author can't remove a story or a chapter once created.
+- **Delete a chapter** you wrote — story deletion is done (web + mobile); a
+  single-chapter delete is still missing from the Write flow.
 - **Reader dead-end** — locked chapters (4+) gate behind a *simulated* ad that
   never actually unlocks, and subscriptions aren't real, so a reader can't get
   past chapter 3 of most books. Make the ad-unlock real (insert `ad_unlocks`)
