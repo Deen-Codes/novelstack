@@ -21,7 +21,31 @@ import {
   tips,
   adUnlocks,
   reports,
+  notifications,
 } from '@/db/schema';
+
+// Records a notification for `userId`. Self-actions are skipped, and a
+// failure here never breaks the action that triggered it.
+async function notify(opts: {
+  userId: string;
+  kind: string;
+  actorId?: string | null;
+  postId?: string | null;
+  storyId?: string | null;
+}) {
+  if (opts.actorId && opts.actorId === opts.userId) return;
+  try {
+    await db.insert(notifications).values({
+      userId: opts.userId,
+      kind: opts.kind,
+      actorId: opts.actorId ?? null,
+      postId: opts.postId ?? null,
+      storyId: opts.storyId ?? null,
+    });
+  } catch {
+    // Best-effort — notifications must not fail the parent write.
+  }
+}
 
 type Genre = typeof stories.$inferSelect.genre;
 type Status = typeof stories.$inferSelect.status;
@@ -93,6 +117,7 @@ export async function toggleFollow(userId: string, authorId: string): Promise<bo
     return false;
   }
   await db.insert(follows).values({ followerId: userId, authorId });
+  await notify({ userId: authorId, kind: 'follow', actorId: userId });
   return true;
 }
 
@@ -192,6 +217,12 @@ export async function createTip(
       message: data.message?.trim() || null,
     })
     .returning();
+  await notify({
+    userId: data.recipientId,
+    kind: 'tip',
+    actorId: senderId,
+    storyId: data.storyId ?? null,
+  });
   return row;
 }
 
@@ -234,12 +265,17 @@ export async function createPostComment(userId: string, postId: string, body: st
   const text = body.trim();
   if (!text) throw new Error('Write a comment.');
   if (text.length > 500) throw new Error('Comments are limited to 500 characters.');
-  const [post] = await db.select({ id: posts.id }).from(posts).where(eq(posts.id, postId)).limit(1);
+  const [post] = await db
+    .select({ id: posts.id, authorId: posts.authorId })
+    .from(posts)
+    .where(eq(posts.id, postId))
+    .limit(1);
   if (!post) throw new Error('That update no longer exists.');
   const [row] = await db
     .insert(postComments)
     .values({ postId, userId, body: text })
     .returning();
+  await notify({ userId: post.authorId, kind: 'post_comment', actorId: userId, postId });
   return row;
 }
 
@@ -256,6 +292,14 @@ export async function togglePostLike(userId: string, postId: string) {
       .where(and(eq(postLikes.postId, postId), eq(postLikes.userId, userId)));
   } else {
     await db.insert(postLikes).values({ postId, userId });
+    const [post] = await db
+      .select({ authorId: posts.authorId })
+      .from(posts)
+      .where(eq(posts.id, postId))
+      .limit(1);
+    if (post) {
+      await notify({ userId: post.authorId, kind: 'post_like', actorId: userId, postId });
+    }
   }
   const [{ n }] = await db
     .select({ n: sql<number>`count(*)::int` })

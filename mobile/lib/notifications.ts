@@ -1,47 +1,29 @@
-// In-app notification centre. Until there's a dedicated notifications table,
-// the bell surfaces what matters most to a reader: new chapters and books
-// from the writers they follow, derived from the (cached) home feed.
+// In-app notification centre — backed by the real /api/notifications feed:
+// likes, comments, follows and tips on your content, plus new chapters from
+// writers you follow and books you've saved.
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiGetCached } from './api';
-import type { FeedStory } from './types';
 
 const SEEN_KEY = 'novelstack_notifs_seen_at';
 
 export type AppNotification = {
   id: string;
-  title: string;
-  author: string;
-  slug: string;
-  coverUrl: string | null;
-  coverColor: string | null;
-  isMature: boolean;
+  kind: string; // post_comment · post_like · follow · tip · chapter
   at: string;
+  text: string;
+  storySlug: string | null;
+  postId: string | null;
 };
 
-// Updates worth a notification — currently new work from followed writers.
 export async function getNotifications(): Promise<AppNotification[]> {
-  let feed: FeedStory[] = [];
   try {
-    feed = await apiGetCached<FeedStory[]>('/api/feed');
+    return await apiGetCached<AppNotification[]>('/api/notifications');
   } catch {
     return [];
   }
-  return feed
-    .filter((s) => s._reason === 'From a writer you follow' && !!s.author)
-    .slice(0, 30)
-    .map((s) => ({
-      id: s.id,
-      title: s.title,
-      author: s.author?.displayName ?? 'A writer',
-      slug: s.slug,
-      coverUrl: s.coverUrl,
-      coverColor: s.coverColor,
-      isMature: s.isMature,
-      at: s.publishedAt ?? s.createdAt,
-    }));
 }
 
-// How many notifications are newer than the reader last opened the bell.
+// How many notifications are newer than the last time the bell was opened.
 export async function getUnreadCount(): Promise<number> {
   const items = await getNotifications();
   if (items.length === 0) return 0;

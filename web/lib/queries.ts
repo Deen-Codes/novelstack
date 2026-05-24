@@ -4,7 +4,7 @@
 import 'server-only';
 import { and, asc, desc, eq, ilike, inArray, isNotNull, ne, or, sql } from 'drizzle-orm';
 import { db } from '@/db';
-import { stories, chapters, chapterContent, bookmarks, follows, reads, subscriptions, adUnlocks, comments, posts, postComments, postLikes } from '@/db/schema';
+import { stories, chapters, chapterContent, bookmarks, follows, reads, subscriptions, adUnlocks, comments, posts, postComments, postLikes, notifications } from '@/db/schema';
 
 // 18 is adult. Mature stories stay hidden until a date of birth proves it.
 export function isAdult(dateOfBirth: string | null | undefined): boolean {
@@ -271,6 +271,91 @@ export async function getCommunityFeed(userId: string) {
     limit: 50,
   });
   return attachPostCounts(rows, userId);
+}
+
+type NotifItem = {
+  id: string;
+  kind: string;
+  at: string;
+  text: string;
+  storySlug: string | null;
+  postId: string | null;
+};
+
+// Everything worth a notification for a reader: direct events (likes,
+// comments, follows, tips on their content) merged with new chapters from
+// the writers they follow and the books they have saved.
+export async function getNotifications(userId: string): Promise<NotifItem[]> {
+  const rows = await db.query.notifications.findMany({
+    where: eq(notifications.userId, userId),
+    with: { actor: true, story: true },
+    orderBy: [desc(notifications.createdAt)],
+    limit: 40,
+  });
+
+  const direct: NotifItem[] = rows.map((n) => {
+    const actor = n.actor?.displayName ?? 'Someone';
+    const text =
+      n.kind === 'post_comment'
+        ? `${actor} commented on your update`
+        : n.kind === 'post_like'
+          ? `${actor} liked your update`
+          : n.kind === 'follow'
+            ? `${actor} started following you`
+            : n.kind === 'tip'
+              ? `${actor} sent you a tip`
+              : `${actor} interacted with you`;
+    return {
+      id: n.id,
+      kind: n.kind,
+      at: n.createdAt.toISOString(),
+      text,
+      storySlug: n.story?.slug ?? null,
+      postId: n.postId,
+    };
+  });
+
+  // Computed: new chapters from followed authors' stories + saved stories.
+  const [fa, sv] = await Promise.all([
+    db.select({ id: follows.authorId }).from(follows).where(eq(follows.followerId, userId)),
+    db.select({ id: bookmarks.storyId }).from(bookmarks).where(eq(bookmarks.readerId, userId)),
+  ]);
+  const followedIds = fa.map((f) => f.id);
+  const watch = new Set<string>(sv.map((s) => s.id));
+  if (followedIds.length) {
+    const fs = await db
+      .select({ id: stories.id })
+      .from(stories)
+      .where(inArray(stories.authorId, followedIds));
+    for (const s of fs) watch.add(s.id);
+  }
+  let chapterItems: NotifItem[] = [];
+  if (watch.size) {
+    const ch = await db
+      .select({
+        chapterId: chapters.id,
+        publishedAt: chapters.publishedAt,
+        storySlug: stories.slug,
+        storyTitle: stories.title,
+      })
+      .from(chapters)
+      .innerJoin(stories, eq(stories.id, chapters.storyId))
+      .where(and(inArray(chapters.storyId, [...watch]), isNotNull(chapters.publishedAt)))
+      .orderBy(desc(chapters.publishedAt))
+      .limit(25);
+    chapterItems = ch.map((c) => ({
+      id: `chapter:${c.chapterId}`,
+      kind: 'chapter',
+      at: (c.publishedAt ?? new Date()).toISOString(),
+      text: `New chapter in “${c.storyTitle}”`,
+      storySlug: c.storySlug,
+      postId: null,
+    }));
+  }
+
+  return [...direct, ...chapterItems]
+    .sort((a, b) => Date.parse(b.at) - Date.parse(a.at))
+    .slice(0, 40);
 }
 
 // A single update with its author, attached book, full comment thread and

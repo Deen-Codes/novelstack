@@ -352,6 +352,22 @@ export const reports = pgTable('reports', {
 });
 
 // ============================================================
+// NOTIFICATIONS — direct events (likes/comments/follows/tips on your content)
+// ============================================================
+export const notifications = pgTable('notifications', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  // post_comment · post_like · follow · tip
+  kind: text('kind').notNull(),
+  actorId: uuid('actor_id').references(() => users.id, { onDelete: 'cascade' }),
+  postId: uuid('post_id').references(() => posts.id, { onDelete: 'cascade' }),
+  storyId: uuid('story_id').references(() => stories.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+// ============================================================
 // RELATIONS — let Drizzle's query API fetch nested data
 // (story.author, story.chapters, chapter.content, …)
 // ============================================================
@@ -401,4 +417,10 @@ export const postsRelations = relations(posts, ({ one, many }) => ({
 export const postCommentsRelations = relations(postComments, ({ one }) => ({
   post: one(posts, { fields: [postComments.postId], references: [posts.id] }),
   user: one(users, { fields: [postComments.userId], references: [users.id] }),
+}));
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  actor: one(users, { fields: [notifications.actorId], references: [users.id] }),
+  post: one(posts, { fields: [notifications.postId], references: [posts.id] }),
+  story: one(stories, { fields: [notifications.storyId], references: [stories.id] }),
 }));

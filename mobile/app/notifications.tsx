@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { type ComponentProps, useEffect, useState } from 'react';
 import {
   ScrollView,
   View,
@@ -11,12 +11,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { colors, spacing, radius, fonts } from '@/theme/tokens';
-import { Cover } from '@/components/Cover';
 import {
   getNotifications,
   markNotificationsSeen,
   type AppNotification,
 } from '@/lib/notifications';
+
+type IconName = ComponentProps<typeof Ionicons>['name'];
 
 function ago(iso: string): string {
   const ms = Date.now() - new Date(iso).getTime();
@@ -29,6 +30,21 @@ function ago(iso: string): string {
   const d = Math.floor(h / 24);
   if (d < 7) return `${d}d ago`;
   return `${Math.floor(d / 7)}w ago`;
+}
+
+function iconFor(kind: string): IconName {
+  switch (kind) {
+    case 'post_like':
+      return 'heart';
+    case 'post_comment':
+      return 'chatbubble';
+    case 'follow':
+      return 'person-add';
+    case 'tip':
+      return 'gift';
+    default:
+      return 'book'; // chapter
+  }
 }
 
 // The in-app notification centre — opened from the top-bar bell. Opening it
@@ -51,6 +67,11 @@ export default function Notifications() {
     };
   }, []);
 
+  function open(n: AppNotification) {
+    if (n.postId) router.push(`/post/${n.postId}`);
+    else if (n.storySlug) router.push(`/story/${n.storySlug}`);
+  }
+
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <View style={styles.head}>
@@ -70,34 +91,34 @@ export default function Notifications() {
           </View>
           <Text style={styles.emptyTitle}>You&apos;re all caught up</Text>
           <Text style={styles.emptyBody}>
-            New chapters and books from the writers you follow will show up here.
+            Likes, comments, new followers and fresh chapters from the writers and
+            books you follow will show up here.
           </Text>
         </View>
       ) : (
         <ScrollView contentContainerStyle={styles.scroll}>
-          {items.map((n) => (
-            <Pressable
-              key={n.id}
-              style={styles.row}
-              onPress={() => router.push(`/story/${n.slug}`)}
-            >
-              <Cover
-                coverUrl={n.coverUrl}
-                coverColor={n.coverColor}
-                title={n.title}
-                mature={n.isMature}
-                style={styles.cover}
-              />
-              <View style={styles.rowText}>
-                <Text style={styles.line1} numberOfLines={2}>
-                  <Text style={styles.author}>{n.author}</Text>
-                  <Text style={styles.dim}> published </Text>
-                  <Text style={styles.work}>{n.title}</Text>
-                </Text>
-                <Text style={styles.time}>{ago(n.at)}</Text>
-              </View>
-            </Pressable>
-          ))}
+          {items.map((n) => {
+            const tappable = !!n.postId || !!n.storySlug;
+            return (
+              <Pressable
+                key={n.id}
+                style={styles.row}
+                onPress={() => open(n)}
+                disabled={!tappable}
+              >
+                <View style={styles.icon}>
+                  <Ionicons name={iconFor(n.kind)} size={17} color={colors.signal} />
+                </View>
+                <View style={styles.rowText}>
+                  <Text style={styles.text}>{n.text}</Text>
+                  <Text style={styles.time}>{ago(n.at)}</Text>
+                </View>
+                {tappable && (
+                  <Ionicons name="chevron-forward" size={16} color={colors.inkFaint} />
+                )}
+              </Pressable>
+            );
+          })}
         </ScrollView>
       )}
     </SafeAreaView>
@@ -142,22 +163,19 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
 
-  scroll: { paddingHorizontal: 20, paddingBottom: spacing.xl, gap: 10 },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    backgroundColor: colors.card,
+  scroll: { paddingHorizontal: 20, paddingBottom: spacing.xl, gap: 4 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 11 },
+  icon: {
+    width: 40,
+    height: 40,
+    borderRadius: radius.pill,
+    backgroundColor: colors.signalSoft,
     borderWidth: 1,
-    borderColor: colors.borderSoft,
-    borderRadius: radius.lg,
-    padding: 11,
+    borderColor: '#6E3138',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  cover: { width: 44, height: 60, borderRadius: 6 },
   rowText: { flex: 1, minWidth: 0 },
-  line1: { fontSize: 13.5, lineHeight: 19 },
-  author: { color: colors.ink, fontWeight: '600' },
-  dim: { color: colors.inkMuted },
-  work: { color: colors.ink, fontWeight: '500' },
-  time: { fontSize: 12, color: colors.inkFaint, marginTop: 3 },
+  text: { fontSize: 14, color: colors.ink, lineHeight: 19 },
+  time: { fontSize: 12, color: colors.inkFaint, marginTop: 2 },
 });
