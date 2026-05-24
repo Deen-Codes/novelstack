@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>NovelStack — Ad-watch & Sign-in</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --bg:#100D0C; --bg2:#1A1512; --card:#221C18; --line:#332B25; --line2:#3F352D;
+    --text:#F4ECDF; --muted:#A2968A; --faint:#6F6459; --ember:#C8414E;
+    --display:'Bricolage Grotesque',sans-serif; --ui:'Inter',sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:#0A0908;font-family:var(--ui);color:var(--text);
+    padding:34px 16px 56px;display:flex;flex-direction:column;align-items:center;}
+  .intro{max-width:760px;text-align:center;margin-bottom:28px;}
+  .intro h1{font-family:var(--display);font-weight:700;font-size:23px;}
+  .intro p{font-size:13px;color:#8A7F73;margin-top:8px;line-height:1.6;}
+  .frames{display:flex;gap:40px;flex-wrap:wrap;justify-content:center;align-items:flex-start;}
+  .cap{text-align:center;font-size:12px;color:#7A6F63;margin-top:14px;
+    letter-spacing:.05em;text-transform:uppercase;}
+
+  .bezel{width:392px;background:#000;border-radius:48px;padding:11px;
+    box-shadow:0 36px 80px -24px rgba(0,0,0,.85),0 0 0 1px #2a2420;}
+  .screen{position:relative;height:812px;background:var(--bg);border-radius:38px;
+    overflow:hidden;display:flex;flex-direction:column;}
+  .notch{position:absolute;top:0;left:50%;transform:translateX(-50%);
+    width:122px;height:26px;background:#000;border-radius:0 0 16px 16px;z-index:50;}
+
+  /* ---- ad-watch ---- */
+  .ad-pad{flex:1;display:flex;flex-direction:column;padding:64px 22px 26px;}
+  .kicker{font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--ember);}
+  .ch-name{font-family:var(--display);font-weight:700;font-size:22px;margin-top:6px;}
+
+  .adbox{margin-top:26px;border-radius:18px;height:240px;position:relative;
+    overflow:hidden;border:1px solid var(--line);
+    background:radial-gradient(70% 60% at 30% 25%,#3a4d6b,#141821);}
+  .adbox .spons{position:absolute;top:10px;left:10px;font-size:9px;font-weight:700;
+    letter-spacing:.1em;text-transform:uppercase;color:#cdd6e3;
+    background:rgba(0,0,0,.5);padding:4px 8px;border-radius:6px;}
+  .adbox .brand{position:absolute;inset:0;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:8px;}
+  .adbox .brand .bn{font-family:var(--display);font-weight:800;font-size:26px;color:#fff;}
+  .adbox .brand .bt{font-size:12px;color:rgba(255,255,255,.7);}
+  .adbox .pbar{position:absolute;left:0;right:0;bottom:0;height:4px;background:rgba(255,255,255,.15);}
+  .adbox .pbar i{display:block;height:100%;width:62%;background:#fff;}
+
+  .countdown{display:flex;align-items:center;gap:14px;margin-top:24px;}
+  .ring{width:58px;height:58px;border-radius:50%;flex-shrink:0;
+    background:conic-gradient(var(--ember) 62%,#2a2420 0);
+    display:flex;align-items:center;justify-content:center;}
+  .ring .inner{width:46px;height:46px;border-radius:50%;background:var(--bg);
+    display:flex;align-items:center;justify-content:center;
+    font-family:var(--display);font-weight:700;font-size:15px;}
+  .cd-txt b{font-size:14px;font-weight:600;display:block;}
+  .cd-txt span{font-size:12.5px;color:var(--muted);}
+
+  .plus{margin-top:auto;background:linear-gradient(135deg,#3a1c22,#2a1518);
+    border:1px solid #6e3138;border-radius:16px;padding:15px;
+    display:flex;align-items:center;gap:13px;}
+  .plus .pico{width:44px;height:44px;border-radius:12px;flex-shrink:0;
+    background:linear-gradient(140deg,#C8414E,#8E2C38);display:flex;
+    align-items:center;justify-content:center;}
+  .plus .pico svg{width:22px;height:22px;}
+  .plus .ptxt b{font-size:14px;display:block;}
+  .plus .ptxt span{font-size:12px;color:#C9A89F;line-height:1.4;}
+  .plus .go{margin-left:auto;background:var(--ember);color:#fff;font-size:12px;
+    font-weight:700;padding:9px 15px;border-radius:10px;flex-shrink:0;}
+
+  /* ---- unlocked ---- */
+  .center{flex:1;display:flex;flex-direction:column;align-items:center;
+    justify-content:center;padding:0 34px;text-align:center;}
+  .tick{width:88px;height:88px;border-radius:50%;
+    background:linear-gradient(140deg,#C8414E,#8E2C38);
+    display:flex;align-items:center;justify-content:center;}
+  .tick svg{width:42px;height:42px;}
+  .ux-h{font-family:var(--display);font-weight:800;font-size:27px;margin-top:24px;
+    letter-spacing:-.02em;}
+  .ux-p{font-size:14px;color:var(--muted);margin-top:10px;line-height:1.6;}
+  .ux-btn{margin-top:30px;align-self:stretch;background:#F4ECDF;color:#15100E;
+    height:54px;border-radius:14px;display:flex;align-items:center;
+    justify-content:center;gap:8px;font-weight:700;font-size:15px;}
+  .ux-btn svg{width:17px;height:17px;}
+  .ux-link{margin-top:18px;font-size:13px;color:var(--muted);}
+
+  /* ---- sign-in ---- */
+  .si-amb{position:absolute;top:0;left:0;right:0;height:380px;z-index:0;
+    background:radial-gradient(60% 50% at 50% 4%,rgba(200,65,78,.4),transparent 72%);}
+  .si{position:relative;z-index:10;flex:1;display:flex;flex-direction:column;
+    padding:80px 28px 36px;}
+  .si-logo{font-family:var(--display);font-weight:800;font-size:34px;letter-spacing:-.03em;}
+  .si-logo b{color:var(--ember);}
+  .si-h{font-family:var(--display);font-weight:800;font-size:33px;line-height:1.08;
+    letter-spacing:-.02em;margin-top:48px;}
+  .si-sub{font-size:14.5px;color:var(--muted);margin-top:12px;line-height:1.6;}
+  .si-field{margin-top:28px;background:var(--card);border:1px solid var(--line2);
+    border-radius:14px;height:54px;display:flex;align-items:center;padding:0 16px;gap:10px;}
+  .si-field svg{width:18px;height:18px;color:var(--faint);}
+  .si-field span{font-size:15px;color:var(--faint);}
+  .si-btn{margin-top:12px;background:var(--ember);height:54px;border-radius:14px;
+    display:flex;align-items:center;justify-content:center;
+    font-weight:700;font-size:15px;color:#fff;}
+  .si-hint{font-size:12.5px;color:var(--faint);margin-top:18px;line-height:1.6;text-align:center;}
+  .si-foot{margin-top:auto;font-size:12px;color:var(--faint);text-align:center;line-height:1.6;}
+</style>
+</head>
+<body>
+
+<div class="intro">
+  <h1>NovelStack — Ad-watch & Sign-in</h1>
+  <p>The rewarded-ad unlock flow (watch → unlocked) and a refreshed sign-in
+  screen. Both in the dark / ember / Bricolage system.</p>
+</div>
+
+<div class="frames">
+
+  <!-- ===== AD — WATCHING ===== -->
+  <div>
+    <div class="bezel"><div class="screen">
+      <div class="notch"></div>
+      <div class="ad-pad">
+        <div class="kicker">Unlocking chapter 13</div>
+        <div class="ch-name">The Tenth Corridor</div>
+
+        <div class="adbox">
+          <div class="spons">Sponsored</div>
+          <div class="brand">
+            <div class="bn">acme&nbsp;co.</div>
+            <div class="bt">Your ad plays here</div>
+          </div>
+          <div class="pbar"><i></i></div>
+        </div>
+
+        <div class="countdown">
+          <div class="ring"><div class="inner">0:14</div></div>
+          <div class="cd-txt">
+            <b>Hang tight</b>
+            <span>Your chapter unlocks when the ad finishes.</span>
+          </div>
+        </div>
+
+        <div class="plus">
+          <div class="pico"><svg viewBox="0 0 24 24" fill="#fff">
+            <path d="m12 2 2.9 6.3 6.9.7-5.1 4.7 1.4 6.8L12 18l-6 2.5 1.4-6.8L2.3 9l6.9-.7Z"/></svg></div>
+          <div class="ptxt">
+            <b>Tired of ads?</b>
+            <span>NovelStack+ unlocks every chapter, ad-free.</span>
+          </div>
+          <div class="go">Upgrade</div>
+        </div>
+      </div>
+    </div></div>
+    <div class="cap">Ad-watch — rewarded ad playing</div>
+  </div>
+
+  <!-- ===== AD — UNLOCKED ===== -->
+  <div>
+    <div class="bezel"><div class="screen">
+      <div class="notch"></div>
+      <div class="center">
+        <div class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="#fff"
+          stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+          <path d="m4 12 6 6L20 6"/></svg></div>
+        <div class="ux-h">Chapter unlocked</div>
+        <div class="ux-p">Chapter 13 — The Tenth Corridor is yours. Enjoy the read.</div>
+        <div class="ux-btn">
+          <svg viewBox="0 0 24 24" fill="#15100E"><path d="M8 5v14l11-7z"/></svg>
+          Continue reading</div>
+        <div class="ux-link">Skip the ads next time with NovelStack+</div>
+      </div>
+    </div></div>
+    <div class="cap">Ad-watch — unlocked</div>
+  </div>
+
+  <!-- ===== SIGN-IN ===== -->
+  <div>
+    <div class="bezel"><div class="screen">
+      <div class="notch"></div>
+      <div class="si-amb"></div>
+      <div class="si">
+        <div class="si-logo">n<b>.</b></div>
+        <div class="si-h">Stories worth<br/>staying up for.</div>
+        <div class="si-sub">No password. We email you a one-time sign-in link —
+          tap it and you're in.</div>
+
+        <div class="si-field">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>
+          <span>you@email.com</span>
+        </div>
+        <div class="si-btn">Email me a link</div>
+
+        <div class="si-hint">New here? You'll get an account automatically —
+          pick a username any time in your profile.</div>
+
+        <div class="si-foot">NovelStack · stories worth following</div>
+      </div>
+    </div></div>
+    <div class="cap">Sign-in — refreshed</div>
+  </div>
+
+</div>
+</body>
+</html>

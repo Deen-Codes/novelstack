@@ -14,6 +14,7 @@ import { colors, spacing, radius, fonts } from '@/theme/tokens';
 import { apiGet, apiSend, getSessionToken } from '@/lib/api';
 import { TopBar } from '@/components/TopBar';
 import { Cover } from '@/components/Cover';
+import { SignInPitch } from '@/components/SignInPitch';
 import type { Shelf, Story } from '@/lib/types';
 
 export default function Library() {
@@ -71,15 +72,10 @@ export default function Library() {
     return (
       <SafeAreaView style={styles.safe} edges={['top']}>
         <TopBar page="library" />
-        <View style={styles.body}>
-          <Text style={styles.h1}>Library</Text>
-          <Text style={styles.sub}>
-            Sign in to keep your saved stories and reading history.
-          </Text>
-          <Pressable style={styles.btn} onPress={() => router.push('/signin')}>
-            <Text style={styles.btnText}>Sign in</Text>
-          </Pressable>
-        </View>
+        <SignInPitch
+          headline="Build your library"
+          sub="Save stories, pick up where you left off, and follow the writers you love — all kept in sync."
+        />
       </SafeAreaView>
     );
   }

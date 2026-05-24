@@ -16,6 +16,7 @@ import { apiGet, apiSend, getSessionToken } from '@/lib/api';
 import { getCurrentUser } from '@/lib/auth';
 import { Cover } from '@/components/Cover';
 import { TopBar } from '@/components/TopBar';
+import { SignInPitch } from '@/components/SignInPitch';
 import type { Shelf, FeedStory, User } from '@/lib/types';
 
 // Community tab: writers a reader follows, suggested writers to discover,
@@ -234,15 +235,10 @@ export default function Community() {
 
               </>
             ) : (
-              <View style={styles.signInCard}>
-                <Text style={styles.signInTitle}>Join the community</Text>
-                <Text style={styles.signInBody}>
-                  Sign in to follow writers and build a feed of their new chapters.
-                </Text>
-                <Pressable style={styles.signInBtn} onPress={() => router.push('/signin')}>
-                  <Text style={styles.signInBtnText}>Sign in</Text>
-                </Pressable>
-              </View>
+              <SignInPitch
+                headline="Join the community"
+                sub="Follow your favourite writers and get a feed of every new chapter they post."
+              />
             )}
 
             {/* Popular this week */}

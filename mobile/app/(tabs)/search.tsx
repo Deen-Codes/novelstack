@@ -13,7 +13,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 import { colors, spacing, radius, fonts } from '@/theme/tokens';
 import { apiGet } from '@/lib/api';
-import { genreLabel } from '@/lib/genres';
 import { Cover } from '@/components/Cover';
 import { TopBar } from '@/components/TopBar';
 import type { Story } from '@/lib/types';
@@ -75,7 +74,7 @@ export default function Search() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      <TopBar />
+      <TopBar page="search" />
       <ScrollView
         contentContainerStyle={styles.scroll}
         keyboardShouldPersistTaps="handled"
@@ -120,15 +119,9 @@ export default function Search() {
                     mature={s.isMature}
                     style={styles.rowCover}
                   />
-                  <View style={styles.rowText}>
-                    <Text style={styles.rowTitle} numberOfLines={1}>
-                      {s.title}
-                    </Text>
-                    <Text style={styles.rowMeta} numberOfLines={1}>
-                      {s.author?.displayName ?? 'A writer'} · {genreLabel(s.genre)}
-                    </Text>
-                  </View>
-                  <Ionicons name="chevron-forward" size={18} color={colors.inkFaint} />
+                  <Text style={styles.rowTitle} numberOfLines={2}>
+                    {s.title}
+                  </Text>
                 </Pressable>
               ))
             )}
@@ -223,9 +216,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   rowCover: { width: 52, height: 72, borderRadius: 7 },
-  rowText: { flex: 1, minWidth: 0 },
-  rowTitle: { fontSize: 15, fontWeight: '600', color: colors.ink },
-  rowMeta: { fontSize: 12, color: colors.inkFaint, marginTop: 3 },
+  rowTitle: { flex: 1, fontSize: 15, fontWeight: '600', color: colors.ink },
 
   grid: {
     flexDirection: 'row',

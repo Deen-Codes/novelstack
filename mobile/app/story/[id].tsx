@@ -20,6 +20,7 @@ import { getCurrentUser } from '@/lib/auth';
 import { genreLabel } from '@/lib/genres';
 import { Cover } from '@/components/Cover';
 import { DobField } from '@/components/DobField';
+import { BottomSheet } from '@/components/BottomSheet';
 import type { StoryDetail, Shelf, User, Story, HomeExtras } from '@/lib/types';
 
 const SITE = 'https://novelstack.app';
@@ -260,9 +261,6 @@ export default function StoryScreen() {
           <Pressable style={styles.circleBtn} onPress={() => router.back()} hitSlop={8}>
             <Ionicons name="chevron-back" size={20} color={colors.ink} />
           </Pressable>
-          <Pressable style={styles.circleBtn} onPress={shareStory} hitSlop={8}>
-            <Ionicons name="paper-plane-outline" size={18} color={colors.ink} />
-          </Pressable>
         </View>
 
         <Cover
@@ -390,65 +388,66 @@ export default function StoryScreen() {
               )}
             </View>
 
-            {tipOpen && !tipDone && (
-              <View style={styles.panel}>
-                <Text style={styles.panelTitle}>Send a tip</Text>
-                <View style={styles.tipRow}>
-                  {TIP_AMOUNTS.map((a) => (
-                    <Pressable
-                      key={a}
-                      style={[styles.tipChip, tipAmount === a && styles.tipChipOn]}
-                      onPress={() => setTipAmount(a)}
-                    >
-                      <Text style={[styles.tipChipText, tipAmount === a && styles.tipChipTextOn]}>
-                        ${a / 100}
-                      </Text>
-                    </Pressable>
-                  ))}
-                </View>
-                <TextInput
-                  value={tipMsg}
-                  onChangeText={setTipMsg}
-                  placeholder="Add a message (optional)"
-                  placeholderTextColor={colors.inkFaint}
-                  style={styles.input}
-                />
-                <Pressable style={styles.gateBtn} onPress={sendTip} disabled={busy}>
-                  <Text style={styles.gateBtnText}>Send ${tipAmount / 100} tip</Text>
-                </Pressable>
-                <Text style={styles.tinyMuted}>Writers keep 70%. Charges settle once payouts go live.</Text>
+            <BottomSheet visible={tipOpen && !tipDone} onClose={() => setTipOpen(false)}>
+              <Text style={styles.sheetTitle}>Send a tip</Text>
+              <Text style={styles.sheetSub}>
+                A little support goes a long way — writers keep 70%.
+              </Text>
+              <View style={styles.tipRow}>
+                {TIP_AMOUNTS.map((a) => (
+                  <Pressable
+                    key={a}
+                    style={[styles.tipChip, tipAmount === a && styles.tipChipOn]}
+                    onPress={() => setTipAmount(a)}
+                  >
+                    <Text style={[styles.tipChipText, tipAmount === a && styles.tipChipTextOn]}>
+                      ${a / 100}
+                    </Text>
+                  </Pressable>
+                ))}
               </View>
-            )}
+              <TextInput
+                value={tipMsg}
+                onChangeText={setTipMsg}
+                placeholder="Add a message (optional)"
+                placeholderTextColor={colors.inkFaint}
+                style={styles.input}
+              />
+              <Pressable style={styles.sheetBtn} onPress={sendTip} disabled={busy}>
+                <Text style={styles.sheetBtnText}>Send ${tipAmount / 100} tip</Text>
+              </Pressable>
+            </BottomSheet>
 
-            {reportOpen && !reportDone && (
-              <View style={styles.panel}>
-                <Text style={styles.panelTitle}>Report this story</Text>
-                <View style={styles.reasonWrap}>
-                  {REPORT_REASONS.map((r) => (
-                    <Pressable
-                      key={r.v}
-                      style={[styles.reason, reportReason === r.v && styles.reasonOn]}
-                      onPress={() => setReportReason(r.v)}
-                    >
-                      <Text style={[styles.reasonText, reportReason === r.v && styles.reasonTextOn]}>
-                        {r.l}
-                      </Text>
-                    </Pressable>
-                  ))}
-                </View>
-                <TextInput
-                  value={reportDetail}
-                  onChangeText={setReportDetail}
-                  placeholder="Anything else? (optional)"
-                  placeholderTextColor={colors.inkFaint}
-                  multiline
-                  style={[styles.input, { height: 64, textAlignVertical: 'top' }]}
-                />
-                <Pressable style={styles.gateBtn} onPress={submitReport} disabled={busy}>
-                  <Text style={styles.gateBtnText}>Submit report</Text>
-                </Pressable>
+            <BottomSheet visible={reportOpen && !reportDone} onClose={() => setReportOpen(false)}>
+              <Text style={styles.sheetTitle}>Report this story</Text>
+              <Text style={styles.sheetSub}>
+                Tell us what&apos;s wrong — reports are confidential.
+              </Text>
+              <View style={styles.reasonWrap}>
+                {REPORT_REASONS.map((r) => (
+                  <Pressable
+                    key={r.v}
+                    style={[styles.reason, reportReason === r.v && styles.reasonOn]}
+                    onPress={() => setReportReason(r.v)}
+                  >
+                    <Text style={[styles.reasonText, reportReason === r.v && styles.reasonTextOn]}>
+                      {r.l}
+                    </Text>
+                  </Pressable>
+                ))}
               </View>
-            )}
+              <TextInput
+                value={reportDetail}
+                onChangeText={setReportDetail}
+                placeholder="Anything else? (optional)"
+                placeholderTextColor={colors.inkFaint}
+                multiline
+                style={[styles.input, { height: 64, textAlignVertical: 'top' }]}
+              />
+              <Pressable style={styles.sheetBtn} onPress={submitReport} disabled={busy}>
+                <Text style={styles.sheetBtnText}>Submit report</Text>
+              </Pressable>
+            </BottomSheet>
 
             <View style={styles.tabs}>
               <Pressable onPress={() => setTab('chapters')}>
@@ -480,9 +479,7 @@ export default function StoryScreen() {
                         </Text>
                         {isCurrent && <Text style={styles.chSub}>Currently reading</Text>}
                       </View>
-                      <Text style={[styles.chTag, ch.isFree && styles.chTagFree]}>
-                        {ch.isFree ? 'Free' : 'Ad / NS+'}
-                      </Text>
+                      <Ionicons name="chevron-forward" size={16} color={colors.inkFaint} />
                     </Pressable>
                   );
                 })
@@ -634,33 +631,51 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   panelTitle: { fontSize: 15, fontWeight: '600', color: colors.ink },
-  tipRow: { flexDirection: 'row', gap: spacing.sm },
+  tipRow: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.md },
   tipChip: {
     borderWidth: 1,
-    borderColor: colors.borderSoft,
+    borderColor: colors.border,
+    backgroundColor: colors.card,
     borderRadius: radius.md,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
+    paddingVertical: 10,
+    paddingHorizontal: 18,
   },
   tipChipOn: { backgroundColor: colors.signal, borderColor: colors.signal },
   tipChipText: { fontSize: 14, fontWeight: '500', color: colors.ink },
   tipChipTextOn: { color: '#FFFFFF' },
-  reasonWrap: { gap: 4 },
+  reasonWrap: { gap: 4, marginBottom: spacing.md },
   reason: { paddingVertical: 7, paddingHorizontal: 10, borderRadius: radius.sm },
   reasonOn: { backgroundColor: colors.cardHi },
   reasonText: { fontSize: 13, color: colors.inkMuted },
   reasonTextOn: { color: colors.ink, fontWeight: '500' },
   input: {
     borderWidth: 1,
-    borderColor: colors.borderSoft,
+    borderColor: colors.border,
     borderRadius: radius.md,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
     fontSize: 14,
-    backgroundColor: colors.paperSoft,
+    backgroundColor: colors.card,
     color: colors.ink,
   },
   tinyMuted: { fontSize: 12, color: colors.inkFaint },
+  sheetTitle: { fontFamily: fonts.display, fontSize: 18, color: colors.ink },
+  sheetSub: {
+    fontSize: 13,
+    color: colors.inkMuted,
+    lineHeight: 19,
+    marginTop: 4,
+    marginBottom: spacing.md,
+  },
+  sheetBtn: {
+    backgroundColor: colors.signal,
+    height: 50,
+    borderRadius: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: spacing.md,
+  },
+  sheetBtnText: { color: '#FFFFFF', fontSize: 15, fontWeight: '700' },
   gateBtn: {
     backgroundColor: colors.signal,
     paddingVertical: 12,
