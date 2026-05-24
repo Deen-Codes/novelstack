@@ -5,11 +5,11 @@
     "version": "0.1.0",
     "scheme": "novelstack",
     "orientation": "portrait",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "dark",
     "icon": "./assets/icon.png",
     "splash": {
       "image": "./assets/splash.png",
-      "backgroundColor": "#F5EFE0",
+      "backgroundColor": "#14110F",
       "resizeMode": "contain"
     },
     "ios": {
@@ -35,7 +35,7 @@
       "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#F5EFE0"
+        "backgroundColor": "#14110F"
       }
     },
     "web": {

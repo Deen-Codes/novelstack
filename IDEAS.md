@@ -37,6 +37,10 @@ build them. Newest ideas go at the top of Open.
 - **Tipping + reporting** — mobile tip/report just confirm locally; no backend.
 
 ## Done
+- Mobile app redesign — dark cinematic theme + deep ember/ruby accent, 3-tab
+  nav (Community · Home · Library), top bar (n. · search · write · avatar),
+  profile bottom sheet, Community tab, collections-led Search, reader with
+  dark/paper toggle + bigger buttons.
 - Author cover image upload via Cloudflare R2 (web + mobile Write screens).
 - Cover upload crash fixed — added NSPhotoLibraryUsageDescription to iOS.
 - Mobile sign-in fix — https email bounce page + reliable deep-link token read.

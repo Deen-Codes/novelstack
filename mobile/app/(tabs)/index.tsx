@@ -14,7 +14,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { colors, spacing, radius } from '@/theme/tokens';
 import { apiGet } from '@/lib/api';
 import { Cover } from '@/components/Cover';
-import { GENRES, genreLabel } from '@/lib/genres';
+import { TopBar } from '@/components/TopBar';
 import type { FeedStory, HomeExtras } from '@/lib/types';
 
 function greeting(): string {
@@ -27,84 +27,55 @@ function greeting(): string {
 export default function Home() {
   const [feed, setFeed] = useState<FeedStory[]>([]);
   const [extras, setExtras] = useState<HomeExtras | null>(null);
-  const [genre, setGenre] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  const load = useCallback(async (g: string | null) => {
-    const feedPath = g ? `/api/feed?genre=${encodeURIComponent(g)}` : '/api/feed';
+  const load = useCallback(async () => {
     const [feedRes, extrasRes] = await Promise.allSettled([
-      apiGet<FeedStory[]>(feedPath),
+      apiGet<FeedStory[]>('/api/feed'),
       apiGet<HomeExtras>('/api/me/home'),
     ]);
     setFeed(feedRes.status === 'fulfilled' ? feedRes.value : []);
-    // /api/me/home 401s when signed out — that's expected, just no extras.
     setExtras(extrasRes.status === 'fulfilled' ? extrasRes.value : null);
     setLoading(false);
   }, []);
 
-  // Reloads on focus and whenever the genre filter changes.
   useFocusEffect(
     useCallback(() => {
-      load(genre);
-    }, [load, genre]),
+      load();
+    }, [load]),
   );
 
   async function onRefresh() {
     setRefreshing(true);
-    await load(genre);
+    await load();
     setRefreshing(false);
-  }
-
-  function pickGenre(g: string | null) {
-    if (g === genre) return;
-    setLoading(true);
-    setGenre(g);
   }
 
   const cont = extras?.continueReading ?? null;
   const trending = [...feed]
     .sort((a, b) => (b.totalReads ?? 0) - (a.totalReads ?? 0))
-    .slice(0, 8);
+    .slice(0, 10);
   const spotlight = feed[0] ?? null;
-  const following = feed.filter((s) => s._reason === 'From a writer you follow').slice(0, 6);
-  const forYou = feed.slice(1);
-
-  const headline = genre
-    ? genreLabel(genre)
-    : cont
-    ? 'Pick up where you left off'
-    : 'Stories worth following';
+  const following = feed.filter((s) => s._reason === 'From a writer you follow').slice(0, 10);
+  const moreForYou = feed.slice(1, 13);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
+      <TopBar />
       <ScrollView
         contentContainerStyle={styles.scroll}
+        showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.signal} />
         }
       >
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.logo}>
-            novelstack<Text style={styles.dot}>.</Text>
-          </Text>
-          {!!extras && extras.streak > 0 && (
-            <View style={styles.streak}>
-              <Ionicons name="flame" size={13} color="#993C1D" />
-              <Text style={styles.streakText}>
-                {extras.streak} day{extras.streak === 1 ? '' : 's'}
-              </Text>
-            </View>
-          )}
-        </View>
         <Text style={styles.greeting}>
           {greeting()}
           {extras?.name ? `, ${extras.name}` : ''}
+          {extras && extras.streak > 0 ? `  ·  ${extras.streak}-day streak` : ''}
         </Text>
-        <Text style={styles.h1}>{headline}</Text>
 
-        {/* Continue reading */}
         {cont && (
           <Pressable
             style={styles.contCard}
@@ -117,13 +88,13 @@ export default function Home() {
               style={styles.contCover}
             />
             <View style={styles.contText}>
-              <Text style={styles.contLabel}>Continue reading</Text>
+              <Text style={styles.contLabel}>CONTINUE READING</Text>
               <Text style={styles.contTitle} numberOfLines={1}>
                 {cont.storyTitle}
               </Text>
               <Text style={styles.contMeta}>
                 Chapter {cont.chapterNumber}
-                {cont.totalChapters ? ` of ${cont.totalChapters}` : ''}
+                {cont.totalChapters ? ` of ${cont.totalChapters}` : ''} · {cont.progressPct}%
               </Text>
               <View style={styles.progressTrack}>
                 <View
@@ -134,100 +105,48 @@ export default function Home() {
                 />
               </View>
             </View>
+            <View style={styles.playBtn}>
+              <Ionicons name="play" size={15} color="#FFFFFF" />
+            </View>
           </Pressable>
         )}
-
-        {/* Genre chips */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.chipScroll}
-          contentContainerStyle={styles.chips}
-        >
-          <Chip label="For you" active={!genre} onPress={() => pickGenre(null)} />
-          {GENRES.map((g) => (
-            <Chip
-              key={g.value}
-              label={g.label}
-              active={genre === g.value}
-              onPress={() => pickGenre(g.value)}
-            />
-          ))}
-        </ScrollView>
 
         {loading ? (
           <ActivityIndicator color={colors.signal} style={{ marginTop: spacing.xl }} />
         ) : feed.length === 0 ? (
           <Text style={styles.empty}>
-            No stories here yet. Once writers publish, your feed fills in.
+            Nothing here yet. Once writers publish, your feed fills in.
           </Text>
         ) : (
           <>
-            {/* Trending rail */}
-            {trending.length > 0 && (
-              <>
-                <Text style={styles.section}>Trending now</Text>
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.rail}
-                >
-                  {trending.map((s) => (
-                    <Pressable
-                      key={s.id}
-                      style={styles.railItem}
-                      onPress={() => router.push(`/story/${s.slug}`)}
-                    >
-                      <Cover
-                        coverUrl={s.coverUrl}
-                        coverColor={s.coverColor}
-                        title={s.title}
-                        mature={s.isMature}
-                        style={styles.railCover}
-                      />
-                      <Text style={styles.railTitle} numberOfLines={1}>
-                        {s.title}
-                      </Text>
-                      <Text style={styles.railAuthor} numberOfLines={1}>
-                        {s.author?.displayName ?? 'A writer'}
-                      </Text>
-                    </Pressable>
-                  ))}
-                </ScrollView>
-              </>
-            )}
-
-            {/* Spotlight */}
             {spotlight && (
               <>
                 <Text style={styles.section}>Spotlight</Text>
                 <Pressable
-                  style={styles.spotCard}
+                  style={styles.spot}
                   onPress={() => router.push(`/story/${spotlight.slug}`)}
                 >
                   <Cover
                     coverUrl={spotlight.coverUrl}
                     coverColor={spotlight.coverColor}
                     title={spotlight.title}
-                    mature={spotlight.isMature}
-                    style={styles.spotCover}
+                    style={StyleSheet.absoluteFill}
                   />
+                  <View style={styles.spotScrim} />
                   <View style={styles.spotBody}>
-                    <Text style={styles.spotReason}>{spotlight._reason}</Text>
-                    <Text style={styles.spotTitle} numberOfLines={2}>
+                    <View style={styles.pill}>
+                      <Text style={styles.pillText}>{spotlight._reason}</Text>
+                    </View>
+                    <Text style={styles.spotTitle} numberOfLines={3}>
                       {spotlight.title}
                     </Text>
-                    <View style={styles.spotFoot}>
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.spotAuthor} numberOfLines={1}>
-                          by {spotlight.author?.displayName ?? 'a NovelStack writer'}
-                        </Text>
-                        <Text style={styles.spotReads}>
-                          {(spotlight.totalReads ?? 0).toLocaleString()} reads
-                        </Text>
-                      </View>
+                    <Text style={styles.spotBy} numberOfLines={1}>
+                      by {spotlight.author?.displayName ?? 'a NovelStack writer'} ·{' '}
+                      {(spotlight.totalReads ?? 0).toLocaleString()} reads
+                    </Text>
+                    <View style={styles.spotRow}>
                       <View style={styles.readBtn}>
-                        <Text style={styles.readBtnText}>Read</Text>
+                        <Text style={styles.readBtnText}>Read now</Text>
                       </View>
                     </View>
                   </View>
@@ -235,223 +154,155 @@ export default function Home() {
               </>
             )}
 
-            {/* From writers you follow */}
+            <Rail title="Trending now" stories={trending} />
             {following.length > 0 && (
-              <>
-                <Text style={styles.section}>From writers you follow</Text>
-                {following.map((s) => (
-                  <Pressable
-                    key={`f-${s.id}`}
-                    style={styles.followRow}
-                    onPress={() => router.push(`/story/${s.slug}`)}
-                  >
-                    <View style={styles.avatar}>
-                      <Text style={styles.avatarText}>
-                        {(s.author?.displayName ?? '?').slice(0, 1).toUpperCase()}
-                      </Text>
-                    </View>
-                    <View style={{ flex: 1, minWidth: 0 }}>
-                      <Text style={styles.followTitle} numberOfLines={1}>
-                        {s.title}
-                      </Text>
-                      <Text style={styles.followAuthor} numberOfLines={1}>
-                        {s.author?.displayName ?? 'A writer'} · {s.genre}
-                      </Text>
-                    </View>
-                    <View style={styles.newDot} />
-                  </Pressable>
-                ))}
-              </>
+              <Rail title="From writers you follow" stories={following} />
             )}
-
-            {/* For you list */}
-            {forYou.length > 0 && (
-              <>
-                <Text style={styles.section}>{genre ? 'More like this' : 'More for you'}</Text>
-                {forYou.map((s) => (
-                  <Pressable
-                    key={s.id}
-                    style={styles.row}
-                    onPress={() => router.push(`/story/${s.slug}`)}
-                  >
-                    <Cover
-                      coverUrl={s.coverUrl}
-                      coverColor={s.coverColor}
-                      title={s.title}
-                      mature={s.isMature}
-                      style={styles.rowCover}
-                    />
-                    <View style={styles.rowText}>
-                      <Text style={styles.reason}>{s._reason}</Text>
-                      <Text style={styles.rowTitle} numberOfLines={2}>
-                        {s.title}
-                      </Text>
-                      <Text style={styles.rowAuthor} numberOfLines={1}>
-                        {s.author?.displayName ?? 'Unknown'} · {s.genre}
-                      </Text>
-                    </View>
-                  </Pressable>
-                ))}
-              </>
-            )}
+            {moreForYou.length > 0 && <Rail title="More for you" stories={moreForYou} />}
           </>
         )}
+        <View style={{ height: spacing.xl }} />
       </ScrollView>
     </SafeAreaView>
   );
 }
 
-function Chip({
-  label,
-  active,
-  onPress,
-}: {
-  label: string;
-  active: boolean;
-  onPress: () => void;
-}) {
+function Rail({ title, stories }: { title: string; stories: FeedStory[] }) {
+  if (stories.length === 0) return null;
   return (
-    <Pressable style={[styles.chip, active && styles.chipActive]} onPress={onPress}>
-      <Text style={[styles.chipText, active && styles.chipTextActive]}>{label}</Text>
-    </Pressable>
+    <>
+      <Text style={styles.section}>{title}</Text>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.rail}
+      >
+        {stories.map((s) => (
+          <Pressable
+            key={s.id}
+            style={styles.railItem}
+            onPress={() => router.push(`/story/${s.slug}`)}
+          >
+            <Cover
+              coverUrl={s.coverUrl}
+              coverColor={s.coverColor}
+              title={s.title}
+              mature={s.isMature}
+              style={styles.railCover}
+            />
+            <Text style={styles.railTitle} numberOfLines={1}>
+              {s.title}
+            </Text>
+            <Text style={styles.railAuthor} numberOfLines={1}>
+              {s.author?.displayName ?? 'A writer'}
+            </Text>
+          </Pressable>
+        ))}
+      </ScrollView>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.paper },
-  scroll: { padding: spacing.lg, paddingBottom: spacing.xl * 2 },
+  scroll: { paddingBottom: spacing.xl },
 
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  logo: { fontSize: 20, fontWeight: '500', color: colors.ink, letterSpacing: -0.5 },
-  dot: { color: colors.signal },
-  streak: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#FAECE7',
-    paddingHorizontal: 9,
-    paddingVertical: 4,
-    borderRadius: radius.pill,
-  },
-  streakText: { fontSize: 12, color: '#993C1D', fontWeight: '500' },
-
-  greeting: { fontSize: 13, color: colors.inkFaint, marginTop: spacing.md },
-  h1: {
-    fontSize: 26,
-    fontWeight: '500',
-    color: colors.ink,
-    marginTop: 2,
-    letterSpacing: -0.5,
-  },
+  greeting: { fontSize: 13, color: colors.inkFaint, paddingHorizontal: 20, paddingTop: 4 },
 
   contCard: {
     flexDirection: 'row',
-    gap: spacing.md,
     alignItems: 'center',
-    backgroundColor: colors.white,
+    gap: 13,
+    marginHorizontal: 20,
+    marginTop: spacing.md,
+    backgroundColor: colors.paperSoft,
     borderWidth: 1,
     borderColor: colors.borderSoft,
-    borderRadius: radius.lg,
+    borderRadius: 16,
     padding: 12,
-    marginTop: spacing.lg,
   },
-  contCover: { width: 48, height: 66, borderRadius: radius.sm, overflow: 'hidden' },
+  contCover: { width: 50, height: 70, borderRadius: 7 },
   contText: { flex: 1, minWidth: 0 },
-  contLabel: { fontSize: 11, color: colors.signal, fontWeight: '500' },
-  contTitle: { fontSize: 15, fontWeight: '500', color: colors.ink, marginTop: 2 },
-  contMeta: { fontSize: 12, color: colors.inkFaint, marginTop: 2, marginBottom: 8 },
-  progressTrack: { height: 5, backgroundColor: '#EDE4D0', borderRadius: radius.pill },
-  progressFill: { height: 5, backgroundColor: colors.signal, borderRadius: radius.pill },
-
-  chipScroll: { marginTop: spacing.lg, marginHorizontal: -spacing.lg },
-  chips: { gap: 8, paddingHorizontal: spacing.lg },
-  chip: {
-    backgroundColor: colors.white,
-    borderWidth: 1,
-    borderColor: colors.borderSoft,
-    paddingHorizontal: 13,
-    paddingVertical: 6,
+  contLabel: { fontSize: 10, letterSpacing: 1, color: colors.signal, fontWeight: '600' },
+  contTitle: { fontSize: 16, fontWeight: '500', color: colors.ink, marginTop: 3 },
+  contMeta: { fontSize: 11, color: colors.inkFaint, marginTop: 2, marginBottom: 9 },
+  progressTrack: { height: 4, backgroundColor: colors.borderSoft, borderRadius: radius.pill },
+  progressFill: { height: 4, backgroundColor: colors.signal, borderRadius: radius.pill },
+  playBtn: {
+    width: 40,
+    height: 40,
     borderRadius: radius.pill,
+    backgroundColor: colors.signal,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  chipActive: { backgroundColor: colors.signal, borderColor: colors.signal },
-  chipText: { fontSize: 12, color: colors.inkMuted },
-  chipTextActive: { color: colors.paper, fontWeight: '500' },
 
-  empty: { fontSize: 14, color: colors.inkMuted, marginTop: spacing.xl, lineHeight: 21 },
+  empty: { fontSize: 14, color: colors.inkMuted, paddingHorizontal: 20, marginTop: spacing.xl },
 
   section: {
-    fontSize: 17,
+    fontSize: 19,
     fontWeight: '500',
     color: colors.ink,
+    paddingHorizontal: 20,
     marginTop: spacing.xl,
     marginBottom: spacing.md,
   },
 
-  rail: { gap: 12, paddingRight: spacing.lg },
-  railItem: { width: 104 },
-  railCover: { width: 104, height: 140, borderRadius: 10, overflow: 'hidden' },
-  railTitle: { fontSize: 12, fontWeight: '500', color: colors.ink, marginTop: 6 },
-  railAuthor: { fontSize: 11, color: colors.inkFaint, marginTop: 1 },
-
-  spotCard: {
-    backgroundColor: colors.white,
+  spot: {
+    marginHorizontal: 20,
+    height: 372,
+    borderRadius: 20,
+    overflow: 'hidden',
     borderWidth: 1,
     borderColor: colors.borderSoft,
-    borderRadius: radius.lg,
-    overflow: 'hidden',
+    justifyContent: 'flex-end',
   },
-  spotCover: { width: '100%', height: 170 },
-  spotBody: { padding: spacing.md },
-  spotReason: { fontSize: 11, color: colors.signal, fontWeight: '500' },
+  spotScrim: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: '70%',
+    backgroundColor: 'rgba(10,8,9,0.78)',
+  },
+  spotBody: { padding: 20 },
+  pill: {
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(200,65,78,0.22)',
+    borderWidth: 1,
+    borderColor: 'rgba(200,65,78,0.5)',
+    borderRadius: radius.pill,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  pillText: {
+    fontSize: 10,
+    letterSpacing: 0.7,
+    textTransform: 'uppercase',
+    fontWeight: '600',
+    color: '#F2C9CD',
+  },
   spotTitle: {
-    fontSize: 19,
+    fontSize: 28,
     fontWeight: '500',
-    color: colors.ink,
-    marginTop: 3,
+    color: '#FFFFFF',
+    marginTop: 12,
     letterSpacing: -0.3,
   },
-  spotFoot: { flexDirection: 'row', alignItems: 'center', marginTop: spacing.md },
-  spotAuthor: { fontSize: 13, color: colors.inkMuted },
-  spotReads: { fontSize: 12, color: colors.inkFaint, marginTop: 2 },
+  spotBy: { fontSize: 13, color: colors.inkMuted, marginTop: 5 },
+  spotRow: { flexDirection: 'row', marginTop: 16 },
   readBtn: {
+    flex: 1,
     backgroundColor: colors.signal,
-    paddingHorizontal: 20,
-    paddingVertical: 9,
+    paddingVertical: 14,
     borderRadius: radius.pill,
-  },
-  readBtnText: { color: colors.paper, fontSize: 13, fontWeight: '500' },
-
-  followRow: {
-    flexDirection: 'row',
     alignItems: 'center',
-    gap: 11,
-    paddingVertical: 9,
   },
-  avatar: {
-    width: 38,
-    height: 38,
-    borderRadius: radius.pill,
-    backgroundColor: '#FAECE7',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarText: { fontSize: 14, fontWeight: '500', color: '#993C1D' },
-  followTitle: { fontSize: 14, fontWeight: '500', color: colors.ink },
-  followAuthor: { fontSize: 12, color: colors.inkFaint, marginTop: 1, textTransform: 'capitalize' },
-  newDot: { width: 8, height: 8, borderRadius: radius.pill, backgroundColor: colors.signal },
+  readBtnText: { color: '#FFFFFF', fontSize: 14, fontWeight: '600' },
 
-  row: {
-    flexDirection: 'row',
-    marginBottom: spacing.md,
-    backgroundColor: colors.white,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.borderSoft,
-    overflow: 'hidden',
-  },
-  rowCover: { width: 76, height: 104 },
-  rowText: { flex: 1, padding: spacing.md, justifyContent: 'center' },
-  reason: { fontSize: 11, color: colors.signal, fontWeight: '500' },
-  rowTitle: { fontSize: 16, fontWeight: '500', color: colors.ink, marginTop: 2 },
-  rowAuthor: { fontSize: 13, color: colors.inkMuted, marginTop: 4, textTransform: 'capitalize' },
+  rail: { gap: 13, paddingHorizontal: 20, paddingBottom: 4 },
+  railItem: { width: 118 },
+  railCover: { width: 118, height: 166, borderRadius: 10 },
+  railTitle: { fontSize: 12, fontWeight: '500', color: colors.ink, marginTop: 8 },
+  railAuthor: { fontSize: 11, color: colors.inkFaint, marginTop: 1 },
 });

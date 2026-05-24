@@ -1,0 +1,776 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>NovelStack — mobile redesign</title>
+<style>
+  :root{
+    --bg:#14110F; --bg2:#1C1714; --bg3:#241E1A; --bg4:#2C2520;
+    --line:#332B25; --line2:#3F352D;
+    --text:#F2EADC; --muted-c:#A29685; --faint:#6F6459;
+    --ember:#C8414E; --ember-deep:#8E2C38;
+    --serif:Georgia,'Times New Roman',serif;
+    --sans:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:#0C0A09;font-family:var(--sans);color:var(--text);
+    padding:32px 16px 56px;display:flex;flex-direction:column;align-items:center;}
+  .intro{max-width:880px;text-align:center;margin-bottom:30px;}
+  .intro h1{font-family:var(--serif);font-weight:400;font-size:22px;}
+  .intro p{font-size:13px;color:#8A7F73;margin-top:8px;line-height:1.6;}
+  .frames{display:flex;gap:38px;flex-wrap:wrap;justify-content:center;align-items:flex-start;}
+  .label{text-align:center;font-size:12px;color:#7A6F63;margin-top:14px;
+    letter-spacing:.05em;text-transform:uppercase;}
+
+  .bezel{width:392px;background:#000;border-radius:46px;padding:11px;
+    box-shadow:0 30px 70px -20px rgba(0,0,0,.8),0 0 0 1px #2a2420;}
+  .screen{position:relative;height:812px;background:var(--bg);border-radius:36px;
+    overflow:hidden;display:flex;flex-direction:column;}
+  .notch{position:absolute;top:0;left:50%;transform:translateX(-50%);
+    width:120px;height:26px;background:#000;border-radius:0 0 16px 16px;z-index:30;}
+
+  .topbar{display:flex;align-items:center;justify-content:space-between;padding:46px 18px 12px;}
+  .mark{font-family:var(--serif);font-size:30px;line-height:1;}
+  .mark b{color:var(--ember);}
+  .topright{display:flex;align-items:center;gap:10px;}
+  .iconbtn{width:38px;height:38px;border-radius:50%;background:var(--bg3);
+    border:1px solid var(--line);display:flex;align-items:center;justify-content:center;}
+  .iconbtn svg{width:18px;height:18px;}
+  .avatar{width:38px;height:38px;border-radius:50%;
+    background:linear-gradient(140deg,#8E2C38,#C8414E);display:flex;align-items:center;
+    justify-content:center;font-weight:600;font-size:14px;color:#fff;border:1px solid #d9636e;}
+
+  .scroll{flex:1;overflow:hidden;}
+  .greet{font-size:13px;color:var(--faint);padding:6px 20px 0;}
+  .pagetitle{font-family:var(--serif);font-size:25px;padding:4px 20px 0;}
+  .h2{font-family:var(--serif);font-size:19px;margin:22px 20px 12px;
+    display:flex;justify-content:space-between;align-items:baseline;}
+  .h2 span{font-family:var(--sans);font-size:12px;color:var(--ember);}
+
+  .cont{margin:14px 20px 0;background:var(--bg2);border:1px solid var(--line);
+    border-radius:16px;padding:12px;display:flex;gap:13px;align-items:center;}
+  .cthumb{width:50px;height:70px;border-radius:7px;flex-shrink:0;
+    background:linear-gradient(150deg,#3a5a52,#15201d);}
+  .cmeta{flex:1;min-width:0;}
+  .ctag{font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--ember);font-weight:600;}
+  .ctitle{font-family:var(--serif);font-size:16px;margin-top:3px;}
+  .csub{font-size:11px;color:var(--faint);margin-top:2px;}
+  .bar{height:4px;background:#332B25;border-radius:9px;margin-top:9px;overflow:hidden;}
+  .bar i{display:block;height:100%;width:41%;background:var(--ember);border-radius:9px;}
+  .play{width:40px;height:40px;border-radius:50%;background:var(--ember);flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;}
+  .play svg{width:15px;height:15px;}
+
+  .spot{margin:8px 20px 0;border-radius:20px;overflow:hidden;position:relative;
+    height:372px;border:1px solid var(--line);}
+  .spotart{position:absolute;inset:0;background:
+    radial-gradient(120% 80% at 75% 18%,rgba(200,65,78,.55),transparent 60%),
+    radial-gradient(90% 70% at 20% 90%,rgba(70,40,90,.85),transparent 65%),
+    linear-gradient(165deg,#3a2342,#171019 70%);}
+  .spotscrim{position:absolute;inset:0;
+    background:linear-gradient(to top,rgba(10,8,9,.96) 14%,rgba(10,8,9,.25) 55%,transparent);}
+  .spotbody{position:absolute;left:0;right:0;bottom:0;padding:20px;}
+  .pill{display:inline-block;font-size:10px;letter-spacing:.08em;text-transform:uppercase;
+    font-weight:600;color:#F2C9CD;background:rgba(200,65,78,.22);
+    border:1px solid rgba(200,65,78,.5);padding:5px 10px;border-radius:99px;}
+  .spottitle{font-family:var(--serif);font-size:29px;line-height:1.12;margin:12px 0 5px;}
+  .spotby{font-size:13px;color:var(--muted-c);}
+  .spotrow{display:flex;align-items:center;gap:10px;margin-top:15px;}
+  .btn-read{flex:1;background:var(--ember);color:#fff;font-size:14px;font-weight:600;
+    border:none;padding:14px;border-radius:99px;}
+  .btn-save{width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,.07);
+    border:1px solid var(--line2);display:flex;align-items:center;justify-content:center;}
+  .btn-save svg{width:19px;height:19px;}
+
+  .rail{display:flex;gap:13px;padding:0 20px 4px;overflow-x:auto;}
+  .rail::-webkit-scrollbar{display:none;}
+  .bk{width:118px;flex-shrink:0;}
+  .bkart{width:118px;height:166px;border-radius:10px;position:relative;overflow:hidden;
+    box-shadow:0 8px 20px -8px rgba(0,0,0,.7);}
+  .bkart .t{position:absolute;left:9px;right:9px;bottom:9px;font-family:var(--serif);
+    font-size:13px;line-height:1.2;color:rgba(255,255,255,.94);}
+  .bktitle{font-size:12px;font-weight:500;margin-top:8px;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .bkauthor{font-size:11px;color:var(--faint);margin-top:1px;}
+  .badge18{position:absolute;top:7px;right:7px;background:rgba(0,0,0,.7);
+    font-size:8px;font-weight:700;padding:2px 5px;border-radius:4px;color:#fff;}
+  .cmt{position:absolute;top:7px;left:7px;background:rgba(0,0,0,.72);font-size:9px;
+    font-weight:600;padding:3px 6px;border-radius:6px;color:#fff;display:flex;gap:3px;align-items:center;}
+  .cmt svg{width:9px;height:9px;}
+
+  .tabs{display:flex;background:#100D0C;border-top:1px solid var(--line);padding:9px 0 26px;}
+  .tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;}
+  .tab svg{width:23px;height:23px;}
+  .tab span{font-size:10px;font-weight:500;}
+  .tab.on{color:var(--ember);}
+  .tab.off{color:#6A6056;}
+
+  /* profile sheet */
+  .dim{position:absolute;inset:0;background:rgba(6,5,5,.66);z-index:20;}
+  .sheet{position:absolute;left:0;right:0;bottom:0;z-index:21;background:var(--bg2);
+    border-radius:26px 26px 0 0;border:1px solid var(--line);border-bottom:none;
+    padding:10px 16px 30px;height:686px;}
+  .grab{width:38px;height:4px;background:#4A4037;border-radius:9px;margin:4px auto 16px;}
+  .phead{display:flex;align-items:center;gap:14px;padding:0 6px 16px;}
+  .pav{width:62px;height:62px;border-radius:50%;
+    background:linear-gradient(140deg,#8E2C38,#C8414E);display:flex;align-items:center;
+    justify-content:center;font-size:25px;font-weight:600;color:#fff;}
+  .pname{font-family:var(--serif);font-size:22px;}
+  .phandle{font-size:13px;color:var(--faint);margin-top:2px;}
+  .stats{display:flex;gap:8px;margin-bottom:14px;}
+  .stat{flex:1;background:var(--bg3);border:1px solid var(--line);border-radius:13px;
+    padding:11px 8px;text-align:center;}
+  .stat b{font-family:var(--serif);font-size:18px;font-weight:400;display:block;}
+  .stat span{font-size:10px;color:var(--faint);text-transform:uppercase;letter-spacing:.06em;}
+  .plus{background:linear-gradient(135deg,#3a1c22,#2a1518);border:1px solid #6e3138;
+    border-radius:16px;padding:14px;display:flex;align-items:center;gap:13px;margin-bottom:14px;}
+  .plus .pico{width:42px;height:42px;border-radius:11px;flex-shrink:0;
+    background:linear-gradient(140deg,#C8414E,#8E2C38);display:flex;align-items:center;
+    justify-content:center;}
+  .plus .pico svg{width:21px;height:21px;}
+  .plus .ptxt b{font-size:14px;display:block;}
+  .plus .ptxt span{font-size:11.5px;color:#C9A89F;}
+  .plus .go{margin-left:auto;background:var(--ember);color:#fff;font-size:12px;font-weight:600;
+    padding:8px 14px;border-radius:99px;}
+  .menucard{background:var(--bg3);border:1px solid var(--line);border-radius:16px;
+    overflow:hidden;margin-bottom:14px;}
+  .mrow{display:flex;align-items:center;gap:13px;padding:13px;}
+  .mrow + .mrow{border-top:1px solid #2A231F;}
+  .mico{width:32px;height:32px;border-radius:9px;background:#322A24;flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;}
+  .mico svg{width:17px;height:17px;color:var(--muted-c);}
+  .mrow .ml{font-size:14.5px;}
+  .mrow .chev{margin-left:auto;color:#5A5048;}
+  .mrow .chev svg{width:16px;height:16px;}
+  .signout{text-align:center;font-size:13.5px;color:#9A8D80;padding:13px;
+    border:1px solid var(--line);border-radius:14px;}
+
+  /* search */
+  .searchbar{margin:10px 20px 0;background:var(--bg3);border:1px solid var(--line2);
+    border-radius:13px;padding:13px 14px;display:flex;align-items:center;gap:10px;}
+  .searchbar svg{width:18px;height:18px;color:var(--faint);}
+  .searchbar span{font-size:14px;color:var(--faint);}
+  .filterrow{display:flex;gap:8px;padding:12px 20px 2px;}
+  .fbtn{display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:500;
+    color:var(--text);background:var(--bg3);border:1px solid var(--line2);
+    padding:8px 13px;border-radius:99px;}
+  .fbtn svg{width:13px;height:13px;}
+  .fbtn.acc{color:#F2C9CD;background:rgba(200,65,78,.16);border-color:rgba(200,65,78,.5);}
+  .chiprow{display:flex;gap:8px;padding:12px 20px 2px;overflow-x:auto;}
+  .chiprow::-webkit-scrollbar{display:none;}
+  .chip{font-size:12px;color:var(--muted-c);background:var(--bg3);border:1px solid var(--line);
+    padding:7px 13px;border-radius:99px;white-space:nowrap;}
+  .collrail{display:flex;gap:13px;padding:0 20px 4px;overflow-x:auto;}
+  .collrail::-webkit-scrollbar{display:none;}
+  .coll{width:210px;height:116px;border-radius:15px;flex-shrink:0;position:relative;
+    overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;padding:14px;}
+  .coll .cn{font-family:var(--serif);font-size:18px;color:#fff;line-height:1.15;
+    text-shadow:0 1px 8px rgba(0,0,0,.6);}
+  .coll .cc{font-size:11px;color:rgba(255,255,255,.8);margin-top:3px;}
+
+  /* library */
+  .seg{display:flex;gap:8px;padding:12px 20px 4px;}
+  .segbtn{font-size:13px;font-weight:500;padding:9px 16px;border-radius:99px;}
+  .segbtn.on{background:var(--ember);color:#fff;}
+  .segbtn.off{background:var(--bg3);color:var(--muted-c);border:1px solid var(--line);}
+  .libgrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;padding:14px 20px;}
+  .libbk .bkart2{width:100%;aspect-ratio:3/4;border-radius:9px;position:relative;
+    overflow:hidden;box-shadow:0 6px 16px -8px rgba(0,0,0,.7);}
+  .libbk .bkart2 .t{position:absolute;left:7px;right:7px;bottom:7px;font-family:var(--serif);
+    font-size:11px;line-height:1.2;color:rgba(255,255,255,.95);}
+  .libbk .x{position:absolute;top:5px;right:5px;width:21px;height:21px;border-radius:50%;
+    background:rgba(0,0,0,.72);display:flex;align-items:center;justify-content:center;
+    color:#fff;font-size:11px;}
+  .libbk .lt{font-size:11px;font-weight:500;margin-top:6px;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
+  /* community */
+  .wrow{display:flex;gap:15px;padding:8px 20px 6px;overflow-x:auto;}
+  .wrow::-webkit-scrollbar{display:none;}
+  .wav{width:64px;flex-shrink:0;text-align:center;}
+  .wav .c{width:64px;height:64px;border-radius:50%;display:flex;align-items:center;
+    justify-content:center;font-size:22px;font-weight:600;color:#fff;
+    border:2px solid var(--ember);}
+  .wav .c.all{background:var(--bg3);border:1px dashed var(--line2);color:var(--muted-c);
+    font-size:12px;font-weight:500;}
+  .wav .n{font-size:11px;margin-top:6px;color:var(--muted-c);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .feedrow{display:flex;gap:12px;align-items:center;padding:13px 20px;
+    border-bottom:1px solid #271F1B;}
+  .fav{width:42px;height:42px;border-radius:50%;flex-shrink:0;display:flex;
+    align-items:center;justify-content:center;font-size:16px;font-weight:600;color:#fff;}
+  .feedtxt{flex:1;min-width:0;}
+  .feedtxt .ln1{font-size:13.5px;}
+  .feedtxt .ln1 b{font-weight:600;}
+  .feedtxt .ln2{font-size:11.5px;color:var(--faint);margin-top:2px;}
+  .feedthumb{width:40px;height:54px;border-radius:6px;flex-shrink:0;}
+
+  /* reader */
+  .rbar{display:flex;align-items:center;justify-content:space-between;padding:46px 16px 12px;
+    border-bottom:1px solid var(--line);}
+  .rbar.paper{border-color:#E3D8BE;}
+  .rbar .rtit{font-size:12px;letter-spacing:.04em;}
+  .rdot{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;
+    justify-content:center;}
+  .rdot svg{width:20px;height:20px;}
+  .aa{font-family:var(--serif);font-size:19px;}
+  .rbody{flex:1;overflow:hidden;padding:24px 26px;}
+  .rch{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--ember);
+    font-weight:600;}
+  .rtitle{font-family:var(--serif);font-size:27px;line-height:1.18;margin:8px 0 22px;}
+  .rprose p{font-family:var(--serif);font-size:18px;line-height:1.72;margin-bottom:16px;}
+  .rfoot{display:flex;flex-direction:column;gap:12px;padding:13px 18px 30px;
+    border-top:1px solid var(--line);}
+  .rfoot.paper{border-color:#E3D8BE;}
+  .rprog{height:3px;background:#332B25;border-radius:9px;overflow:hidden;}
+  .rprog.paper{background:#E3D8BE;}
+  .rprog i{display:block;height:100%;width:34%;background:var(--ember);}
+  .rnavrow{display:flex;gap:10px;}
+  .rnav{height:54px;border-radius:15px;display:flex;align-items:center;justify-content:center;
+    gap:7px;font-size:15px;font-weight:600;}
+  .rnav svg{width:17px;height:17px;}
+  .rnav-prev{flex:1;background:var(--bg3);border:1px solid var(--line2);color:var(--text);}
+  .rnav-prev.paper{background:#EDE4CE;border-color:#E3D8BE;color:#2A2418;}
+  .rnav-next{flex:1.5;background:var(--ember);color:#fff;border:none;}
+
+  .paperbg{background:#F5EFE0;}
+  .paper-ink{color:#2A2418;}
+  .paper-muted{color:#7C6F58;}
+</style>
+</head>
+<body>
+
+<div class="intro">
+  <h1>NovelStack — mobile redesign</h1>
+  <p>3 tabs: Community · Home · Library. Top bar: n. · search · write · avatar.
+  Genre is a filter, not a page. Following lives in Community. Bigger reader buttons.
+  Static mockup — for looking, not tapping.</p>
+</div>
+
+<div class="frames">
+
+  <!-- ===================== HOME ===================== -->
+  <div>
+    <div class="bezel"><div class="screen">
+      <div class="notch"></div>
+      <div class="topbar">
+        <div class="mark">n<b>.</b></div>
+        <div class="topright">
+          <div class="iconbtn"><svg viewBox="0 0 24 24" fill="none" stroke="#A29685"
+            stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/>
+            <path d="m20 20-3.5-3.5"/></svg></div>
+          <div class="iconbtn"><svg viewBox="0 0 24 24" fill="none" stroke="#C8414E"
+            stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></div>
+          <div class="avatar">D</div>
+        </div>
+      </div>
+      <div class="scroll">
+        <div class="greet">Good evening, Deen</div>
+        <div class="cont">
+          <div class="cthumb"></div>
+          <div class="cmeta">
+            <div class="ctag">Continue reading</div>
+            <div class="ctitle">The Cartographer&rsquo;s Debt</div>
+            <div class="csub">Chapter 12 of 30 · 41%</div>
+            <div class="bar"><i></i></div>
+          </div>
+          <div class="play"><svg viewBox="0 0 24 24" fill="#fff"><path d="M8 5v14l11-7z"/></svg></div>
+        </div>
+        <div class="h2">Spotlight</div>
+        <div class="spot">
+          <div class="spotart"></div><div class="spotscrim"></div>
+          <div class="spotbody">
+            <span class="pill">Rising fast · Fantasy</span>
+            <div class="spottitle">The Quiet<br/>Between Stars</div>
+            <div class="spotby">by Helena Cruz · 18.2k reads this week</div>
+            <div class="spotrow">
+              <button class="btn-read">Read now</button>
+              <div class="btn-save"><svg viewBox="0 0 24 24" fill="none" stroke="#F2EADC"
+                stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></div>
+            </div>
+          </div>
+        </div>
+        <div class="h2">Trending now <span>See all</span></div>
+        <div class="rail">
+          <div class="bk"><div class="bkart" style="background:linear-gradient(160deg,#1f4d44,#0c1715)">
+            <div class="t">Saltwater Saints</div></div>
+            <div class="bktitle">Saltwater Saints</div><div class="bkauthor">Marian Vale</div></div>
+          <div class="bk"><div class="bkart" style="background:linear-gradient(160deg,#5a2233,#1a0d12)">
+            <span class="badge18">18+</span><div class="t">Glass Hour</div></div>
+            <div class="bktitle">Glass Hour</div><div class="bkauthor">J. Okafor</div></div>
+          <div class="bk"><div class="bkart" style="background:linear-gradient(160deg,#2b3a63,#0e1119)">
+            <div class="t">North of Never</div></div>
+            <div class="bktitle">North of Never</div><div class="bkauthor">A. Lindqvist</div></div>
+          <div class="bk"><div class="bkart" style="background:linear-gradient(160deg,#6b3b1f,#1c0f08)">
+            <div class="t">The Tuesday We Almost Missed</div></div>
+            <div class="bktitle">The Tuesday We&hellip;</div><div class="bkauthor">Elise Brennan</div></div>
+        </div>
+        <div class="h2">From writers you follow</div>
+        <div class="rail">
+          <div class="bk"><div class="bkart" style="background:linear-gradient(160deg,#7a3550,#1f0f18)">
+            <div class="t">The Summer We Stopped Talking</div></div>
+            <div class="bktitle">The Summer We&hellip;</div><div class="bkauthor">Margo Dellacourt</div></div>
+          <div class="bk"><div class="bkart" style="background:linear-gradient(160deg,#33485a,#101519)">
+            <div class="t">The Vault of Borrowed Years</div></div>
+            <div class="bktitle">The Vault of&hellip;</div><div class="bkauthor">D. Thorne</div></div>
+          <div class="bk"><div class="bkart" style="background:linear-gradient(160deg,#46355f,#15101d)">
+            <div class="t">Paint the Town</div></div>
+            <div class="bktitle">Paint the Town</div><div class="bkauthor">Priya V.</div></div>
+        </div>
+        <div style="height:18px"></div>
+      </div>
+      <div class="tabs">
+        <div class="tab off">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"
+            stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="9" cy="8" r="3.2"/><path d="M3 19c0-3 2.7-4.5 6-4.5s6 1.5 6 4.5"/>
+            <path d="M16 5.2a3.2 3.2 0 0 1 0 6"/><path d="M17.5 14.6c2.3.5 3.5 1.9 3.5 4.4"/></svg>
+          <span>Community</span></div>
+        <div class="tab on">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg><span>Home</span></div>
+        <div class="tab off">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 5h11v15H4z"/><path d="M15 5h5v15h-5"/><path d="M8 9h4M8 13h4"/></svg>
+          <span>Library</span></div>
+      </div>
+    </div></div>
+    <div class="label">Home — approved</div>
+  </div>
+
+  <!-- ===================== COMMUNITY ===================== -->
+  <div>
+    <div class="bezel"><div class="screen">
+      <div class="notch"></div>
+      <div class="topbar">
+        <div class="mark">n<b>.</b></div>
+        <div class="topright">
+          <div class="iconbtn"><svg viewBox="0 0 24 24" fill="none" stroke="#A29685"
+            stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/>
+            <path d="m20 20-3.5-3.5"/></svg></div>
+          <div class="iconbtn"><svg viewBox="0 0 24 24" fill="none" stroke="#C8414E"
+            stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></div>
+          <div class="avatar">D</div>
+        </div>
+      </div>
+      <div class="scroll">
+        <div class="pagetitle">Community</div>
+        <div class="h2" style="margin-top:14px;">Writers you follow <span>See all 12</span></div>
+        <div class="wrow">
+          <div class="wav"><div class="c" style="background:linear-gradient(140deg,#7a3550,#3a1826)">M</div>
+            <div class="n">Marian V.</div></div>
+          <div class="wav"><div class="c" style="background:linear-gradient(140deg,#2f5a4f,#16302a)">H</div>
+            <div class="n">Helena C.</div></div>
+          <div class="wav"><div class="c" style="background:linear-gradient(140deg,#2d3e63,#10131f)">J</div>
+            <div class="n">J. Okafor</div></div>
+          <div class="wav"><div class="c" style="background:linear-gradient(140deg,#503a66,#160f1f)">P</div>
+            <div class="n">Priya V.</div></div>
+          <div class="wav"><div class="c all">See all</div><div class="n">12 writers</div></div>
+        </div>
+
+        <div class="h2">New chapters</div>
+        <div class="feedrow">
+          <div class="fav" style="background:linear-gradient(140deg,#7a3550,#3a1826)">M</div>
+          <div class="feedtxt">
+            <div class="ln1"><b>Marian Vale</b> posted Chapter 9</div>
+            <div class="ln2">Saltwater Saints · 2h ago</div>
+          </div>
+          <div class="feedthumb" style="background:linear-gradient(160deg,#1f4d44,#0c1715)"></div>
+        </div>
+        <div class="feedrow">
+          <div class="fav" style="background:linear-gradient(140deg,#2f5a4f,#16302a)">H</div>
+          <div class="feedtxt">
+            <div class="ln1"><b>Helena Cruz</b> posted Chapter 22</div>
+            <div class="ln2">The Quiet Between Stars · 6h ago</div>
+          </div>
+          <div class="feedthumb" style="background:linear-gradient(160deg,#3a2342,#171019)"></div>
+        </div>
+        <div class="feedrow">
+          <div class="fav" style="background:linear-gradient(140deg,#2d3e63,#10131f)">J</div>
+          <div class="feedtxt">
+            <div class="ln1"><b>J. Okafor</b> posted Chapter 14</div>
+            <div class="ln2">Glass Hour · yesterday</div>
+          </div>
+          <div class="feedthumb" style="background:linear-gradient(160deg,#5a2233,#1a0d12)"></div>
+        </div>
+
+        <div class="h2">Readers are talking</div>
+        <div class="rail">
+          <div class="bk"><div class="bkart" style="background:linear-gradient(160deg,#7a3550,#1f0f18)">
+            <span class="cmt"><svg viewBox="0 0 24 24" fill="#fff">
+              <path d="M4 4h16v12H7l-3 3z"/></svg>214</span>
+            <div class="t">The Summer We Stopped Talking</div></div>
+            <div class="bktitle">The Summer We&hellip;</div><div class="bkauthor">214 comments</div></div>
+          <div class="bk"><div class="bkart" style="background:linear-gradient(160deg,#2b3a63,#0e1119)">
+            <span class="cmt"><svg viewBox="0 0 24 24" fill="#fff">
+              <path d="M4 4h16v12H7l-3 3z"/></svg>98</span>
+            <div class="t">North of Never</div></div>
+            <div class="bktitle">North of Never</div><div class="bkauthor">98 comments</div></div>
+          <div class="bk"><div class="bkart" style="background:linear-gradient(160deg,#6b3b1f,#1c0f08)">
+            <span class="cmt"><svg viewBox="0 0 24 24" fill="#fff">
+              <path d="M4 4h16v12H7l-3 3z"/></svg>67</span>
+            <div class="t">The Tuesday We Almost Missed</div></div>
+            <div class="bktitle">The Tuesday We&hellip;</div><div class="bkauthor">67 comments</div></div>
+        </div>
+        <div style="height:18px"></div>
+      </div>
+      <div class="tabs">
+        <div class="tab on">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"
+            stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="9" cy="8" r="3.2"/><path d="M3 19c0-3 2.7-4.5 6-4.5s6 1.5 6 4.5"/>
+            <path d="M16 5.2a3.2 3.2 0 0 1 0 6"/><path d="M17.5 14.6c2.3.5 3.5 1.9 3.5 4.4"/></svg>
+          <span>Community</span></div>
+        <div class="tab off">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg><span>Home</span></div>
+        <div class="tab off">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 5h11v15H4z"/><path d="M15 5h5v15h-5"/><path d="M8 9h4M8 13h4"/></svg>
+          <span>Library</span></div>
+      </div>
+    </div></div>
+    <div class="label">Community — incl. Following</div>
+  </div>
+
+  <!-- ===================== SEARCH ===================== -->
+  <div>
+    <div class="bezel"><div class="screen">
+      <div class="notch"></div>
+      <div class="topbar">
+        <div class="mark">n<b>.</b></div>
+        <div class="topright">
+          <div class="iconbtn"><svg viewBox="0 0 24 24" fill="none" stroke="#C8414E"
+            stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/>
+            <path d="m20 20-3.5-3.5"/></svg></div>
+          <div class="iconbtn"><svg viewBox="0 0 24 24" fill="none" stroke="#A29685"
+            stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></div>
+          <div class="avatar">D</div>
+        </div>
+      </div>
+      <div class="scroll">
+        <div class="searchbar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          <span>Search stories, authors, tags&hellip;</span>
+        </div>
+        <div class="filterrow">
+          <div class="fbtn acc">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 5h18M6 12h12M10 19h4"/></svg>
+            Genre <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+              stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
+          </div>
+          <div class="fbtn">
+            Sort: Trending <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2.5" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
+          </div>
+        </div>
+        <div class="chiprow">
+          <div class="chip">Recent: dragons</div>
+          <div class="chip">enemies to lovers</div>
+          <div class="chip">slow burn</div>
+        </div>
+        <div class="h2">Collections</div>
+        <div class="collrail">
+          <div class="coll" style="background:linear-gradient(150deg,#6b3b1f,#1c0f08)">
+            <div class="cn">Finish in<br/>one sitting</div><div class="cc">31 short novels</div></div>
+          <div class="coll" style="background:linear-gradient(150deg,#7a2f47,#2a0f1a)">
+            <div class="cn">Slow-burn<br/>romance</div><div class="cc">88 stories</div></div>
+          <div class="coll" style="background:linear-gradient(150deg,#2d3e63,#0f1320)">
+            <div class="cn">Can&rsquo;t put<br/>it down</div><div class="cc">54 thrillers</div></div>
+        </div>
+        <div class="h2">More collections</div>
+        <div class="collrail">
+          <div class="coll" style="background:linear-gradient(150deg,#26505c,#0c1417)">
+            <div class="cn">Cosy<br/>mysteries</div><div class="cc">40 stories</div></div>
+          <div class="coll" style="background:linear-gradient(150deg,#3c5a2c,#121a0d)">
+            <div class="cn">Fresh<br/>voices</div><div class="cc">New writers</div></div>
+          <div class="coll" style="background:linear-gradient(150deg,#503a66,#160f1f)">
+            <div class="cn">Worlds to<br/>get lost in</div><div class="cc">62 fantasy</div></div>
+        </div>
+        <div style="height:18px"></div>
+      </div>
+      <div class="tabs">
+        <div class="tab off">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"
+            stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="9" cy="8" r="3.2"/><path d="M3 19c0-3 2.7-4.5 6-4.5s6 1.5 6 4.5"/>
+            <path d="M16 5.2a3.2 3.2 0 0 1 0 6"/><path d="M17.5 14.6c2.3.5 3.5 1.9 3.5 4.4"/></svg>
+          <span>Community</span></div>
+        <div class="tab off">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg><span>Home</span></div>
+        <div class="tab off">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 5h11v15H4z"/><path d="M15 5h5v15h-5"/><path d="M8 9h4M8 13h4"/></svg>
+          <span>Library</span></div>
+      </div>
+    </div></div>
+    <div class="label">Search — opened from top bar</div>
+  </div>
+
+  <!-- ===================== LIBRARY ===================== -->
+  <div>
+    <div class="bezel"><div class="screen">
+      <div class="notch"></div>
+      <div class="topbar">
+        <div class="mark">n<b>.</b></div>
+        <div class="topright">
+          <div class="iconbtn"><svg viewBox="0 0 24 24" fill="none" stroke="#A29685"
+            stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/>
+            <path d="m20 20-3.5-3.5"/></svg></div>
+          <div class="iconbtn"><svg viewBox="0 0 24 24" fill="none" stroke="#C8414E"
+            stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></div>
+          <div class="avatar">D</div>
+        </div>
+      </div>
+      <div class="scroll">
+        <div class="pagetitle">Library</div>
+        <div class="seg">
+          <div class="segbtn off">Reading</div>
+          <div class="segbtn on">Saved</div>
+          <div class="segbtn off">Finished</div>
+        </div>
+        <div class="libgrid">
+          <div class="libbk"><div class="bkart2" style="background:linear-gradient(160deg,#1f4d44,#0c1715)">
+            <div class="x">&times;</div><div class="t">Saltwater Saints</div></div>
+            <div class="lt">Saltwater Saints</div></div>
+          <div class="libbk"><div class="bkart2" style="background:linear-gradient(160deg,#6b3b1f,#1c0f08)">
+            <div class="x">&times;</div><div class="t">The Tuesday We Almost Missed</div></div>
+            <div class="lt">The Tuesday&hellip;</div></div>
+          <div class="libbk"><div class="bkart2" style="background:linear-gradient(160deg,#46355f,#15101d)">
+            <div class="x">&times;</div><div class="t">Paint the Town</div></div>
+            <div class="lt">Paint the Town</div></div>
+          <div class="libbk"><div class="bkart2" style="background:linear-gradient(160deg,#5a2233,#1a0d12)">
+            <div class="x">&times;</div><div class="t">Glass Hour</div></div>
+            <div class="lt">Glass Hour</div></div>
+          <div class="libbk"><div class="bkart2" style="background:linear-gradient(160deg,#2b3a63,#0e1119)">
+            <div class="x">&times;</div><div class="t">North of Never</div></div>
+            <div class="lt">North of Never</div></div>
+          <div class="libbk"><div class="bkart2" style="background:linear-gradient(160deg,#33485a,#101519)">
+            <div class="x">&times;</div><div class="t">The Vault of Borrowed Years</div></div>
+            <div class="lt">The Vault&hellip;</div></div>
+          <div class="libbk"><div class="bkart2" style="background:linear-gradient(160deg,#7a3550,#1f0f18)">
+            <div class="x">&times;</div><div class="t">The Summer We Stopped Talking</div></div>
+            <div class="lt">The Summer&hellip;</div></div>
+          <div class="libbk"><div class="bkart2" style="background:linear-gradient(160deg,#3a2342,#171019)">
+            <div class="x">&times;</div><div class="t">The Quiet Between Stars</div></div>
+            <div class="lt">The Quiet&hellip;</div></div>
+          <div class="libbk"><div class="bkart2" style="background:linear-gradient(160deg,#2f5a4f,#0e1f1a)">
+            <div class="x">&times;</div><div class="t">The Cartographer&rsquo;s Debt</div></div>
+            <div class="lt">The Cartographer&hellip;</div></div>
+        </div>
+        <div style="height:10px"></div>
+      </div>
+      <div class="tabs">
+        <div class="tab off">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"
+            stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="9" cy="8" r="3.2"/><path d="M3 19c0-3 2.7-4.5 6-4.5s6 1.5 6 4.5"/>
+            <path d="M16 5.2a3.2 3.2 0 0 1 0 6"/><path d="M17.5 14.6c2.3.5 3.5 1.9 3.5 4.4"/></svg>
+          <span>Community</span></div>
+        <div class="tab off">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg><span>Home</span></div>
+        <div class="tab on">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 5h11v15H4z"/><path d="M15 5h5v15h-5"/><path d="M8 9h4M8 13h4"/></svg>
+          <span>Library</span></div>
+      </div>
+    </div></div>
+    <div class="label">Library — your books only</div>
+  </div>
+
+  <!-- ===================== PROFILE SHEET ===================== -->
+  <div>
+    <div class="bezel"><div class="screen">
+      <div class="notch"></div>
+      <div class="topbar">
+        <div class="mark">n<b>.</b></div>
+        <div class="topright">
+          <div class="iconbtn"><svg viewBox="0 0 24 24" fill="none" stroke="#A29685"
+            stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/>
+            <path d="m20 20-3.5-3.5"/></svg></div>
+          <div class="iconbtn"><svg viewBox="0 0 24 24" fill="none" stroke="#C8414E"
+            stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></div>
+          <div class="avatar">D</div>
+        </div>
+      </div>
+      <div class="scroll" style="opacity:.35;">
+        <div class="greet">Good evening, Deen</div>
+        <div class="cont"><div class="cthumb"></div><div class="cmeta">
+          <div class="ctag">Continue reading</div>
+          <div class="ctitle">The Cartographer&rsquo;s Debt</div>
+          <div class="csub">Chapter 12 of 30</div><div class="bar"><i></i></div></div></div>
+      </div>
+      <div class="dim"></div>
+      <div class="sheet">
+        <div class="grab"></div>
+        <div class="phead">
+          <div class="pav">D</div>
+          <div><div class="pname">Deen</div><div class="phandle">@deen</div></div>
+        </div>
+        <div class="stats">
+          <div class="stat"><b>12</b><span>Following</span></div>
+          <div class="stat"><b>3</b><span>Stories</span></div>
+          <div class="stat"><b>1.2k</b><span>Reads</span></div>
+        </div>
+        <div class="plus">
+          <div class="pico"><svg viewBox="0 0 24 24" fill="#fff">
+            <path d="m12 2 2.9 6.3 6.9.7-5.1 4.7 1.4 6.8L12 18l-6 2.5 1.4-6.8L2.3 9l6.9-.7Z"/></svg></div>
+          <div class="ptxt"><b>NovelStack+</b><span>Ad-free · every chapter unlocked</span></div>
+          <div class="go">Upgrade</div>
+        </div>
+        <div class="menucard">
+          <div class="mrow">
+            <div class="mico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 19.5V6a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/></svg></div>
+            <div class="ml">Your stories</div>
+            <div class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2"><path d="m9 6 6 6-6 6"/></svg></div>
+          </div>
+          <div class="mrow">
+            <div class="mico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/></svg></div>
+            <div class="ml">Edit profile</div>
+            <div class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2"><path d="m9 6 6 6-6 6"/></svg></div>
+          </div>
+          <div class="mrow">
+            <div class="mico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="9"/><path d="M12 3a14 14 0 0 0 0 18"/>
+              <path d="M3 12h18"/></svg></div>
+            <div class="ml">Reading mode &mdash; dark / paper</div>
+            <div class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2"><path d="m9 6 6 6-6 6"/></svg></div>
+          </div>
+        </div>
+        <div class="menucard">
+          <div class="mrow">
+            <div class="mico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M19.5 12a7.5 7.5 0 0 0-.1-1.2l2-1.5-2-3.5-2.4 1a7.5 7.5 0 0 0-2-1.2L14.5 2h-5l-.5 2.6a7.5 7.5 0 0 0-2 1.2l-2.4-1-2 3.5 2 1.5a7.5 7.5 0 0 0 0 2.4l-2 1.5 2 3.5 2.4-1a7.5 7.5 0 0 0 2 1.2L9.5 22h5l.5-2.6a7.5 7.5 0 0 0 2-1.2l2.4 1 2-3.5-2-1.5a7.5 7.5 0 0 0 .1-1.2Z"/></svg></div>
+            <div class="ml">Settings</div>
+            <div class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2"><path d="m9 6 6 6-6 6"/></svg></div>
+          </div>
+          <div class="mrow">
+            <div class="mico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 4.5 1.5c0 1.7-2.5 2-2.5 3.5"/>
+              <path d="M12 17.5h.01"/></svg></div>
+            <div class="ml">Help &amp; feedback</div>
+            <div class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2"><path d="m9 6 6 6-6 6"/></svg></div>
+          </div>
+        </div>
+        <div class="signout">Sign out</div>
+      </div>
+    </div></div>
+    <div class="label">Profile — bottom sheet</div>
+  </div>
+
+  <!-- ===================== READER — DARK ===================== -->
+  <div>
+    <div class="bezel"><div class="screen">
+      <div class="notch"></div>
+      <div class="rbar">
+        <div class="rdot" style="background:var(--bg3);border:1px solid var(--line);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#F2EADC" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></div>
+        <div class="rtit" style="color:var(--faint);">The Cartographer&rsquo;s Debt</div>
+        <div class="rdot aa" style="background:var(--bg3);border:1px solid var(--line);">Aa</div>
+      </div>
+      <div class="rbody">
+        <div class="rch">Chapter 12</div>
+        <div class="rtitle">The Salt Road</div>
+        <div class="rprose">
+          <p>Nora Whitlock had taken the 8:14 from Halford Street for three years, and in
+          all that time she had never once looked up.</p>
+          <p>This was not an accident. It was a system, and Nora believed in systems the
+          way other people believed in horoscopes or their mothers. You boarded at the
+          third door. You opened your book and you read, and you did not look up.</p>
+          <p>So she read. She was three sentences from the end of a chapter when the train
+          did the thing the train was not supposed to do.</p>
+        </div>
+      </div>
+      <div class="rfoot">
+        <div class="rprog"><i></i></div>
+        <div class="rnavrow">
+          <div class="rnav rnav-prev">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"
+              stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+            Previous</div>
+          <div class="rnav rnav-next">Next chapter
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"
+              stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></div>
+        </div>
+      </div>
+    </div></div>
+    <div class="label">Reading — dark · bigger buttons</div>
+  </div>
+
+  <!-- ===================== READER — PAPER ===================== -->
+  <div>
+    <div class="bezel"><div class="screen paperbg">
+      <div class="notch"></div>
+      <div class="rbar paper">
+        <div class="rdot" style="background:#EDE4CE;border:1px solid #E3D8BE;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#2A2418" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></div>
+        <div class="rtit paper-muted">The Cartographer&rsquo;s Debt</div>
+        <div class="rdot aa" style="background:#EDE4CE;border:1px solid #E3D8BE;color:#2A2418;">Aa</div>
+      </div>
+      <div class="rbody">
+        <div class="rch">Chapter 12</div>
+        <div class="rtitle paper-ink">The Salt Road</div>
+        <div class="rprose paper-ink">
+          <p>Nora Whitlock had taken the 8:14 from Halford Street for three years, and in
+          all that time she had never once looked up.</p>
+          <p>This was not an accident. It was a system, and Nora believed in systems the
+          way other people believed in horoscopes or their mothers. You boarded at the
+          third door. You opened your book and you read, and you did not look up.</p>
+          <p>So she read. She was three sentences from the end of a chapter when the train
+          did the thing the train was not supposed to do.</p>
+        </div>
+      </div>
+      <div class="rfoot paper">
+        <div class="rprog paper"><i></i></div>
+        <div class="rnavrow">
+          <div class="rnav rnav-prev paper">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"
+              stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+            Previous</div>
+          <div class="rnav rnav-next">Next chapter
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"
+              stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></div>
+        </div>
+      </div>
+    </div></div>
+    <div class="label">Reading — paper · bigger buttons</div>
+  </div>
+
+</div>
+</body>
+</html>

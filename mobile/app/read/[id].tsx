@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { ScrollView, View, Text, Pressable, ActivityIndicator, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
-import { colors, spacing, radius } from '@/theme/tokens';
+import { Ionicons } from '@expo/vector-icons';
+import { colors, paperMode, spacing, radius } from '@/theme/tokens';
 import { apiGet, apiSend } from '@/lib/api';
 import { getCurrentUser } from '@/lib/auth';
 import type { ChapterDetail, StoryDetail } from '@/lib/types';
@@ -17,6 +18,8 @@ export default function Reader() {
   const [unlocking, setUnlocking] = useState(false);
   const [prevId, setPrevId] = useState<string | null>(null);
   const [nextId, setNextId] = useState<string | null>(null);
+  // Local-only reading-mode toggle: false = dark theme, true = light "paper".
+  const [paper, setPaper] = useState(false);
 
   // When a signed-in reader opens a chapter they can read: record progress
   // (keeps the feed's genre affinity fresh) and auto-save the story to their
@@ -85,31 +88,95 @@ export default function Reader() {
     setUnlocking(false);
   }
 
+  // Active palette derived from the reading-mode toggle.
+  const theme = paper
+    ? {
+        bg: paperMode.bg,
+        surface: paperMode.surface,
+        ink: paperMode.ink,
+        inkMuted: paperMode.inkMuted,
+        inkFaint: paperMode.inkMuted,
+        border: paperMode.border,
+        track: paperMode.border,
+      }
+    : {
+        bg: colors.paper,
+        surface: colors.card,
+        ink: colors.ink,
+        inkMuted: colors.inkMuted,
+        inkFaint: colors.inkFaint,
+        border: colors.border,
+        track: colors.borderSoft,
+      };
+
   if (loading) {
     return (
-      <SafeAreaView style={styles.safe}>
+      <SafeAreaView style={[styles.safe, { backgroundColor: theme.bg }]}>
         <ActivityIndicator color={colors.signal} style={{ marginTop: 80 }} />
       </SafeAreaView>
     );
   }
 
-  const locked = !chapter || chapter.locked || !chapter.body;
+  if (!chapter) {
+    return (
+      <SafeAreaView style={[styles.safe, { backgroundColor: theme.bg }]} edges={['top']}>
+        <View style={styles.topBar}>
+          <Pressable style={[styles.circleBtn, { backgroundColor: theme.surface }]} onPress={() => router.back()} hitSlop={8}>
+            <Ionicons name="chevron-back" size={22} color={theme.ink} />
+          </Pressable>
+          <View style={{ flex: 1 }} />
+          <View style={{ width: 46 }} />
+        </View>
+        <View style={styles.notFound}>
+          <Text style={[styles.notFoundText, { color: theme.inkMuted }]}>Chapter not found.</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  const locked = chapter.locked || !chapter.body;
+  // Progress is full once an entitled chapter is open; preview-only otherwise.
+  const progress = locked ? 0.12 : 1;
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
-      <ScrollView contentContainerStyle={styles.scroll}>
-        <Pressable onPress={() => router.back()}>
-          <Text style={styles.back}>‹ Back</Text>
+    <SafeAreaView style={[styles.safe, { backgroundColor: theme.bg }]} edges={['top']}>
+      {/* Top bar: back / story title / Aa reading-mode toggle */}
+      <View style={styles.topBar}>
+        <Pressable
+          style={[styles.circleBtn, { backgroundColor: theme.surface }]}
+          onPress={() => router.back()}
+          hitSlop={8}
+        >
+          <Ionicons name="chevron-back" size={22} color={theme.ink} />
         </Pressable>
 
-        <Text style={styles.story}>{chapter?.story?.title ?? ''}</Text>
-        <Text style={styles.ch}>Chapter {chapter?.number ?? ''}</Text>
-        <Text style={styles.title}>{chapter?.title ?? 'Chapter'}</Text>
-        <Text style={styles.body}>{locked ? chapter?.excerpt : chapter?.body}</Text>
+        <Text style={[styles.topTitle, { color: theme.inkMuted }]} numberOfLines={1}>
+          {chapter.story?.title ?? ''}
+        </Text>
+
+        <Pressable
+          style={[styles.circleBtn, { backgroundColor: theme.surface }]}
+          onPress={() => setPaper((p) => !p)}
+          hitSlop={8}
+        >
+          <Text style={[styles.aa, { color: theme.ink }]}>Aa</Text>
+        </Pressable>
+      </View>
+
+      {/* Body */}
+      <ScrollView contentContainerStyle={styles.scroll}>
+        <Text style={styles.chLabel}>Chapter {chapter.number ?? ''}</Text>
+        <Text style={[styles.chTitle, { color: theme.ink }]}>{chapter.title ?? 'Chapter'}</Text>
+
+        <Text style={[styles.prose, { color: theme.ink }]}>
+          {locked ? chapter.excerpt : chapter.body}
+        </Text>
 
         {locked && (
-          <View style={styles.endCard}>
-            <Text style={styles.endText}>That&apos;s the preview — keep reading:</Text>
+          <View style={[styles.endCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+            <Text style={[styles.endText, { color: theme.inkMuted }]}>
+              That&apos;s the preview — keep reading:
+            </Text>
             <Pressable
               style={[styles.adBtn, unlocking && { opacity: 0.6 }]}
               onPress={watchAd}
@@ -119,68 +186,137 @@ export default function Reader() {
                 {unlocking ? 'Loading ad…' : 'Watch a short ad to continue'}
               </Text>
             </Pressable>
-            <Text style={styles.plus}>No ads with NovelStack+ — $6.99/month.</Text>
-          </View>
-        )}
-
-        {!locked && (
-          <View style={styles.nav}>
-            <Pressable
-              style={[styles.navBtn, !prevId && styles.navBtnOff]}
-              disabled={!prevId}
-              onPress={() => prevId && router.replace(`/read/${prevId}`)}
-            >
-              <Text style={[styles.navText, !prevId && styles.navTextOff]}>‹ Previous</Text>
-            </Pressable>
-            <Pressable
-              style={[styles.navBtn, styles.navBtnPrimary, !nextId && styles.navBtnOff]}
-              disabled={!nextId}
-              onPress={() => nextId && router.replace(`/read/${nextId}`)}
-            >
-              <Text style={[styles.navTextPrimary, !nextId && styles.navTextOff]}>
-                Next chapter ›
-              </Text>
-            </Pressable>
+            <Text style={[styles.plus, { color: theme.inkFaint }]}>
+              No ads with NovelStack+ — $6.99/month.
+            </Text>
           </View>
         )}
       </ScrollView>
+
+      {/* Footer: progress bar + big prev / next buttons */}
+      <View style={[styles.footer, { backgroundColor: theme.bg, borderTopColor: theme.border }]}>
+        <View style={[styles.track, { backgroundColor: theme.track }]}>
+          <View style={[styles.fill, { width: `${Math.round(progress * 100)}%` }]} />
+        </View>
+
+        <View style={styles.navRow}>
+          <Pressable
+            style={[
+              styles.navBtn,
+              styles.navSecondary,
+              { backgroundColor: theme.surface, borderColor: theme.border },
+              !prevId && styles.navOff,
+            ]}
+            disabled={!prevId}
+            onPress={() => prevId && router.replace(`/read/${prevId}`)}
+          >
+            <Ionicons name="chevron-back" size={18} color={theme.ink} />
+            <Text style={[styles.navSecondaryText, { color: theme.ink }]}>Previous</Text>
+          </Pressable>
+
+          <Pressable
+            style={[styles.navBtn, styles.navPrimary, !nextId && styles.navOff]}
+            disabled={!nextId}
+            onPress={() => nextId && router.replace(`/read/${nextId}`)}
+          >
+            <Text style={styles.navPrimaryText}>Next chapter</Text>
+            <Ionicons name="chevron-forward" size={18} color={colors.ink} />
+          </Pressable>
+        </View>
+      </View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.paper },
-  scroll: { padding: spacing.lg, paddingBottom: spacing.xl * 2 },
-  back: { fontSize: 14, color: colors.inkMuted, marginBottom: spacing.lg },
-  story: { fontSize: 12, color: colors.signal, fontWeight: '500' },
-  ch: { fontSize: 12, color: colors.inkFaint, marginTop: 4 },
-  title: { fontSize: 26, fontWeight: '500', color: colors.ink, marginTop: 4, marginBottom: spacing.lg },
-  body: { fontSize: 19, lineHeight: 32, color: colors.ink },
+  safe: { flex: 1 },
+
+  topBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    gap: spacing.sm,
+  },
+  circleBtn: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  topTitle: { flex: 1, fontSize: 13, textAlign: 'center', fontWeight: '500' },
+  aa: { fontFamily: 'serif', fontSize: 18, fontWeight: '600' },
+
+  scroll: { padding: spacing.lg, paddingBottom: spacing.xl },
+  chLabel: {
+    fontSize: 12,
+    letterSpacing: 1,
+    color: colors.signal,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+  },
+  chTitle: {
+    fontFamily: 'serif',
+    fontSize: 27,
+    fontWeight: '500',
+    marginTop: spacing.xs,
+    marginBottom: spacing.lg,
+  },
+  prose: { fontFamily: 'serif', fontSize: 18, lineHeight: 31 },
+
   endCard: {
     marginTop: spacing.xl,
     padding: spacing.lg,
-    backgroundColor: colors.paperSoft,
     borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: colors.borderSoft,
     alignItems: 'center',
   },
-  endText: { fontSize: 13, color: colors.inkMuted, marginBottom: spacing.md },
-  adBtn: { backgroundColor: colors.signal, paddingVertical: 12, paddingHorizontal: 24, borderRadius: radius.pill },
-  adBtnText: { color: colors.paper, fontSize: 14, fontWeight: '500' },
-  plus: { fontSize: 12, color: colors.inkFaint, marginTop: spacing.md, textAlign: 'center' },
-  nav: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.xl },
-  navBtn: {
-    flex: 1,
-    paddingVertical: 13,
+  endText: { fontSize: 13, marginBottom: spacing.md },
+  adBtn: {
+    backgroundColor: colors.signal,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
     borderRadius: radius.pill,
-    borderWidth: 1,
-    borderColor: colors.borderSoft,
-    alignItems: 'center',
   },
-  navBtnPrimary: { backgroundColor: colors.signal, borderColor: colors.signal },
-  navBtnOff: { opacity: 0.4 },
-  navText: { fontSize: 14, color: colors.inkMuted, fontWeight: '500' },
-  navTextPrimary: { fontSize: 14, color: colors.paper, fontWeight: '500' },
-  navTextOff: {},
+  adBtnText: { color: colors.ink, fontSize: 14, fontWeight: '500' },
+  plus: { fontSize: 12, marginTop: spacing.md, textAlign: 'center' },
+
+  notFound: { alignItems: 'center', marginTop: 80 },
+  notFoundText: { fontSize: 15 },
+
+  footer: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.lg,
+    borderTopWidth: 1,
+  },
+  track: {
+    height: 3,
+    borderRadius: radius.pill,
+    overflow: 'hidden',
+    marginBottom: spacing.md,
+  },
+  fill: { height: 3, backgroundColor: colors.signal, borderRadius: radius.pill },
+
+  navRow: { flexDirection: 'row', gap: spacing.sm },
+  navBtn: {
+    height: 54,
+    borderRadius: radius.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+  },
+  navSecondary: {
+    flex: 1,
+    borderWidth: 1,
+  },
+  navSecondaryText: { fontSize: 15, fontWeight: '500' },
+  navPrimary: {
+    flex: 1.5,
+    backgroundColor: colors.signal,
+  },
+  navPrimaryText: { fontSize: 15, fontWeight: '600', color: colors.ink },
+  navOff: { opacity: 0.35 },
 });
