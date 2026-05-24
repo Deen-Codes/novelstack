@@ -215,12 +215,12 @@ const styles = StyleSheet.create({
   mailList: { marginTop: spacing.lg },
   btn: {
     marginTop: spacing.sm,
-    backgroundColor: colors.signal,
-    paddingVertical: 13,
+    backgroundColor: '#F4ECDF',
+    paddingVertical: 14,
     borderRadius: radius.pill,
     alignItems: 'center',
   },
-  btnText: { color: colors.paper, fontSize: 14, fontWeight: '500' },
+  btnText: { color: '#15100E', fontSize: 14, fontWeight: '700' },
   btnOutline: {
     marginTop: spacing.sm,
     backgroundColor: colors.white,

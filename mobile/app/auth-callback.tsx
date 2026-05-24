@@ -26,10 +26,12 @@ function first(v: string | string[] | undefined): string | null {
 export default function AuthCallback() {
   const params = useLocalSearchParams<{
     token?: string | string[];
+    session?: string | string[];
     error?: string | string[];
     error_description?: string | string[];
   }>();
   const token = first(params.token);
+  const session = first(params.session);
   const errParam = first(params.error_description) ?? first(params.error);
 
   const [error, setError] = useState<string | null>(null);
@@ -42,6 +44,21 @@ export default function AuthCallback() {
     if (errParam) {
       handled.current = true;
       setError(String(errParam));
+      return;
+    }
+
+    // A pre-minted session JWT — the reviewer / test-account login link.
+    // No one-time token to exchange: store the session straight away.
+    if (session) {
+      handled.current = true;
+      (async () => {
+        try {
+          await setSessionToken(session);
+          router.replace('/(tabs)');
+        } catch {
+          setError('Could not start that session. Open the link again.');
+        }
+      })();
       return;
     }
 
@@ -81,7 +98,7 @@ export default function AuthCallback() {
         );
       }
     })();
-  }, [token, errParam]);
+  }, [token, session, errParam]);
 
   // Safety net: if no token ever arrives, don't spin forever.
   useEffect(() => {
@@ -132,10 +149,10 @@ const styles = StyleSheet.create({
   },
   btn: {
     marginTop: spacing.lg,
-    backgroundColor: colors.signal,
-    paddingVertical: 12,
+    backgroundColor: '#F4ECDF',
+    paddingVertical: 13,
     paddingHorizontal: 28,
     borderRadius: radius.pill,
   },
-  btnText: { color: colors.paper, fontSize: 14, fontWeight: '500' },
+  btnText: { color: '#15100E', fontSize: 14, fontWeight: '700' },
 });

@@ -7,6 +7,8 @@ import {
   Image,
   Pressable,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
   StyleSheet,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -14,6 +16,7 @@ import { router } from 'expo-router';
 import { colors, spacing, radius } from '@/theme/tokens';
 import { getCurrentUser, signOut } from '@/lib/auth';
 import { apiGet } from '@/lib/api';
+import { SignInPitch } from './SignInPitch';
 import type { User, Shelf } from '@/lib/types';
 
 // The profile bottom sheet — opened from the TopBar avatar. The backdrop
@@ -112,6 +115,7 @@ export function ProfileSheet({
           <Pressable style={styles.backdrop} onPress={onClose} />
         </Animated.View>
 
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <Animated.View
           style={[styles.sheet, { transform: [{ translateY }] }]}
           onLayout={(e) => setSheetH(e.nativeEvent.layout.height)}
@@ -120,20 +124,10 @@ export function ProfileSheet({
           {loading ? (
             <ActivityIndicator color={colors.signal} style={{ marginVertical: 60 }} />
           ) : !user ? (
-            <View style={{ padding: spacing.lg, alignItems: 'center' }}>
-              <Text style={styles.signedOut}>
-                Sign in to follow writers, save stories and publish your own.
-              </Text>
-              <Pressable
-                style={styles.primaryBtn}
-                onPress={() => {
-                  onClose();
-                  router.push('/signin');
-                }}
-              >
-                <Text style={styles.primaryBtnText}>Sign in</Text>
-              </Pressable>
-            </View>
+            <SignInPitch
+              headline="Sign in to NovelStack"
+              sub="Follow writers, save stories, and pick up where you left off — no password needed."
+            />
           ) : (
             <>
               <View style={styles.head}>
@@ -204,6 +198,7 @@ export function ProfileSheet({
             </>
           )}
         </Animated.View>
+        </KeyboardAvoidingView>
       </View>
     </Modal>
   );

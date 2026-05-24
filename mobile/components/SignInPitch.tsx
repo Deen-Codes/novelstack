@@ -7,7 +7,6 @@ import {
   Pressable,
   StyleSheet,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, radius, fonts } from '@/theme/tokens';
 import { apiSend } from '@/lib/api';
@@ -101,23 +100,16 @@ export function SignInPitch({ headline, sub }: { headline: string; sub: string }
               onPress={send}
               disabled={loading}
               style={({ pressed }) => [
-                styles.btnWrap,
+                styles.btn,
                 (loading || pressed) && { opacity: 0.85 },
               ]}
             >
-              <LinearGradient
-                colors={[colors.signal, colors.signalDeep]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.btn}
-              >
-                <Text style={styles.btnText}>
-                  {loading ? 'Sending…' : 'Email me a link'}
-                </Text>
-                {!loading && (
-                  <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
-                )}
-              </LinearGradient>
+              <Text style={styles.btnText}>
+                {loading ? 'Sending…' : 'Email me a link'}
+              </Text>
+              {!loading && (
+                <Ionicons name="arrow-forward" size={18} color="#15100E" />
+              )}
             </Pressable>
             <Text style={styles.hint}>
               No password. New here? You&apos;ll get an account automatically.
@@ -168,16 +160,17 @@ const styles = StyleSheet.create({
   },
   input: { flex: 1, fontSize: 15, color: colors.ink, padding: 0 },
   error: { fontSize: 13, color: colors.signal, marginTop: 10 },
-  btnWrap: { marginTop: 12 },
   btn: {
+    marginTop: 12,
     height: 54,
     borderRadius: 14,
+    backgroundColor: '#F4ECDF',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
   },
-  btnText: { color: '#FFFFFF', fontSize: 15, fontWeight: '700' },
+  btnText: { color: '#15100E', fontSize: 15, fontWeight: '700' },
   hint: { fontSize: 12.5, color: colors.inkFaint, marginTop: 16, lineHeight: 18 },
 
   sentCard: { marginTop: spacing.xl },
