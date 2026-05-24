@@ -7,7 +7,6 @@ import {
   Pressable,
   StyleSheet,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, radius, fonts } from '@/theme/tokens';
 import { apiSend } from '@/lib/api';
@@ -22,19 +21,10 @@ export function SignInPitch({ headline, sub }: { headline: string; sub: string }
   const [error, setError] = useState('');
 
   const fade = useRef(new Animated.Value(0)).current;
-  const glow = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     Animated.timing(fade, { toValue: 1, duration: 480, useNativeDriver: true }).start();
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(glow, { toValue: 1, duration: 4200, useNativeDriver: true }),
-        Animated.timing(glow, { toValue: 0, duration: 4200, useNativeDriver: true }),
-      ]),
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [fade, glow]);
+  }, [fade]);
 
   async function send() {
     const e = email.trim();
@@ -55,25 +45,6 @@ export function SignInPitch({ headline, sub }: { headline: string; sub: string }
 
   return (
     <View style={styles.wrap}>
-      <Animated.View
-        pointerEvents="none"
-        style={[
-          styles.glow,
-          {
-            opacity: glow.interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] }),
-            transform: [
-              { scale: glow.interpolate({ inputRange: [0, 1], outputRange: [1, 1.18] }) },
-            ],
-          },
-        ]}
-      >
-        <LinearGradient
-          colors={['rgba(200,65,78,0.5)', 'rgba(200,65,78,0.12)', 'transparent']}
-          locations={[0, 0.5, 1]}
-          style={StyleSheet.absoluteFill}
-        />
-      </Animated.View>
-
       <Animated.View
         style={{
           opacity: fade,
@@ -144,7 +115,6 @@ export function SignInPitch({ headline, sub }: { headline: string; sub: string }
 
 const styles = StyleSheet.create({
   wrap: { paddingHorizontal: 24, paddingTop: spacing.xl },
-  glow: { position: 'absolute', top: -40, left: -40, right: -40, height: 320 },
 
   badge: {
     width: 56,

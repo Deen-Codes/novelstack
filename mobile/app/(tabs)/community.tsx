@@ -17,6 +17,7 @@ import { getCurrentUser } from '@/lib/auth';
 import { Cover } from '@/components/Cover';
 import { TopBar } from '@/components/TopBar';
 import { SignInPitch } from '@/components/SignInPitch';
+import { AmbientGlow } from '@/components/AmbientGlow';
 import type { Shelf, FeedStory, User } from '@/lib/types';
 
 // Community tab: writers a reader follows, suggested writers to discover,
@@ -110,6 +111,7 @@ export default function Community() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
+      {!signedIn && !loading && <AmbientGlow />}
       <TopBar page="community" />
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         {loading ? (

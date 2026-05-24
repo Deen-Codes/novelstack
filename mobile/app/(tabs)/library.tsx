@@ -15,6 +15,7 @@ import { apiGet, apiSend, getSessionToken } from '@/lib/api';
 import { TopBar } from '@/components/TopBar';
 import { Cover } from '@/components/Cover';
 import { SignInPitch } from '@/components/SignInPitch';
+import { AmbientGlow } from '@/components/AmbientGlow';
 import type { Shelf, Story } from '@/lib/types';
 
 export default function Library() {
@@ -71,6 +72,7 @@ export default function Library() {
   if (signedIn === false) {
     return (
       <SafeAreaView style={styles.safe} edges={['top']}>
+        <AmbientGlow />
         <TopBar page="library" />
         <SignInPitch
           headline="Build your library"
