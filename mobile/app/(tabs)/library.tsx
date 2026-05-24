@@ -10,7 +10,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, spacing, radius } from '@/theme/tokens';
+import { colors, spacing, radius, fonts } from '@/theme/tokens';
 import { apiGet, apiSend, getSessionToken } from '@/lib/api';
 import { TopBar } from '@/components/TopBar';
 import { Cover } from '@/components/Cover';
@@ -141,11 +141,11 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.paper },
   body: { padding: spacing.lg },
   scroll: { padding: spacing.lg, paddingBottom: spacing.xl * 2 },
-  h1: { fontSize: 25, fontWeight: '500', color: colors.ink, letterSpacing: -0.5 },
+  h1: { fontFamily: fonts.displayXl, fontSize: 27, color: colors.ink, letterSpacing: -0.6 },
   sub: { fontSize: 14, color: colors.inkMuted, marginTop: spacing.sm, lineHeight: 21 },
   section: {
-    fontSize: 16,
-    fontWeight: '500',
+    fontFamily: fonts.display,
+    fontSize: 18,
     color: colors.ink,
     marginTop: spacing.xl,
     marginBottom: spacing.md,

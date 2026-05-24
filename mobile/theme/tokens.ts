@@ -37,7 +37,12 @@ export const spacing = { xs: 4, sm: 8, md: 16, lg: 24, xl: 32 };
 
 export const radius = { sm: 8, md: 12, lg: 16, pill: 999 };
 
+// Bricolage Grotesque — the display typeface (logo, headings, titles).
+// Body / UI text stays on the system font (San Francisco), which is clean
+// and modern. Each weight is its own family name (custom fonts don't take
+// fontWeight), so set fontFamily to one of these directly.
 export const fonts = {
-  serif: 'serif',
-  sans: 'System',
+  display: 'BricolageGrotesque_700Bold',
+  displaySemi: 'BricolageGrotesque_600SemiBold',
+  displayXl: 'BricolageGrotesque_800ExtraBold',
 };

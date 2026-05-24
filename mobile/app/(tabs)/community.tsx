@@ -11,7 +11,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
-import { colors, spacing, radius } from '@/theme/tokens';
+import { colors, spacing, radius, fonts } from '@/theme/tokens';
 import { apiGet, apiSend, getSessionToken } from '@/lib/api';
 import { getCurrentUser } from '@/lib/auth';
 import { Cover } from '@/components/Cover';
@@ -295,12 +295,12 @@ const styles = StyleSheet.create({
   scroll: { paddingBottom: spacing.xl },
 
   pageTitle: {
-    fontSize: 25,
-    fontWeight: '500',
+    fontFamily: fonts.displayXl,
+    fontSize: 27,
     color: colors.ink,
     paddingHorizontal: 20,
     paddingTop: 4,
-    letterSpacing: -0.3,
+    letterSpacing: -0.6,
   },
 
   sectionHeader: {
@@ -311,7 +311,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.xl,
     marginBottom: spacing.md,
   },
-  sectionTitle: { fontSize: 19, fontWeight: '500', color: colors.ink },
+  sectionTitle: { fontFamily: fonts.display, fontSize: 19, color: colors.ink },
   sectionCount: { fontSize: 14, color: colors.inkFaint },
 
   signInCard: {

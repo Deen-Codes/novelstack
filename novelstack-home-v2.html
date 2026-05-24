@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>NovelStack — Home v2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --bg:#100D0C; --bg2:#1A1512; --card:#221C18; --line:#332B25;
+    --text:#F4ECDF; --muted:#A2968A; --faint:#6F6459;
+    --ember:#C8414E;
+    --display:'Bricolage Grotesque',-apple-system,sans-serif;
+    --ui:'Inter',-apple-system,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:#0A0908;font-family:var(--ui);color:var(--text);
+    padding:34px 16px 56px;display:flex;flex-direction:column;align-items:center;}
+  .intro{max-width:760px;text-align:center;margin-bottom:28px;}
+  .intro h1{font-family:var(--display);font-weight:700;font-size:23px;}
+  .intro p{font-size:13px;color:#8A7F73;margin-top:8px;line-height:1.6;}
+  .frames{display:flex;gap:40px;flex-wrap:wrap;justify-content:center;align-items:flex-start;}
+  .cap{text-align:center;font-size:12px;color:#7A6F63;margin-top:14px;
+    letter-spacing:.05em;text-transform:uppercase;}
+
+  .bezel{width:392px;background:#000;border-radius:48px;padding:11px;
+    box-shadow:0 36px 80px -24px rgba(0,0,0,.85),0 0 0 1px #2a2420;}
+  .screen{position:relative;height:812px;background:var(--bg);border-radius:38px;
+    overflow:hidden;}
+  .notch{position:absolute;top:0;left:50%;transform:translateX(-50%);
+    width:122px;height:26px;background:#000;border-radius:0 0 16px 16px;z-index:50;}
+
+  /* ambient — animated colour glow behind the hero */
+  .ambient{position:absolute;top:0;left:0;right:0;height:560px;z-index:0;}
+  .ambient::before{content:'';position:absolute;inset:-80px -40px 0;
+    background:
+      radial-gradient(70% 50% at 70% 18%,rgba(150,70,200,.55),transparent 70%),
+      radial-gradient(60% 45% at 22% 8%,rgba(200,65,78,.40),transparent 70%);
+    animation:drift 14s ease-in-out infinite;}
+  .ambient::after{content:'';position:absolute;inset:0;
+    background:linear-gradient(to bottom,transparent 38%,var(--bg) 92%);}
+  @keyframes drift{
+    0%,100%{transform:translate3d(0,0,0) scale(1);opacity:.95;}
+    50%{transform:translate3d(-14px,18px,0) scale(1.12);opacity:1;}
+  }
+
+  .content{position:relative;z-index:10;height:100%;display:flex;flex-direction:column;}
+
+  /* top bar */
+  .top{display:flex;align-items:center;justify-content:space-between;
+    padding:50px 20px 8px;}
+  .logo{font-family:var(--display);font-weight:800;font-size:32px;line-height:1;
+    letter-spacing:-.03em;color:#fff;}
+  .logo b{color:var(--ember);font-weight:800;}
+  .topr{display:flex;gap:10px;}
+  .ic{width:40px;height:40px;border-radius:12px;background:rgba(255,255,255,.09);
+    backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;}
+  .ic svg{width:19px;height:19px;}
+  .av{width:40px;height:40px;border-radius:12px;
+    background:linear-gradient(140deg,#8E2C38,#C8414E);display:flex;
+    align-items:center;justify-content:center;font-weight:700;font-size:15px;color:#fff;}
+
+  .scroll{flex:1;overflow:hidden;}
+
+  /* hero */
+  .hero{margin:6px 16px 0;border-radius:20px;overflow:hidden;position:relative;
+    height:392px;}
+  .heroart{position:absolute;inset:0;
+    background:
+      radial-gradient(80% 60% at 70% 22%,rgba(190,120,230,.65),transparent 65%),
+      radial-gradient(70% 50% at 25% 88%,rgba(70,40,90,.9),transparent 60%),
+      linear-gradient(160deg,#3a2150,#140d1c 75%);}
+  .herostars{position:absolute;inset:0;opacity:.5;
+    background-image:radial-gradient(1.4px 1.4px at 30% 30%,#fff,transparent),
+      radial-gradient(1.2px 1.2px at 68% 24%,#fff,transparent),
+      radial-gradient(1.6px 1.6px at 50% 60%,#fff,transparent),
+      radial-gradient(1.1px 1.1px at 82% 70%,#fff,transparent),
+      radial-gradient(1.3px 1.3px at 16% 74%,#fff,transparent);}
+  .heroscrim{position:absolute;inset:0;
+    background:linear-gradient(to top,rgba(16,13,12,.97) 16%,transparent 62%);}
+  .herobody{position:absolute;left:0;right:0;bottom:0;padding:20px;}
+  .tag{display:inline-block;font-family:var(--ui);font-size:10px;font-weight:700;
+    letter-spacing:.12em;text-transform:uppercase;color:#fff;
+    background:rgba(255,255,255,.16);border-radius:6px;padding:5px 9px;}
+  .herotitle{font-family:var(--display);font-weight:800;font-size:38px;
+    line-height:1.0;letter-spacing:-.02em;margin:12px 0 8px;}
+  .herometa{font-size:13px;color:var(--muted);font-weight:500;}
+  .herometa b{color:var(--text);font-weight:600;}
+
+  /* buttons */
+  .btns{display:flex;gap:10px;padding:14px 16px 0;}
+  .btn{height:52px;border-radius:13px;display:flex;align-items:center;
+    justify-content:center;gap:8px;font-family:var(--ui);font-weight:700;font-size:15px;}
+  .btn svg{width:18px;height:18px;}
+  .btn-read{flex:1.6;background:#fff;color:#15100E;}
+  .btn-save{flex:1;background:rgba(255,255,255,.10);color:#fff;
+    border:1px solid rgba(255,255,255,.14);}
+
+  /* continue */
+  .cont{margin:18px 16px 0;background:var(--bg2);border:1px solid var(--line);
+    border-radius:15px;padding:11px;display:flex;gap:12px;align-items:center;}
+  .cthumb{width:46px;height:64px;border-radius:7px;flex-shrink:0;
+    background:linear-gradient(150deg,#3a5a52,#15201d);}
+  .cmeta{flex:1;min-width:0;}
+  .clabel{font-family:var(--ui);font-size:10px;font-weight:700;letter-spacing:.11em;
+    text-transform:uppercase;color:var(--ember);}
+  .ctitle{font-family:var(--display);font-weight:700;font-size:16px;margin-top:2px;}
+  .csub{font-size:11px;color:var(--faint);margin-top:2px;}
+  .ctrack{height:4px;background:#332B25;border-radius:9px;margin-top:8px;}
+  .ctrack i{display:block;height:4px;width:41%;background:var(--ember);border-radius:9px;}
+  .cplay{width:42px;height:42px;border-radius:12px;background:#fff;flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;}
+  .cplay svg{width:15px;height:15px;}
+
+  /* rail */
+  .sec{font-family:var(--display);font-weight:700;font-size:19px;
+    margin:24px 20px 12px;}
+  .rail{display:flex;gap:12px;padding:0 16px;overflow:hidden;}
+  .bk{width:116px;flex-shrink:0;}
+  .bkart{width:116px;height:163px;border-radius:12px;
+    box-shadow:0 10px 22px -10px rgba(0,0,0,.8);}
+  .bkt{font-family:var(--ui);font-size:12px;font-weight:600;margin-top:8px;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .bka{font-size:11px;color:var(--faint);margin-top:1px;}
+
+  /* bottom nav */
+  .nav{display:flex;background:#0C0A09;border-top:1px solid var(--line);
+    padding:11px 0 28px;}
+  .navi{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;}
+  .navi svg{width:24px;height:24px;}
+  .navi span{font-family:var(--ui);font-size:10px;font-weight:600;}
+  .on{color:var(--ember);}
+  .off{color:#6A6056;}
+</style>
+</head>
+<body>
+
+<div class="intro">
+  <h1>NovelStack — Home, v2</h1>
+  <p>New typeface (Bricolage Grotesque + Inter) · animated ambient glow behind the
+  hero · no greeting line · reworked buttons · bottom nav reordered to
+  Home · Library · Search · Community · search removed from the top bar.</p>
+</div>
+
+<div class="frames">
+  <div>
+    <div class="bezel"><div class="screen">
+      <div class="notch"></div>
+      <div class="ambient"></div>
+
+      <div class="content">
+        <div class="top">
+          <div class="logo">n<b>.</b></div>
+          <div class="topr">
+            <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#F4ECDF"
+              stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></div>
+            <div class="av">D</div>
+          </div>
+        </div>
+
+        <div class="scroll">
+          <div class="hero">
+            <div class="heroart"></div>
+            <div class="herostars"></div>
+            <div class="heroscrim"></div>
+            <div class="herobody">
+              <span class="tag">Trending · Fantasy</span>
+              <div class="herotitle">The Quiet Between Stars</div>
+              <div class="herometa"><b>Helena Cruz</b> · 18.2k reads this week</div>
+            </div>
+          </div>
+
+          <div class="btns">
+            <div class="btn btn-read">
+              <svg viewBox="0 0 24 24" fill="#15100E"><path d="M8 5v14l11-7z"/></svg>
+              Read</div>
+            <div class="btn btn-save">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"
+                stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+              My list</div>
+          </div>
+
+          <div class="cont">
+            <div class="cthumb"></div>
+            <div class="cmeta">
+              <div class="clabel">Continue reading</div>
+              <div class="ctitle">The Cartographer&rsquo;s Debt</div>
+              <div class="csub">Chapter 12 of 30 · 41%</div>
+              <div class="ctrack"><i></i></div>
+            </div>
+            <div class="cplay"><svg viewBox="0 0 24 24" fill="#15100E">
+              <path d="M8 5v14l11-7z"/></svg></div>
+          </div>
+
+          <div class="sec">Trending now</div>
+          <div class="rail">
+            <div class="bk"><div class="bkart" style="background:linear-gradient(160deg,#1f4d44,#0c1715)"></div>
+              <div class="bkt">Saltwater Saints</div><div class="bka">Marian Vale</div></div>
+            <div class="bk"><div class="bkart" style="background:linear-gradient(160deg,#5a2233,#1a0d12)"></div>
+              <div class="bkt">Glass Hour</div><div class="bka">J. Okafor</div></div>
+            <div class="bk"><div class="bkart" style="background:linear-gradient(160deg,#2b3a63,#0e1119)"></div>
+              <div class="bkt">North of Never</div><div class="bka">A. Lindqvist</div></div>
+          </div>
+        </div>
+
+        <div class="nav">
+          <div class="navi on">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg><span>Home</span></div>
+          <div class="navi off">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 5h11v15H4z"/><path d="M15 5h5v15h-5"/><path d="M8 9h4M8 13h4"/></svg>
+            <span>Library</span></div>
+          <div class="navi off">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"
+              stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span>Search</span></div>
+          <div class="navi off">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"
+              stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="9" cy="8" r="3.2"/><path d="M3 19c0-3 2.7-4.5 6-4.5s6 1.5 6 4.5"/>
+              <path d="M16 5.2a3.2 3.2 0 0 1 0 6"/><path d="M17.5 14.6c2.3.5 3.5 1.9 3.5 4.4"/></svg>
+            <span>Community</span></div>
+        </div>
+      </div>
+    </div></div>
+    <div class="cap">Home v2 — the glow drifts slowly behind the hero</div>
+  </div>
+</div>
+
+</body>
+</html>

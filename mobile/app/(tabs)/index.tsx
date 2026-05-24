@@ -4,6 +4,7 @@ import {
   ScrollView,
   View,
   Text,
+  Image,
   Pressable,
   ActivityIndicator,
   RefreshControl,
@@ -11,18 +12,21 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { router, useFocusEffect } from 'expo-router';
-import { colors, spacing, radius } from '@/theme/tokens';
-import { apiGet } from '@/lib/api';
+import { colors, spacing, radius, fonts } from '@/theme/tokens';
+import { apiGet, apiSend } from '@/lib/api';
 import { Cover } from '@/components/Cover';
 import { TopBar } from '@/components/TopBar';
 import type { FeedStory, HomeExtras } from '@/lib/types';
 
-function greeting(): string {
-  const h = new Date().getHours();
-  if (h < 12) return 'Good morning';
-  if (h < 18) return 'Good afternoon';
-  return 'Good evening';
+// hex → rgba, used to derive the ambient glow from a book's cover colour.
+function hexA(hex: string, a: number): string {
+  const h = (hex || '#3a2150').replace('#', '');
+  const r = parseInt(h.slice(0, 2), 16) || 58;
+  const g = parseInt(h.slice(2, 4), 16) || 33;
+  const b = parseInt(h.slice(4, 6), 16) || 80;
+  return `rgba(${r},${g},${b},${a})`;
 }
 
 export default function Home() {
@@ -30,16 +34,20 @@ export default function Home() {
   const [extras, setExtras] = useState<HomeExtras | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  // Cinematic entrance — content fades + eases up once the feed has loaded.
-  const fade = useRef(new Animated.Value(0)).current;
+  const [spotIndex, setSpotIndex] = useState(0);
+  const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
+
+  const fade = useRef(new Animated.Value(0)).current; // entrance
+  const heroFade = useRef(new Animated.Value(1)).current; // spotlight cross-fade
+  const drift = useRef(new Animated.Value(0)).current; // ambient drift loop
 
   const load = useCallback(async () => {
-    const [feedRes, extrasRes] = await Promise.allSettled([
+    const [f, e] = await Promise.allSettled([
       apiGet<FeedStory[]>('/api/feed'),
       apiGet<HomeExtras>('/api/me/home'),
     ]);
-    setFeed(feedRes.status === 'fulfilled' ? feedRes.value : []);
-    setExtras(extrasRes.status === 'fulfilled' ? extrasRes.value : null);
+    setFeed(f.status === 'fulfilled' ? f.value : []);
+    setExtras(e.status === 'fulfilled' ? e.value : null);
     setLoading(false);
   }, []);
 
@@ -55,28 +63,88 @@ export default function Home() {
     setRefreshing(false);
   }
 
+  // Entrance fade-in once the feed has loaded.
   useEffect(() => {
     if (!loading) {
       Animated.timing(fade, { toValue: 1, duration: 420, useNativeDriver: true }).start();
     }
   }, [loading, fade]);
 
-  const entrance = {
-    opacity: fade,
-    transform: [{ translateY: fade.interpolate({ inputRange: [0, 1], outputRange: [18, 0] }) }],
-  };
+  // Slow ambient drift — keeps the glow alive.
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(drift, { toValue: 1, duration: 7000, useNativeDriver: true }),
+        Animated.timing(drift, { toValue: 0, duration: 7000, useNativeDriver: true }),
+      ]),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [drift]);
+
+  const spotCount = Math.min(5, feed.length);
+
+  // Rotate the spotlight every 10s with a gentle cross-fade dip.
+  useEffect(() => {
+    if (spotCount < 2) return;
+    const timer = setInterval(() => {
+      Animated.timing(heroFade, { toValue: 0.35, duration: 300, useNativeDriver: true }).start(() => {
+        setSpotIndex((i) => (i + 1) % spotCount);
+        Animated.timing(heroFade, { toValue: 1, duration: 450, useNativeDriver: true }).start();
+      });
+    }, 10000);
+    return () => clearInterval(timer);
+  }, [spotCount, heroFade]);
 
   const cont = extras?.continueReading ?? null;
+  const spotCandidates = feed.slice(0, Math.max(1, spotCount));
+  const spot = spotCandidates.length
+    ? spotCandidates[spotIndex % spotCandidates.length]
+    : null;
+  const ambientColor = spot?.coverColor ?? '#3a2150';
   const trending = [...feed]
     .sort((a, b) => (b.totalReads ?? 0) - (a.totalReads ?? 0))
     .slice(0, 10);
-  const spotlight = feed[0] ?? null;
   const following = feed.filter((s) => s._reason === 'From a writer you follow').slice(0, 10);
   const moreForYou = feed.slice(1, 13);
 
+  async function saveSpot() {
+    if (!spot) return;
+    try {
+      await apiSend('/api/bookmarks', 'POST', { storyId: spot.id, action: 'add' });
+      setSavedIds((s) => new Set(s).add(spot.id));
+    } catch {
+      router.push('/signin');
+    }
+  }
+
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
+      {/* Ambient glow — colour from the current spotlight, drifting + dipping */}
+      {spot && (
+        <Animated.View
+          pointerEvents="none"
+          style={[
+            styles.ambient,
+            {
+              opacity: heroFade,
+              transform: [
+                { scale: drift.interpolate({ inputRange: [0, 1], outputRange: [1, 1.14] }) },
+                { translateY: drift.interpolate({ inputRange: [0, 1], outputRange: [0, 16] }) },
+              ],
+            },
+          ]}
+        >
+          <LinearGradient
+            colors={[hexA(ambientColor, 0.62), hexA(ambientColor, 0.14), 'transparent']}
+            locations={[0, 0.5, 1]}
+            style={StyleSheet.absoluteFill}
+          />
+        </Animated.View>
+      )}
+
       <TopBar />
+
       <ScrollView
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
@@ -84,98 +152,127 @@ export default function Home() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.signal} />
         }
       >
-        <Animated.View style={entrance}>
-        <Text style={styles.greeting}>
-          {greeting()}
-          {extras?.name ? `, ${extras.name}` : ''}
-          {extras && extras.streak > 0 ? `  ·  ${extras.streak}-day streak` : ''}
-        </Text>
+        <Animated.View
+          style={{
+            opacity: fade,
+            transform: [{ translateY: fade.interpolate({ inputRange: [0, 1], outputRange: [16, 0] }) }],
+          }}
+        >
+          {loading ? (
+            <ActivityIndicator color={colors.signal} style={{ marginTop: spacing.xl }} />
+          ) : feed.length === 0 ? (
+            <Text style={styles.empty}>
+              Nothing here yet. Once writers publish, your feed fills in.
+            </Text>
+          ) : (
+            <>
+              {spot && (
+                <Animated.View style={{ opacity: heroFade }}>
+                  <Pressable style={styles.hero} onPress={() => router.push(`/story/${spot.slug}`)}>
+                    <LinearGradient
+                      colors={[hexA(ambientColor, 0.95), '#16100F']}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={StyleSheet.absoluteFill}
+                    />
+                    {spot.coverUrl ? (
+                      <Image source={{ uri: spot.coverUrl }} style={styles.heroImg} resizeMode="cover" />
+                    ) : null}
+                    <LinearGradient
+                      colors={['transparent', 'rgba(16,13,12,0.97)']}
+                      locations={[0.32, 1]}
+                      style={StyleSheet.absoluteFill}
+                    />
+                    <View style={styles.heroBody}>
+                      <View style={styles.tag}>
+                        <Text style={styles.tagText}>{spot._reason}</Text>
+                      </View>
+                      <Text style={styles.heroTitle} numberOfLines={3}>
+                        {spot.title}
+                      </Text>
+                      <Text style={styles.heroMeta} numberOfLines={1}>
+                        {spot.author?.displayName ?? 'A NovelStack writer'} ·{' '}
+                        {(spot.totalReads ?? 0).toLocaleString()} reads
+                      </Text>
+                    </View>
+                  </Pressable>
 
-        {cont && (
-          <Pressable
-            style={styles.contCard}
-            onPress={() => router.push(`/read/${cont.chapterId}`)}
-          >
-            <Cover
-              coverUrl={cont.coverUrl}
-              coverColor={cont.coverColor}
-              title={cont.storyTitle}
-              style={styles.contCover}
-            />
-            <View style={styles.contText}>
-              <Text style={styles.contLabel}>CONTINUE READING</Text>
-              <Text style={styles.contTitle} numberOfLines={1}>
-                {cont.storyTitle}
-              </Text>
-              <Text style={styles.contMeta}>
-                Chapter {cont.chapterNumber}
-                {cont.totalChapters ? ` of ${cont.totalChapters}` : ''} · {cont.progressPct}%
-              </Text>
-              <View style={styles.progressTrack}>
-                <View
-                  style={[
-                    styles.progressFill,
-                    { width: `${Math.min(100, Math.max(4, cont.progressPct))}%` },
-                  ]}
-                />
-              </View>
-            </View>
-            <View style={styles.playBtn}>
-              <Ionicons name="play" size={15} color="#FFFFFF" />
-            </View>
-          </Pressable>
-        )}
+                  <View style={styles.btns}>
+                    <Pressable
+                      style={[styles.btn, styles.btnRead]}
+                      onPress={() => router.push(`/story/${spot.slug}`)}
+                    >
+                      <Ionicons name="play" size={17} color="#15100E" />
+                      <Text style={styles.btnReadText}>Read</Text>
+                    </Pressable>
+                    <Pressable style={[styles.btn, styles.btnSave]} onPress={saveSpot}>
+                      <Ionicons
+                        name={savedIds.has(spot.id) ? 'checkmark' : 'add'}
+                        size={18}
+                        color="#FFFFFF"
+                      />
+                      <Text style={styles.btnSaveText}>
+                        {savedIds.has(spot.id) ? 'Saved' : 'Save'}
+                      </Text>
+                    </Pressable>
+                  </View>
 
-        {loading ? (
-          <ActivityIndicator color={colors.signal} style={{ marginTop: spacing.xl }} />
-        ) : feed.length === 0 ? (
-          <Text style={styles.empty}>
-            Nothing here yet. Once writers publish, your feed fills in.
-          </Text>
-        ) : (
-          <>
-            {spotlight && (
-              <>
-                <Text style={styles.section}>Spotlight</Text>
+                  {spotCount > 1 && (
+                    <View style={styles.dots}>
+                      {spotCandidates.map((s, i) => (
+                        <View
+                          key={s.id}
+                          style={[styles.dot, i === spotIndex % spotCount && styles.dotOn]}
+                        />
+                      ))}
+                    </View>
+                  )}
+                </Animated.View>
+              )}
+
+              {cont && (
                 <Pressable
-                  style={styles.spot}
-                  onPress={() => router.push(`/story/${spotlight.slug}`)}
+                  style={styles.contCard}
+                  onPress={() => router.push(`/read/${cont.chapterId}`)}
                 >
                   <Cover
-                    coverUrl={spotlight.coverUrl}
-                    coverColor={spotlight.coverColor}
-                    style={StyleSheet.absoluteFill}
+                    coverUrl={cont.coverUrl}
+                    coverColor={cont.coverColor}
+                    title={cont.storyTitle}
+                    style={styles.contCover}
                   />
-                  <View style={styles.spotScrim} />
-                  <View style={styles.spotBody}>
-                    <View style={styles.pill}>
-                      <Text style={styles.pillText}>{spotlight._reason}</Text>
-                    </View>
-                    <Text style={styles.spotTitle} numberOfLines={3}>
-                      {spotlight.title}
+                  <View style={styles.contText}>
+                    <Text style={styles.contLabel}>CONTINUE READING</Text>
+                    <Text style={styles.contTitle} numberOfLines={1}>
+                      {cont.storyTitle}
                     </Text>
-                    <Text style={styles.spotBy} numberOfLines={1}>
-                      by {spotlight.author?.displayName ?? 'a NovelStack writer'} ·{' '}
-                      {(spotlight.totalReads ?? 0).toLocaleString()} reads
+                    <Text style={styles.contMeta}>
+                      Chapter {cont.chapterNumber}
+                      {cont.totalChapters ? ` of ${cont.totalChapters}` : ''} · {cont.progressPct}%
                     </Text>
-                    <View style={styles.spotRow}>
-                      <View style={styles.readBtn}>
-                        <Text style={styles.readBtnText}>Read now</Text>
-                      </View>
+                    <View style={styles.progressTrack}>
+                      <View
+                        style={[
+                          styles.progressFill,
+                          { width: `${Math.min(100, Math.max(4, cont.progressPct))}%` },
+                        ]}
+                      />
                     </View>
                   </View>
+                  <View style={styles.playBtn}>
+                    <Ionicons name="play" size={15} color="#15100E" />
+                  </View>
                 </Pressable>
-              </>
-            )}
+              )}
 
-            <Rail title="Trending now" stories={trending} />
-            {following.length > 0 && (
-              <Rail title="From writers you follow" stories={following} />
-            )}
-            {moreForYou.length > 0 && <Rail title="More for you" stories={moreForYou} />}
-          </>
-        )}
-        <View style={{ height: spacing.xl }} />
+              <Rail title="Trending now" stories={trending} />
+              {following.length > 0 && (
+                <Rail title="From writers you follow" stories={following} />
+              )}
+              {moreForYou.length > 0 && <Rail title="More for you" stories={moreForYou} />}
+            </>
+          )}
+          <View style={{ height: spacing.xl }} />
         </Animated.View>
       </ScrollView>
     </SafeAreaView>
@@ -222,14 +319,72 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.paper },
   scroll: { paddingBottom: spacing.xl },
 
-  greeting: { fontSize: 13, color: colors.inkFaint, paddingHorizontal: 20, paddingTop: 4 },
+  ambient: { position: 'absolute', top: 0, left: 0, right: 0, height: 500 },
+
+  empty: { fontSize: 14, color: colors.inkMuted, paddingHorizontal: 20, marginTop: spacing.xl },
+
+  hero: {
+    marginHorizontal: 16,
+    height: 392,
+    borderRadius: 22,
+    overflow: 'hidden',
+    justifyContent: 'flex-end',
+  },
+  heroImg: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%' },
+  heroBody: { padding: 20 },
+  tag: {
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(255,255,255,0.16)',
+    borderRadius: 7,
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+  },
+  tagText: {
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.9,
+    textTransform: 'uppercase',
+    color: '#FFFFFF',
+  },
+  heroTitle: {
+    fontFamily: fonts.displayXl,
+    fontSize: 34,
+    color: '#FFFFFF',
+    marginTop: 12,
+    letterSpacing: -0.6,
+    lineHeight: 36,
+  },
+  heroMeta: { fontSize: 13, color: colors.inkMuted, marginTop: 7, fontWeight: '500' },
+
+  btns: { flexDirection: 'row', gap: 10, paddingHorizontal: 16, marginTop: 14 },
+  btn: {
+    height: 52,
+    borderRadius: 13,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  btnRead: { flex: 1.6, backgroundColor: '#F4ECDF' },
+  btnReadText: { fontSize: 15, fontWeight: '700', color: '#15100E' },
+  btnSave: {
+    flex: 1,
+    backgroundColor: 'rgba(255,255,255,0.10)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.16)',
+  },
+  btnSaveText: { fontSize: 15, fontWeight: '600', color: '#FFFFFF' },
+
+  dots: { flexDirection: 'row', justifyContent: 'center', gap: 6, marginTop: 14 },
+  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.borderSoft },
+  dotOn: { backgroundColor: colors.signal, width: 18 },
 
   contCard: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 13,
-    marginHorizontal: 20,
-    marginTop: spacing.md,
+    marginHorizontal: 16,
+    marginTop: spacing.xl,
     backgroundColor: colors.paperSoft,
     borderWidth: 1,
     borderColor: colors.borderSoft,
@@ -238,86 +393,31 @@ const styles = StyleSheet.create({
   },
   contCover: { width: 50, height: 70, borderRadius: 7 },
   contText: { flex: 1, minWidth: 0 },
-  contLabel: { fontSize: 10, letterSpacing: 1, color: colors.signal, fontWeight: '600' },
-  contTitle: { fontSize: 16, fontWeight: '500', color: colors.ink, marginTop: 3 },
+  contLabel: { fontSize: 10, letterSpacing: 1, color: colors.signal, fontWeight: '700' },
+  contTitle: { fontFamily: fonts.display, fontSize: 16, color: colors.ink, marginTop: 3 },
   contMeta: { fontSize: 11, color: colors.inkFaint, marginTop: 2, marginBottom: 9 },
   progressTrack: { height: 4, backgroundColor: colors.borderSoft, borderRadius: radius.pill },
   progressFill: { height: 4, backgroundColor: colors.signal, borderRadius: radius.pill },
   playBtn: {
     width: 40,
     height: 40,
-    borderRadius: radius.pill,
-    backgroundColor: colors.signal,
+    borderRadius: 12,
+    backgroundColor: '#F4ECDF',
     alignItems: 'center',
     justifyContent: 'center',
   },
 
-  empty: { fontSize: 14, color: colors.inkMuted, paddingHorizontal: 20, marginTop: spacing.xl },
-
   section: {
-    fontSize: 19,
-    fontWeight: '500',
+    fontFamily: fonts.display,
+    fontSize: 20,
     color: colors.ink,
     paddingHorizontal: 20,
     marginTop: spacing.xl,
     marginBottom: spacing.md,
   },
-
-  spot: {
-    marginHorizontal: 20,
-    height: 372,
-    borderRadius: 20,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: colors.borderSoft,
-    justifyContent: 'flex-end',
-  },
-  spotScrim: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    height: '70%',
-    backgroundColor: 'rgba(10,8,9,0.78)',
-  },
-  spotBody: { padding: 20 },
-  pill: {
-    alignSelf: 'flex-start',
-    backgroundColor: 'rgba(200,65,78,0.22)',
-    borderWidth: 1,
-    borderColor: 'rgba(200,65,78,0.5)',
-    borderRadius: radius.pill,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-  },
-  pillText: {
-    fontSize: 10,
-    letterSpacing: 0.7,
-    textTransform: 'uppercase',
-    fontWeight: '600',
-    color: '#F2C9CD',
-  },
-  spotTitle: {
-    fontSize: 28,
-    fontWeight: '500',
-    color: '#FFFFFF',
-    marginTop: 12,
-    letterSpacing: -0.3,
-  },
-  spotBy: { fontSize: 13, color: colors.inkMuted, marginTop: 5 },
-  spotRow: { flexDirection: 'row', marginTop: 16 },
-  readBtn: {
-    flex: 1,
-    backgroundColor: colors.signal,
-    paddingVertical: 14,
-    borderRadius: radius.pill,
-    alignItems: 'center',
-  },
-  readBtnText: { color: '#FFFFFF', fontSize: 14, fontWeight: '600' },
-
-  rail: { gap: 13, paddingHorizontal: 20, paddingBottom: 4 },
+  rail: { gap: 13, paddingHorizontal: 16, paddingBottom: 4 },
   railItem: { width: 118 },
-  railCover: { width: 118, height: 166, borderRadius: 10 },
-  railTitle: { fontSize: 12, fontWeight: '500', color: colors.ink, marginTop: 8 },
+  railCover: { width: 118, height: 166, borderRadius: 12 },
+  railTitle: { fontSize: 12, fontWeight: '600', color: colors.ink, marginTop: 8 },
   railAuthor: { fontSize: 11, color: colors.inkFaint, marginTop: 1 },
 });

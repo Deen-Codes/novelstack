@@ -12,7 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, paperMode, spacing, radius } from '@/theme/tokens';
+import { colors, paperMode, spacing, radius, fonts } from '@/theme/tokens';
 import { apiGet, apiSend } from '@/lib/api';
 import { getCurrentUser } from '@/lib/auth';
 import type { ChapterDetail, StoryDetail } from '@/lib/types';
@@ -302,9 +302,8 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   chTitle: {
-    fontFamily: 'serif',
-    fontSize: 27,
-    fontWeight: '500',
+    fontFamily: fonts.display,
+    fontSize: 26,
     marginTop: spacing.xs,
     marginBottom: spacing.lg,
   },

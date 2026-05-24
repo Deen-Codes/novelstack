@@ -3,7 +3,7 @@ import { View, Text, TextInput, Pressable, StyleSheet, Linking } from 'react-nat
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { apiSend } from '@/lib/api';
-import { colors, spacing, radius } from '@/theme/tokens';
+import { colors, spacing, radius, fonts } from '@/theme/tokens';
 
 // Always leaves the reader a way out of the sign-in screen.
 function goBack() {
@@ -196,9 +196,9 @@ const styles = StyleSheet.create({
   body: { flex: 1, padding: spacing.xl, justifyContent: 'center' },
   backRow: { position: 'absolute', top: spacing.lg, left: spacing.xl },
   back: { fontSize: 15, color: colors.inkMuted },
-  logo: { fontSize: 22, fontWeight: '500', color: colors.ink, marginBottom: spacing.xl },
+  logo: { fontFamily: fonts.displayXl, fontSize: 24, color: colors.ink, marginBottom: spacing.xl, letterSpacing: -0.6 },
   dot: { color: colors.signal },
-  h1: { fontSize: 24, fontWeight: '500', color: colors.ink },
+  h1: { fontFamily: fonts.display, fontSize: 24, color: colors.ink },
   sub: { fontSize: 14, color: colors.inkMuted, marginTop: spacing.sm, lineHeight: 21 },
   input: {
     marginTop: spacing.lg,

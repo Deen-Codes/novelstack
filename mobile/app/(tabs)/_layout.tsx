@@ -2,9 +2,9 @@ import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '@/theme/tokens';
 
-// Three tabs: Community · Home · Library (Home centered). Search, Write and
-// Profile are reached from the top bar, so they're hidden from the tab bar
-// (href: null) while still being navigable routes.
+// Four tabs: Home · Library · Search · Community. Write and Profile are
+// reached from the top bar, so they're hidden from the tab bar (href: null)
+// while still being navigable routes.
 export default function TabLayout() {
   return (
     <Tabs
@@ -13,7 +13,7 @@ export default function TabLayout() {
         tabBarActiveTintColor: colors.signal,
         tabBarInactiveTintColor: '#8A7F73',
         tabBarStyle: {
-          backgroundColor: '#100D0C',
+          backgroundColor: '#0C0A09',
           borderTopColor: colors.borderSoft,
           borderTopWidth: 1,
           height: 94,
@@ -24,13 +24,6 @@ export default function TabLayout() {
         tabBarIconStyle: { marginTop: 2 },
       }}
     >
-      <Tabs.Screen
-        name="community"
-        options={{
-          title: 'Community',
-          tabBarIcon: ({ color }) => <Ionicons name="people-outline" size={27} color={color} />,
-        }}
-      />
       <Tabs.Screen
         name="index"
         options={{
@@ -45,8 +38,21 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => <Ionicons name="library-outline" size={27} color={color} />,
         }}
       />
+      <Tabs.Screen
+        name="search"
+        options={{
+          title: 'Search',
+          tabBarIcon: ({ color }) => <Ionicons name="search-outline" size={27} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="community"
+        options={{
+          title: 'Community',
+          tabBarIcon: ({ color }) => <Ionicons name="people-outline" size={27} color={color} />,
+        }}
+      />
       {/* Reached from the top bar — navigable, but not shown in the tab bar. */}
-      <Tabs.Screen name="search" options={{ href: null }} />
       <Tabs.Screen name="write" options={{ href: null }} />
       <Tabs.Screen name="profile" options={{ href: null }} />
     </Tabs>

@@ -11,7 +11,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, spacing, radius } from '@/theme/tokens';
+import { colors, spacing, radius, fonts } from '@/theme/tokens';
 import { apiGet } from '@/lib/api';
 import { GENRES, genreLabel } from '@/lib/genres';
 import { TopBar } from '@/components/TopBar';
@@ -321,10 +321,11 @@ const styles = StyleSheet.create({
 
   results: { marginTop: spacing.sm },
   section: {
-    fontSize: 13,
-    color: colors.inkMuted,
+    fontFamily: fonts.display,
+    fontSize: 18,
+    color: colors.ink,
     marginTop: spacing.lg,
-    marginBottom: spacing.sm,
+    marginBottom: spacing.md,
   },
   row: {
     flexDirection: 'row',

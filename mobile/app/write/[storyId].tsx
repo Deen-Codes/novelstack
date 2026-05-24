@@ -12,7 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useFocusEffect, router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
-import { colors, spacing, radius } from '@/theme/tokens';
+import { colors, spacing, radius, fonts } from '@/theme/tokens';
 import { apiGet, apiSend, apiUpload } from '@/lib/api';
 import { Cover } from '@/components/Cover';
 import type { Shelf, Story, Chapter, StoryDetail, ChapterDetail } from '@/lib/types';
@@ -417,7 +417,7 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.paper },
   scroll: { padding: spacing.lg, paddingBottom: spacing.xl * 3 },
   back: { fontSize: 14, color: colors.inkMuted, marginBottom: spacing.md },
-  h1: { fontSize: 26, fontWeight: '500', color: colors.ink, letterSpacing: -0.5 },
+  h1: { fontFamily: fonts.displayXl, fontSize: 26, color: colors.ink, letterSpacing: -0.5 },
   sub: { fontSize: 13, color: colors.inkFaint, marginTop: 4, textTransform: 'capitalize' },
   empty: { fontSize: 13, color: colors.inkMuted, marginTop: spacing.md },
   coverCard: {

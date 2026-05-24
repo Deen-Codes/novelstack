@@ -12,7 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
-import { colors, spacing, radius } from '@/theme/tokens';
+import { colors, spacing, radius, fonts } from '@/theme/tokens';
 import { apiGet, apiSend, apiUpload, getSessionToken } from '@/lib/api';
 import { getCurrentUser, signOut as clearSessionAuth } from '@/lib/auth';
 import { Cover } from '@/components/Cover';
@@ -317,7 +317,7 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.paper },
   body: { padding: spacing.lg },
   scroll: { padding: spacing.lg, paddingBottom: spacing.xl * 2 },
-  h1: { fontSize: 28, fontWeight: '500', color: colors.ink, letterSpacing: -0.5 },
+  h1: { fontFamily: fonts.displayXl, fontSize: 28, color: colors.ink, letterSpacing: -0.6 },
   sub: { fontSize: 14, color: colors.inkMuted, marginTop: spacing.sm, lineHeight: 21 },
   header: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   avatar: {
@@ -355,7 +355,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
   },
   photoBtnText: { fontSize: 13, fontWeight: '500', color: colors.ink },
-  name: { fontSize: 22, fontWeight: '500', color: colors.ink },
+  name: { fontFamily: fonts.display, fontSize: 22, color: colors.ink },
   tick: { fontSize: 15, color: colors.signal },
   handle: { fontSize: 13, color: colors.inkFaint, marginTop: 2 },
   bio: { fontSize: 14, color: colors.inkMuted, marginTop: spacing.md, lineHeight: 21 },

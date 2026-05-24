@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react';
 import { View, Text, Image, Pressable, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
-import { colors, radius } from '@/theme/tokens';
+import { colors, radius, fonts } from '@/theme/tokens';
 import { getCurrentUser } from '@/lib/auth';
 import { ProfileSheet } from './ProfileSheet';
 import type { User } from '@/lib/types';
@@ -32,9 +32,6 @@ export function TopBar() {
           n<Text style={styles.dot}>.</Text>
         </Text>
         <View style={styles.right}>
-          <Pressable style={styles.icon} hitSlop={8} onPress={() => router.push('/search')}>
-            <Ionicons name="search" size={19} color={colors.inkMuted} />
-          </Pressable>
           <Pressable style={styles.icon} hitSlop={8} onPress={() => router.push('/write')}>
             <Ionicons name="create-outline" size={19} color={colors.signal} />
           </Pressable>
@@ -71,7 +68,7 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 10,
   },
-  mark: { fontSize: 27, fontWeight: '500', color: colors.ink, letterSpacing: -0.5 },
+  mark: { fontSize: 26, fontFamily: fonts.displayXl, color: colors.ink, letterSpacing: -1 },
   dot: { color: colors.signal },
   right: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   icon: {

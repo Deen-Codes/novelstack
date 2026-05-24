@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useFocusEffect, router } from 'expo-router';
-import { colors, spacing, radius } from '@/theme/tokens';
+import { colors, spacing, radius, fonts } from '@/theme/tokens';
 import { apiGet, apiSend } from '@/lib/api';
 import { getCurrentUser } from '@/lib/auth';
 import { Cover } from '@/components/Cover';
@@ -451,7 +451,7 @@ const styles = StyleSheet.create({
   gateTitle: { fontSize: 17, fontWeight: '500', color: colors.ink },
   gateBody: { fontSize: 14, color: colors.inkMuted, lineHeight: 21 },
   gateErr: { fontSize: 13, color: colors.signal },
-  h1: { fontSize: 24, fontWeight: '500', color: colors.ink, marginTop: 4, letterSpacing: -0.5 },
+  h1: { fontFamily: fonts.displayXl, fontSize: 25, color: colors.ink, marginTop: 4, letterSpacing: -0.5 },
   author: { fontSize: 14, color: colors.inkMuted, marginTop: 6 },
   desc: { fontSize: 14, color: colors.inkMuted, lineHeight: 21, marginTop: spacing.lg },
   actions: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.lg },
