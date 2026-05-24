@@ -13,6 +13,8 @@ import { router, useFocusEffect } from 'expo-router';
 import { colors, spacing, radius, fonts } from '@/theme/tokens';
 import { apiGet, apiSend, getSessionToken } from '@/lib/api';
 import { GENRES } from '@/lib/genres';
+import { AmbientGlow } from '@/components/AmbientGlow';
+import { SignInPitch } from '@/components/SignInPitch';
 import type { Shelf, Story } from '@/lib/types';
 
 export default function Write() {
@@ -82,13 +84,11 @@ export default function Write() {
   if (signedIn === false) {
     return (
       <SafeAreaView style={styles.safe} edges={['top']}>
-        <View style={styles.body}>
-          <Text style={styles.h1}>Write</Text>
-          <Text style={styles.sub}>Sign in to start a story and publish chapters.</Text>
-          <Pressable style={styles.primaryBtn} onPress={() => router.push('/signin')}>
-            <Text style={styles.primaryBtnText}>Sign in</Text>
-          </Pressable>
-        </View>
+        <AmbientGlow />
+        <SignInPitch
+          headline="Start writing on NovelStack"
+          sub="Publish your stories chapter by chapter, build a following of readers, and earn from the reader pool."
+        />
       </SafeAreaView>
     );
   }
