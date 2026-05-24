@@ -4,7 +4,7 @@
 import 'server-only';
 import { and, asc, desc, eq, ilike, inArray, isNotNull, ne, or, sql } from 'drizzle-orm';
 import { db } from '@/db';
-import { stories, chapters, chapterContent, bookmarks, follows, reads, subscriptions, adUnlocks, comments, posts } from '@/db/schema';
+import { stories, chapters, chapterContent, bookmarks, follows, reads, subscriptions, adUnlocks, comments, posts, postComments, postLikes } from '@/db/schema';
 
 // 18 is adult. Mature stories stay hidden until a date of birth proves it.
 export function isAdult(dateOfBirth: string | null | undefined): boolean {
@@ -225,20 +225,68 @@ export async function getFollowing(userId: string) {
 // ============================================================
 // COMMUNITY — the author-updates feed
 // ============================================================
+// Attaches like/comment counts (and whether the reader liked) to post rows.
+async function attachPostCounts<T extends { id: string }>(rows: T[], userId: string) {
+  if (rows.length === 0) return [] as (T & { commentCount: number; likeCount: number; likedByMe: boolean })[];
+  const ids = rows.map((r) => r.id);
+  const [cc, lc, mine] = await Promise.all([
+    db
+      .select({ postId: postComments.postId, n: sql<number>`count(*)::int` })
+      .from(postComments)
+      .where(inArray(postComments.postId, ids))
+      .groupBy(postComments.postId),
+    db
+      .select({ postId: postLikes.postId, n: sql<number>`count(*)::int` })
+      .from(postLikes)
+      .where(inArray(postLikes.postId, ids))
+      .groupBy(postLikes.postId),
+    db
+      .select({ postId: postLikes.postId })
+      .from(postLikes)
+      .where(and(eq(postLikes.userId, userId), inArray(postLikes.postId, ids))),
+  ]);
+  const cMap = new Map(cc.map((x) => [x.postId, x.n]));
+  const lMap = new Map(lc.map((x) => [x.postId, x.n]));
+  const mineSet = new Set(mine.map((x) => x.postId));
+  return rows.map((r) => ({
+    ...r,
+    commentCount: cMap.get(r.id) ?? 0,
+    likeCount: lMap.get(r.id) ?? 0,
+    likedByMe: mineSet.has(r.id),
+  }));
+}
+
 // Update posts from the writers the reader follows, plus their own, newest
-// first, each with the author and any attached book.
+// first, each with the author, any attached book, and like/comment counts.
 export async function getCommunityFeed(userId: string) {
   const myFollows = await db
     .select({ authorId: follows.authorId })
     .from(follows)
     .where(eq(follows.followerId, userId));
   const authorIds = [userId, ...myFollows.map((f) => f.authorId)];
-  return db.query.posts.findMany({
+  const rows = await db.query.posts.findMany({
     where: inArray(posts.authorId, authorIds),
     with: { author: true, story: true },
     orderBy: [desc(posts.createdAt)],
     limit: 50,
   });
+  return attachPostCounts(rows, userId);
+}
+
+// A single update with its author, attached book, full comment thread and
+// like state — powers the post detail screen.
+export async function getPostDetail(postId: string, userId: string) {
+  const post = await db.query.posts.findFirst({
+    where: eq(posts.id, postId),
+    with: {
+      author: true,
+      story: true,
+      comments: { with: { user: true }, orderBy: [asc(postComments.createdAt)] },
+    },
+  });
+  if (!post) return null;
+  const [withCounts] = await attachPostCounts([post], userId);
+  return withCounts;
 }
 
 // ============================================================

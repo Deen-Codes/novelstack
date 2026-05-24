@@ -16,6 +16,8 @@ import {
   comments,
   users,
   posts,
+  postComments,
+  postLikes,
 } from '@/db/schema';
 
 type Genre = typeof stories.$inferSelect.genre;
@@ -162,6 +164,41 @@ export async function createPost(
     .values({ authorId, body: text, storyId: storyId ?? null })
     .returning();
   return row;
+}
+
+// Community — reply to an update.
+export async function createPostComment(userId: string, postId: string, body: string) {
+  const text = body.trim();
+  if (!text) throw new Error('Write a comment.');
+  if (text.length > 500) throw new Error('Comments are limited to 500 characters.');
+  const [post] = await db.select({ id: posts.id }).from(posts).where(eq(posts.id, postId)).limit(1);
+  if (!post) throw new Error('That update no longer exists.');
+  const [row] = await db
+    .insert(postComments)
+    .values({ postId, userId, body: text })
+    .returning();
+  return row;
+}
+
+// Community — like / unlike an update. Returns the new state and total.
+export async function togglePostLike(userId: string, postId: string) {
+  const [existing] = await db
+    .select()
+    .from(postLikes)
+    .where(and(eq(postLikes.postId, postId), eq(postLikes.userId, userId)))
+    .limit(1);
+  if (existing) {
+    await db
+      .delete(postLikes)
+      .where(and(eq(postLikes.postId, postId), eq(postLikes.userId, userId)));
+  } else {
+    await db.insert(postLikes).values({ postId, userId });
+  }
+  const [{ n }] = await db
+    .select({ n: sql<number>`count(*)::int` })
+    .from(postLikes)
+    .where(eq(postLikes.postId, postId));
+  return { liked: !existing, likeCount: n };
 }
 
 export async function createStory(

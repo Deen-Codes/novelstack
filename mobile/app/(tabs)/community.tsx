@@ -36,8 +36,8 @@ function ago(iso: string): string {
   return `${Math.floor(d / 7)}w ago`;
 }
 
-// Community: a writers rail up top, an update composer, then a feed of
-// author updates from the writers you follow (and your own).
+// Community: a writers rail, an update composer, then a feed of author
+// updates — each likeable, commentable and shareable.
 export default function Community() {
   const [me, setMe] = useState<User | null>(null);
   const [following, setFollowing] = useState<User[]>([]);
@@ -110,6 +110,45 @@ export default function Community() {
     setPendingId(null);
   }
 
+  // Optimistic like toggle on a feed card.
+  async function toggleLike(p: CommunityPost) {
+    setPosts((list) =>
+      list.map((x) =>
+        x.id === p.id
+          ? {
+              ...x,
+              likedByMe: !x.likedByMe,
+              likeCount: x.likeCount + (x.likedByMe ? -1 : 1),
+            }
+          : x,
+      ),
+    );
+    try {
+      const res = await apiSend<{ liked: boolean; likeCount: number }>(
+        `/api/posts/${p.id}/like`,
+        'POST',
+      );
+      setPosts((list) =>
+        list.map((x) =>
+          x.id === p.id ? { ...x, likedByMe: res.liked, likeCount: res.likeCount } : x,
+        ),
+      );
+    } catch {
+      // Revert on failure.
+      setPosts((list) =>
+        list.map((x) =>
+          x.id === p.id
+            ? {
+                ...x,
+                likedByMe: p.likedByMe,
+                likeCount: p.likeCount,
+              }
+            : x,
+        ),
+      );
+    }
+  }
+
   async function sharePost(p: CommunityPost) {
     const url = p.story ? `${SITE}/story/${p.story.slug}` : SITE;
     const who = p.author?.displayName ?? 'A writer';
@@ -154,7 +193,6 @@ export default function Community() {
           />
         ) : (
           <>
-            {/* Writers rail */}
             {writers.length > 0 && (
               <>
                 <Text style={styles.sectionTitle}>Writers</Text>
@@ -204,7 +242,6 @@ export default function Community() {
               </>
             )}
 
-            {/* Composer */}
             <Pressable style={styles.composer} onPress={() => router.push('/compose')}>
               <View style={styles.composerAv}>
                 {me?.avatarUrl ? (
@@ -219,7 +256,6 @@ export default function Community() {
               <Ionicons name="create-outline" size={18} color={colors.signal} />
             </Pressable>
 
-            {/* Feed of updates */}
             {posts.length === 0 ? (
               <View style={styles.emptyFeed}>
                 <View style={styles.emptyIcon}>
@@ -233,7 +269,11 @@ export default function Community() {
             ) : (
               <View style={styles.feed}>
                 {posts.map((p) => (
-                  <View key={p.id} style={styles.post}>
+                  <Pressable
+                    key={p.id}
+                    style={styles.post}
+                    onPress={() => router.push(`/post/${p.id}`)}
+                  >
                     <View style={styles.postHead}>
                       <View style={styles.postAv}>
                         {p.author?.avatarUrl ? (
@@ -281,11 +321,38 @@ export default function Community() {
                       </Pressable>
                     )}
 
-                    <Pressable style={styles.shareRow} onPress={() => sharePost(p)}>
-                      <Ionicons name="arrow-redo-outline" size={17} color={colors.signal} />
-                      <Text style={styles.shareText}>Share</Text>
-                    </Pressable>
-                  </View>
+                    <View style={styles.actions}>
+                      <Pressable
+                        style={styles.action}
+                        onPress={() => toggleLike(p)}
+                        hitSlop={6}
+                      >
+                        <Ionicons
+                          name={p.likedByMe ? 'heart' : 'heart-outline'}
+                          size={18}
+                          color={p.likedByMe ? colors.signal : colors.inkMuted}
+                        />
+                        <Text style={styles.actionText}>{p.likeCount}</Text>
+                      </Pressable>
+                      <Pressable
+                        style={styles.action}
+                        onPress={() => router.push(`/post/${p.id}`)}
+                        hitSlop={6}
+                      >
+                        <Ionicons name="chatbubble-outline" size={17} color={colors.inkMuted} />
+                        <Text style={styles.actionText}>{p.commentCount}</Text>
+                      </Pressable>
+                      <View style={{ flex: 1 }} />
+                      <Pressable
+                        style={styles.action}
+                        onPress={() => sharePost(p)}
+                        hitSlop={6}
+                      >
+                        <Ionicons name="arrow-redo-outline" size={17} color={colors.signal} />
+                        <Text style={styles.shareText}>Share</Text>
+                      </Pressable>
+                    </View>
+                  </Pressable>
                 ))}
               </View>
             )}
@@ -421,15 +488,17 @@ const styles = StyleSheet.create({
   bookTitle: { fontFamily: fonts.display, fontSize: 14.5, color: colors.ink },
   bookRead: { fontSize: 12.5, color: colors.signal, fontWeight: '600', marginTop: 5 },
 
-  shareRow: {
+  actions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 18,
     marginTop: 12,
     paddingTop: 11,
     borderTopWidth: 1,
     borderTopColor: colors.borderSoft,
   },
+  action: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  actionText: { fontSize: 13, color: colors.inkMuted, fontWeight: '500' },
   shareText: { fontSize: 13, color: colors.signal, fontWeight: '600' },
 
   emptyFeed: { alignItems: 'center', paddingHorizontal: 36, marginTop: spacing.xl },

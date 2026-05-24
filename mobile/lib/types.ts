@@ -106,7 +106,22 @@ export type CommunityPost = {
   createdAt: string;
   author: User | null;
   story: Story | null;
+  commentCount: number;
+  likeCount: number;
+  likedByMe: boolean;
 };
+
+export type PostComment = {
+  id: string;
+  postId: string;
+  userId: string;
+  body: string;
+  createdAt: string;
+  user: User | null;
+};
+
+// GET /api/posts/:id — a post with its full comment thread.
+export type PostDetail = CommunityPost & { comments: PostComment[] };
 
 export type Comment = {
   id: string;
