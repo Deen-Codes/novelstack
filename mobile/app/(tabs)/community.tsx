@@ -9,9 +9,10 @@ import {
   StyleSheet,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 import { colors, spacing, radius } from '@/theme/tokens';
-import { apiGet } from '@/lib/api';
+import { apiGet, apiSend } from '@/lib/api';
 import { Cover } from '@/components/Cover';
 import { TopBar } from '@/components/TopBar';
 import type { Shelf, FeedStory, User } from '@/lib/types';
@@ -22,6 +23,20 @@ export default function Community() {
   const [following, setFollowing] = useState<User[]>([]);
   const [feed, setFeed] = useState<FeedStory[]>([]);
   const [loading, setLoading] = useState(true);
+  const [pendingId, setPendingId] = useState<string | null>(null);
+
+  // Unfollow a writer — the × badge on their avatar. Removes optimistically.
+  async function unfollow(w: User) {
+    if (pendingId) return;
+    setPendingId(w.id);
+    try {
+      await apiSend('/api/follows', 'POST', { authorId: w.id });
+      setFollowing((list) => list.filter((x) => x.id !== w.id));
+    } catch {
+      // Leave the list unchanged on failure.
+    }
+    setPendingId(null);
+  }
 
   const load = useCallback(async () => {
     // The shelf endpoint 401s when signed out — treat that as "follows nobody".
@@ -97,6 +112,14 @@ export default function Community() {
                         </Text>
                       )}
                     </View>
+                    <Pressable
+                      style={[styles.unfollowBadge, pendingId === w.id && { opacity: 0.5 }]}
+                      onPress={() => unfollow(w)}
+                      disabled={pendingId === w.id}
+                      hitSlop={8}
+                    >
+                      <Ionicons name="close" size={12} color="#FFFFFF" />
+                    </Pressable>
                     <Text style={styles.avatarName} numberOfLines={1}>
                       {w.displayName}
                     </Text>
@@ -216,6 +239,19 @@ const styles = StyleSheet.create({
 
   avatarRail: { gap: 16, paddingHorizontal: 20, paddingBottom: 4 },
   avatarItem: { width: 64, alignItems: 'center' },
+  unfollowBadge: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    width: 22,
+    height: 22,
+    borderRadius: radius.pill,
+    backgroundColor: 'rgba(20,16,10,0.92)',
+    borderWidth: 1,
+    borderColor: colors.borderSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   avatar: {
     width: 64,
     height: 64,

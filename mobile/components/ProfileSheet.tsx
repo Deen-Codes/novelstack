@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Modal,
+  Animated,
   View,
   Text,
   Image,
@@ -15,8 +16,9 @@ import { getCurrentUser, signOut } from '@/lib/auth';
 import { apiGet } from '@/lib/api';
 import type { User, Shelf } from '@/lib/types';
 
-// The profile bottom sheet — opened from the TopBar avatar. A quick-access
-// menu: stats, NovelStack+, and routes into the deeper screens.
+// The profile bottom sheet — opened from the TopBar avatar. The backdrop
+// fades in while only the sheet panel slides up (RN's Modal "slide" would
+// slide the whole black overlay as one block, which looks bad).
 export function ProfileSheet({
   visible,
   onClose,
@@ -27,6 +29,32 @@ export function ProfileSheet({
   const [user, setUser] = useState<User | null>(null);
   const [stats, setStats] = useState({ following: 0, stories: 0, reads: 0 });
   const [loading, setLoading] = useState(true);
+
+  // Animation: 0 = closed, 1 = open. `mounted` keeps the Modal alive through
+  // the closing animation.
+  const [mounted, setMounted] = useState(false);
+  const [sheetH, setSheetH] = useState(700);
+  const anim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (visible) {
+      setMounted(true);
+      Animated.timing(anim, {
+        toValue: 1,
+        duration: 240,
+        useNativeDriver: true,
+      }).start();
+    } else {
+      Animated.timing(anim, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }).start(({ finished }) => {
+        if (finished) setMounted(false);
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible]);
 
   useEffect(() => {
     if (!visible) return;
@@ -72,103 +100,117 @@ export function ProfileSheet({
     return n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n);
   }
 
+  const translateY = anim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [sheetH, 0],
+  });
+
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={styles.backdrop} onPress={onClose} />
-      <View style={styles.sheet}>
-        <View style={styles.grab} />
-        {loading ? (
-          <ActivityIndicator color={colors.signal} style={{ marginVertical: 60 }} />
-        ) : !user ? (
-          <View style={{ padding: spacing.lg, alignItems: 'center' }}>
-            <Text style={styles.signedOut}>
-              Sign in to follow writers, save stories and publish your own.
-            </Text>
-            <Pressable
-              style={styles.primaryBtn}
-              onPress={() => {
-                onClose();
-                router.push('/signin');
-              }}
-            >
-              <Text style={styles.primaryBtnText}>Sign in</Text>
-            </Pressable>
-          </View>
-        ) : (
-          <>
-            <View style={styles.head}>
-              <View style={styles.avatar}>
-                {user.avatarUrl ? (
-                  <Image source={{ uri: user.avatarUrl }} style={styles.avatarImg} />
-                ) : (
-                  <Text style={styles.avatarText}>
-                    {(user.displayName || '?').slice(0, 1).toUpperCase()}
-                  </Text>
-                )}
-              </View>
-              <View>
-                <Text style={styles.name}>{user.displayName}</Text>
-                <Text style={styles.handle}>@{user.username}</Text>
-              </View>
-            </View>
+    <Modal visible={mounted} transparent animationType="none" onRequestClose={onClose}>
+      <View style={styles.wrap}>
+        <Animated.View style={[StyleSheet.absoluteFill, { opacity: anim }]}>
+          <Pressable style={styles.backdrop} onPress={onClose} />
+        </Animated.View>
 
-            <View style={styles.stats}>
-              <View style={styles.stat}>
-                <Text style={styles.statN}>{stats.following}</Text>
-                <Text style={styles.statL}>Following</Text>
-              </View>
-              <View style={styles.stat}>
-                <Text style={styles.statN}>{stats.stories}</Text>
-                <Text style={styles.statL}>Stories</Text>
-              </View>
-              <View style={styles.stat}>
-                <Text style={styles.statN}>{compactReads(stats.reads)}</Text>
-                <Text style={styles.statL}>Reads</Text>
-              </View>
-            </View>
-
-            <View style={styles.plus}>
-              <View style={styles.plusIcon}>
-                <Ionicons name="sparkles" size={20} color="#FFFFFF" />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.plusTitle}>NovelStack+</Text>
-                <Text style={styles.plusSub}>Ad-free · every chapter unlocked</Text>
-              </View>
-              <View style={styles.plusGo}>
-                <Text style={styles.plusGoText}>Upgrade</Text>
-              </View>
-            </View>
-
-            <View style={styles.menu}>
-              <Pressable style={styles.mrow} onPress={() => go('/write')}>
-                <View style={styles.mico}>
-                  <Ionicons name="book-outline" size={17} color={colors.inkMuted} />
-                </View>
-                <Text style={styles.mlabel}>Your stories</Text>
-                <Ionicons name="chevron-forward" size={16} color={colors.inkFaint} />
-              </Pressable>
-              <View style={styles.divider} />
-              <Pressable style={styles.mrow} onPress={() => go('/profile')}>
-                <View style={styles.mico}>
-                  <Ionicons name="person-outline" size={17} color={colors.inkMuted} />
-                </View>
-                <Text style={styles.mlabel}>Edit profile</Text>
-                <Ionicons name="chevron-forward" size={16} color={colors.inkFaint} />
+        <Animated.View
+          style={[styles.sheet, { transform: [{ translateY }] }]}
+          onLayout={(e) => setSheetH(e.nativeEvent.layout.height)}
+        >
+          <View style={styles.grab} />
+          {loading ? (
+            <ActivityIndicator color={colors.signal} style={{ marginVertical: 60 }} />
+          ) : !user ? (
+            <View style={{ padding: spacing.lg, alignItems: 'center' }}>
+              <Text style={styles.signedOut}>
+                Sign in to follow writers, save stories and publish your own.
+              </Text>
+              <Pressable
+                style={styles.primaryBtn}
+                onPress={() => {
+                  onClose();
+                  router.push('/signin');
+                }}
+              >
+                <Text style={styles.primaryBtnText}>Sign in</Text>
               </Pressable>
             </View>
+          ) : (
+            <>
+              <View style={styles.head}>
+                <View style={styles.avatar}>
+                  {user.avatarUrl ? (
+                    <Image source={{ uri: user.avatarUrl }} style={styles.avatarImg} />
+                  ) : (
+                    <Text style={styles.avatarText}>
+                      {(user.displayName || '?').slice(0, 1).toUpperCase()}
+                    </Text>
+                  )}
+                </View>
+                <View>
+                  <Text style={styles.name}>{user.displayName}</Text>
+                  <Text style={styles.handle}>@{user.username}</Text>
+                </View>
+              </View>
 
-            <Pressable style={styles.signOut} onPress={handleSignOut}>
-              <Text style={styles.signOutText}>Sign out</Text>
-            </Pressable>
-          </>
-        )}
+              <View style={styles.stats}>
+                <View style={styles.stat}>
+                  <Text style={styles.statN}>{stats.following}</Text>
+                  <Text style={styles.statL}>Following</Text>
+                </View>
+                <View style={styles.stat}>
+                  <Text style={styles.statN}>{stats.stories}</Text>
+                  <Text style={styles.statL}>Stories</Text>
+                </View>
+                <View style={styles.stat}>
+                  <Text style={styles.statN}>{compactReads(stats.reads)}</Text>
+                  <Text style={styles.statL}>Reads</Text>
+                </View>
+              </View>
+
+              <View style={styles.plus}>
+                <View style={styles.plusIcon}>
+                  <Ionicons name="sparkles" size={20} color="#FFFFFF" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.plusTitle}>NovelStack+</Text>
+                  <Text style={styles.plusSub}>Ad-free · every chapter unlocked</Text>
+                </View>
+                <View style={styles.plusGo}>
+                  <Text style={styles.plusGoText}>Upgrade</Text>
+                </View>
+              </View>
+
+              <View style={styles.menu}>
+                <Pressable style={styles.mrow} onPress={() => go('/write')}>
+                  <View style={styles.mico}>
+                    <Ionicons name="book-outline" size={17} color={colors.inkMuted} />
+                  </View>
+                  <Text style={styles.mlabel}>Your stories</Text>
+                  <Ionicons name="chevron-forward" size={16} color={colors.inkFaint} />
+                </Pressable>
+                <View style={styles.divider} />
+                <Pressable style={styles.mrow} onPress={() => go('/profile')}>
+                  <View style={styles.mico}>
+                    <Ionicons name="person-outline" size={17} color={colors.inkMuted} />
+                  </View>
+                  <Text style={styles.mlabel}>Edit profile</Text>
+                  <Ionicons name="chevron-forward" size={16} color={colors.inkFaint} />
+                </Pressable>
+              </View>
+
+              <Pressable style={styles.signOut} onPress={handleSignOut}>
+                <Text style={styles.signOutText}>Sign out</Text>
+              </Pressable>
+            </>
+          )}
+        </Animated.View>
       </View>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
+  wrap: { flex: 1, justifyContent: 'flex-end' },
   backdrop: { flex: 1, backgroundColor: 'rgba(6,5,5,0.66)' },
   sheet: {
     backgroundColor: colors.paperSoft,
@@ -195,7 +237,13 @@ const styles = StyleSheet.create({
     lineHeight: 21,
     marginBottom: spacing.lg,
   },
-  head: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 6, marginBottom: spacing.md },
+  head: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    paddingHorizontal: 6,
+    marginBottom: spacing.md,
+  },
   avatar: {
     width: 62,
     height: 62,
