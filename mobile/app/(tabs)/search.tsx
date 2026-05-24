@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  Animated,
   ScrollView,
   View,
   Text,
@@ -11,7 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
-import { colors, spacing, radius, fonts } from '@/theme/tokens';
+import { colors, spacing, fonts } from '@/theme/tokens';
 import { apiGet } from '@/lib/api';
 import { Cover } from '@/components/Cover';
 import { TopBar } from '@/components/TopBar';
@@ -22,9 +23,16 @@ export default function Search() {
   const [recommended, setRecommended] = useState<Story[]>([]);
   const [results, setResults] = useState<Story[]>([]);
   const [loading, setLoading] = useState(false);
-  const [searched, setSearched] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inputRef = useRef<TextInput>(null);
+
+  const recList = useMemo(() => recommended.slice(0, 20), [recommended]);
+
+  // One animated value per recommended row, so they can fade in one by one.
+  const rowAnims = useMemo(
+    () => recList.map(() => new Animated.Value(0)),
+    [recList],
+  );
 
   // Recommended titles fill the screen before the reader types anything.
   const loadRecommended = useCallback(async () => {
@@ -45,25 +53,38 @@ export default function Search() {
     }, [loadRecommended]),
   );
 
+  // Stagger the recommended rows in — quick, so they're all settled fast.
+  useEffect(() => {
+    if (rowAnims.length === 0) return;
+    Animated.stagger(
+      55,
+      rowAnims.map((v) =>
+        Animated.timing(v, { toValue: 1, duration: 280, useNativeDriver: true }),
+      ),
+    ).start();
+  }, [rowAnims]);
+
   async function run(term: string) {
-    if (!term.trim()) {
+    const t = term.trim();
+    if (!t) {
       setResults([]);
-      setSearched(false);
+      setLoading(false);
       return;
     }
     setLoading(true);
     try {
-      setResults(await apiGet<Story[]>(`/api/search?q=${encodeURIComponent(term.trim())}`));
+      setResults(await apiGet<Story[]>(`/api/search?q=${encodeURIComponent(t)}`));
     } catch {
       setResults([]);
     }
-    setSearched(true);
     setLoading(false);
   }
 
-  // Debounce typing.
+  // Debounce typing. Flip to the loading state the moment the reader types,
+  // so a stale "no results" never flashes before the search has run.
   useEffect(() => {
     if (timer.current) clearTimeout(timer.current);
+    if (q.trim()) setLoading(true);
     timer.current = setTimeout(() => run(q), 350);
     return () => {
       if (timer.current) clearTimeout(timer.current);
@@ -99,42 +120,79 @@ export default function Search() {
           )}
         </View>
 
-        {/* No query — recommended titles as a list */}
+        {/* No query — recommended titles, fading in one by one */}
         {!hasQuery && (
           <>
             <Text style={styles.section}>Recommended for you</Text>
-            {recommended.length === 0 ? (
+            {recList.length === 0 ? (
               <ActivityIndicator color={colors.signal} style={{ marginTop: spacing.lg }} />
             ) : (
-              recommended.slice(0, 20).map((s) => (
-                <Pressable
+              recList.map((s, i) => (
+                <Animated.View
                   key={s.id}
-                  style={styles.row}
-                  onPress={() => router.push(`/story/${s.slug}`)}
+                  style={{
+                    opacity: rowAnims[i],
+                    transform: [
+                      {
+                        translateY: rowAnims[i].interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [12, 0],
+                        }),
+                      },
+                    ],
+                  }}
                 >
-                  <Cover
-                    coverUrl={s.coverUrl}
-                    coverColor={s.coverColor}
-                    title={s.title}
-                    mature={s.isMature}
-                    style={styles.rowCover}
-                  />
-                  <Text style={styles.rowTitle} numberOfLines={2}>
-                    {s.title}
-                  </Text>
-                </Pressable>
+                  <Pressable
+                    style={styles.row}
+                    onPress={() => router.push(`/story/${s.slug}`)}
+                  >
+                    <Cover
+                      coverUrl={s.coverUrl}
+                      coverColor={s.coverColor}
+                      title={s.title}
+                      mature={s.isMature}
+                      style={styles.rowCover}
+                    />
+                    <Text style={styles.rowTitle} numberOfLines={2}>
+                      {s.title}
+                    </Text>
+                  </Pressable>
+                </Animated.View>
               ))
             )}
           </>
         )}
 
-        {/* Query — results as a 3-up grid */}
+        {/* Query — spinner while loading, results, or a soft fallback */}
         {hasQuery && (
           <>
             {loading ? (
               <ActivityIndicator color={colors.signal} style={{ marginTop: spacing.xl }} />
-            ) : searched && results.length === 0 ? (
-              <Text style={styles.empty}>No matches for &ldquo;{q.trim()}&rdquo;.</Text>
+            ) : results.length === 0 ? (
+              <>
+                <Text style={styles.empty}>No matches for &ldquo;{q.trim()}&rdquo;.</Text>
+                <Text style={styles.section}>You might like these</Text>
+                <View style={styles.grid}>
+                  {recList.slice(0, 12).map((s) => (
+                    <Pressable
+                      key={s.id}
+                      style={styles.gridItem}
+                      onPress={() => router.push(`/story/${s.slug}`)}
+                    >
+                      <Cover
+                        coverUrl={s.coverUrl}
+                        coverColor={s.coverColor}
+                        title={s.title}
+                        mature={s.isMature}
+                        style={styles.gridCover}
+                      />
+                      <Text style={styles.gridTitle} numberOfLines={2}>
+                        {s.title}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </>
             ) : (
               <>
                 <Text style={styles.section}>
@@ -173,15 +231,6 @@ export default function Search() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.paper },
   scroll: { paddingBottom: spacing.xl },
-
-  pageTitle: {
-    fontFamily: fonts.displayXl,
-    fontSize: 27,
-    color: colors.ink,
-    paddingHorizontal: 20,
-    paddingTop: 4,
-    letterSpacing: -0.6,
-  },
 
   field: {
     flexDirection: 'row',

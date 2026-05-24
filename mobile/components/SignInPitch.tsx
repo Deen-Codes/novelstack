@@ -7,6 +7,7 @@ import {
   Pressable,
   StyleSheet,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, radius, fonts } from '@/theme/tokens';
 import { apiSend } from '@/lib/api';
@@ -97,11 +98,26 @@ export function SignInPitch({ headline, sub }: { headline: string; sub: string }
             </View>
             {!!error && <Text style={styles.error}>{error}</Text>}
             <Pressable
-              style={[styles.btn, loading && { opacity: 0.6 }]}
               onPress={send}
               disabled={loading}
+              style={({ pressed }) => [
+                styles.btnWrap,
+                (loading || pressed) && { opacity: 0.85 },
+              ]}
             >
-              <Text style={styles.btnText}>{loading ? 'Sending…' : 'Email me a link'}</Text>
+              <LinearGradient
+                colors={[colors.signal, colors.signalDeep]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.btn}
+              >
+                <Text style={styles.btnText}>
+                  {loading ? 'Sending…' : 'Email me a link'}
+                </Text>
+                {!loading && (
+                  <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
+                )}
+              </LinearGradient>
             </Pressable>
             <Text style={styles.hint}>
               No password. New here? You&apos;ll get an account automatically.
@@ -152,13 +168,14 @@ const styles = StyleSheet.create({
   },
   input: { flex: 1, fontSize: 15, color: colors.ink, padding: 0 },
   error: { fontSize: 13, color: colors.signal, marginTop: 10 },
+  btnWrap: { marginTop: 12 },
   btn: {
-    backgroundColor: colors.signal,
     height: 54,
     borderRadius: 14,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 12,
+    gap: 8,
   },
   btnText: { color: '#FFFFFF', fontSize: 15, fontWeight: '700' },
   hint: { fontSize: 12.5, color: colors.inkFaint, marginTop: 16, lineHeight: 18 },

@@ -18,6 +18,7 @@ import { Cover } from '@/components/Cover';
 import { TopBar } from '@/components/TopBar';
 import { SignInPitch } from '@/components/SignInPitch';
 import { AmbientGlow } from '@/components/AmbientGlow';
+import { RecentActivity } from '@/components/RecentActivity';
 import type { Shelf, FeedStory, User } from '@/lib/types';
 
 // Community tab: writers a reader follows, suggested writers to discover,
@@ -105,9 +106,6 @@ export default function Community() {
   const fromWriters = feed
     .filter((s) => s._reason === 'From a writer you follow')
     .slice(0, 12);
-  const popular = [...feed]
-    .sort((a, b) => (b.totalReads ?? 0) - (a.totalReads ?? 0))
-    .slice(0, 10);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -243,41 +241,8 @@ export default function Community() {
               />
             )}
 
-            {/* Popular this week */}
-            {popular.length > 0 && (
-              <>
-                <View style={styles.sectionHeader}>
-                  <Text style={styles.sectionTitle}>Popular this week</Text>
-                </View>
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.rail}
-                >
-                  {popular.map((s) => (
-                    <Pressable
-                      key={s.id}
-                      style={styles.railItem}
-                      onPress={() => router.push(`/story/${s.slug}`)}
-                    >
-                      <Cover
-                        coverUrl={s.coverUrl}
-                        coverColor={s.coverColor}
-                        title={s.title}
-                        mature={s.isMature}
-                        style={styles.railCover}
-                      />
-                      <Text style={styles.railTitle} numberOfLines={1}>
-                        {s.title}
-                      </Text>
-                      <Text style={styles.railAuthor} numberOfLines={1}>
-                        {s.author?.displayName ?? 'A writer'}
-                      </Text>
-                    </Pressable>
-                  ))}
-                </ScrollView>
-              </>
-            )}
+            {/* Recent activity — a live, self-refreshing strip */}
+            <RecentActivity stories={feed} />
           </>
         )}
         <View style={{ height: spacing.xl }} />
