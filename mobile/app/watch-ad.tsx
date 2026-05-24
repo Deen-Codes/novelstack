@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
 import { colors, spacing, radius, fonts } from '@/theme/tokens';
+import { apiSend } from '@/lib/api';
 
 const AD_SECONDS = 5;
 
@@ -26,9 +27,18 @@ export default function WatchAd() {
     return () => clearTimeout(t);
   }, [left]);
 
-  function finish() {
-    if (chapterId) router.replace(`/read/${chapterId}`);
-    else router.back();
+  async function finish() {
+    if (chapterId) {
+      // Record the rewarded-ad unlock so the chapter actually opens.
+      try {
+        await apiSend('/api/ad-unlocks', 'POST', { chapterId });
+      } catch {
+        // Return the reader to the chapter even if recording failed.
+      }
+      router.replace(`/read/${chapterId}`);
+    } else {
+      router.back();
+    }
   }
 
   return (

@@ -335,6 +335,23 @@ export const postLikes = pgTable(
 );
 
 // ============================================================
+// MODERATION — content reports
+// ============================================================
+export const reports = pgTable('reports', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  reporterId: uuid('reporter_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  storyId: uuid('story_id').references(() => stories.id, { onDelete: 'cascade' }),
+  chapterId: uuid('chapter_id').references(() => chapters.id, { onDelete: 'cascade' }),
+  reason: text('reason').notNull(),
+  detail: text('detail'),
+  // open · reviewing · actioned · dismissed
+  status: text('status').notNull().default('open'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+// ============================================================
 // RELATIONS — let Drizzle's query API fetch nested data
 // (story.author, story.chapters, chapter.content, …)
 // ============================================================

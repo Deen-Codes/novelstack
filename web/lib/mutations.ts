@@ -18,6 +18,9 @@ import {
   posts,
   postComments,
   postLikes,
+  tips,
+  adUnlocks,
+  reports,
 } from '@/db/schema';
 
 type Genre = typeof stories.$inferSelect.genre;
@@ -162,6 +165,66 @@ export async function createPost(
   const [row] = await db
     .insert(posts)
     .values({ authorId, body: text, storyId: storyId ?? null })
+    .returning();
+  return row;
+}
+
+// Tips — a reader-to-writer tip. This row is the ledger; settlement runs
+// through Stripe later. Charging isn't wired yet, so this captures intent.
+export async function createTip(
+  senderId: string,
+  data: { recipientId: string; storyId?: string | null; amount: number; message?: string | null },
+) {
+  if (!data.recipientId || data.recipientId === senderId) {
+    throw new Error('You cannot tip yourself.');
+  }
+  const amount = Math.round(Number(data.amount));
+  if (!Number.isFinite(amount) || amount < 300) {
+    throw new Error('Tips start at $3.');
+  }
+  const [row] = await db
+    .insert(tips)
+    .values({
+      senderId,
+      recipientId: data.recipientId,
+      storyId: data.storyId ?? null,
+      amountCents: amount,
+      message: data.message?.trim() || null,
+    })
+    .returning();
+  return row;
+}
+
+// Records a rewarded-ad unlock so the chapter opens for this reader — the
+// reader entitlement check in getChapterForReader looks for this row.
+export async function unlockChapter(userId: string, chapterId: string) {
+  if (!chapterId) throw new Error('Missing chapter.');
+  await db.insert(adUnlocks).values({ readerId: userId, chapterId });
+  return { ok: true };
+}
+
+// Files a content report against a story or chapter.
+export async function createReport(
+  reporterId: string,
+  data: {
+    storyId?: string | null;
+    chapterId?: string | null;
+    reason: string;
+    detail?: string | null;
+  },
+) {
+  const reason = (data.reason || '').trim();
+  if (!reason) throw new Error('Choose a reason for the report.');
+  if (!data.storyId && !data.chapterId) throw new Error('Nothing to report.');
+  const [row] = await db
+    .insert(reports)
+    .values({
+      reporterId,
+      storyId: data.storyId ?? null,
+      chapterId: data.chapterId ?? null,
+      reason,
+      detail: data.detail?.trim() || null,
+    })
     .returning();
   return row;
 }

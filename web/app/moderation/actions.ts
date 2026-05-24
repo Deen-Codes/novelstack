@@ -2,18 +2,21 @@
 
 import { revalidatePath } from 'next/cache';
 import { getSessionUser } from '@/lib/auth';
+import { createReport } from '@/lib/mutations';
 
-// NOTE: the moderation tables (`reports`, `blocks`) were not part of the
-// Render/Drizzle migration — the new data layer has no moderation surface yet.
-// These actions are kept as authenticated no-ops so the report/block UI still
-// renders and submits without error. Re-wire them once the moderation tables
-// land in db/schema.ts and lib/mutations.ts (tracked as future work).
-
-// File a content report.
-export async function submitReport(_formData: FormData) {
+// File a content report — persisted to the `reports` table.
+export async function submitReport(formData: FormData) {
   const user = await getSessionUser();
   if (!user) return;
-  // TODO: persist report once a `reports` table exists in the new schema.
+  const storyId = String(formData.get('storyId') || '') || null;
+  const chapterId = String(formData.get('chapterId') || '') || null;
+  const reason = String(formData.get('reason') || '');
+  const detail = String(formData.get('detail') || '') || null;
+  try {
+    await createReport(user.id, { storyId, chapterId, reason, detail });
+  } catch {
+    // Best-effort — the web report form surfaces nothing on validation errors.
+  }
 }
 
 // Block / unblock another user.

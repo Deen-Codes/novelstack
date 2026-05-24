@@ -194,16 +194,39 @@ export default function StoryScreen() {
     }
   }
 
-  function sendTip() {
-    if (requireSignIn() || busy) return;
-    setTipDone(true);
-    setTipOpen(false);
+  async function sendTip() {
+    if (requireSignIn() || busy || !story) return;
+    setBusy(true);
+    try {
+      await apiSend('/api/tips', 'POST', {
+        recipientId: story.authorId,
+        storyId: story.id,
+        amount: tipAmount,
+        message: tipMsg.trim(),
+      });
+      setTipDone(true);
+      setTipOpen(false);
+    } catch {
+      // Leave the sheet open so the reader can retry.
+    }
+    setBusy(false);
   }
 
-  function submitReport() {
-    if (requireSignIn() || busy) return;
-    setReportDone(true);
-    setReportOpen(false);
+  async function submitReport() {
+    if (requireSignIn() || busy || !story) return;
+    setBusy(true);
+    try {
+      await apiSend('/api/reports', 'POST', {
+        storyId: story.id,
+        reason: reportReason,
+        detail: reportDetail.trim(),
+      });
+      setReportDone(true);
+      setReportOpen(false);
+    } catch {
+      // Leave the sheet open so the reader can retry.
+    }
+    setBusy(false);
   }
 
   async function confirmAge() {
