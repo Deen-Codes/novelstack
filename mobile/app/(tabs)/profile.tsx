@@ -10,7 +10,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router, useFocusEffect } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { colors, spacing, radius, fonts } from '@/theme/tokens';
 import { apiGet, apiSend, apiUpload, getSessionToken } from '@/lib/api';
@@ -25,8 +25,10 @@ export default function ProfileScreen() {
   const [stories, setStories] = useState<Story[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Inline bio editor.
-  const [editing, setEditing] = useState(false);
+  // Inline bio editor. Opening Profile with ?edit=1 (from the profile sheet's
+  // "Edit profile") drops straight into the form — no second tap needed.
+  const params = useLocalSearchParams<{ edit?: string }>();
+  const [editing, setEditing] = useState(params.edit === '1');
   const [displayName, setDisplayName] = useState('');
   const [username, setUsername] = useState('');
   const [bio, setBio] = useState('');

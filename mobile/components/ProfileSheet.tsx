@@ -155,18 +155,18 @@ export function ProfileSheet({
               </View>
 
               <View style={styles.stats}>
-                <View style={styles.stat}>
+                <Pressable style={styles.stat} onPress={() => go('/following')}>
                   <Text style={styles.statN}>{stats.following}</Text>
                   <Text style={styles.statL}>Following</Text>
-                </View>
-                <View style={styles.stat}>
+                </Pressable>
+                <Pressable style={styles.stat} onPress={() => go('/write')}>
                   <Text style={styles.statN}>{stats.stories}</Text>
                   <Text style={styles.statL}>Stories</Text>
-                </View>
-                <View style={styles.stat}>
+                </Pressable>
+                <Pressable style={styles.stat} onPress={() => go('/library')}>
                   <Text style={styles.statN}>{compactReads(stats.reads)}</Text>
                   <Text style={styles.statL}>Reads</Text>
-                </View>
+                </Pressable>
               </View>
 
               <Pressable style={styles.plus} onPress={() => go('/plus')}>
@@ -183,15 +183,7 @@ export function ProfileSheet({
               </Pressable>
 
               <View style={styles.menu}>
-                <Pressable style={styles.mrow} onPress={() => go('/write')}>
-                  <View style={styles.mico}>
-                    <Ionicons name="book-outline" size={17} color={colors.inkMuted} />
-                  </View>
-                  <Text style={styles.mlabel}>Your stories</Text>
-                  <Ionicons name="chevron-forward" size={16} color={colors.inkFaint} />
-                </Pressable>
-                <View style={styles.divider} />
-                <Pressable style={styles.mrow} onPress={() => go('/profile')}>
+                <Pressable style={styles.mrow} onPress={() => go('/profile?edit=1')}>
                   <View style={styles.mico}>
                     <Ionicons name="person-outline" size={17} color={colors.inkMuted} />
                   </View>

@@ -27,6 +27,8 @@ export default function Reader() {
   const [loading, setLoading] = useState(true);
   const [prevId, setPrevId] = useState<string | null>(null);
   const [nextId, setNextId] = useState<string | null>(null);
+  // True when the next chapter is a paid chapter — reading on costs an ad.
+  const [nextNeedsAd, setNextNeedsAd] = useState(false);
   // Position of this chapter within the book, and the book's chapter count.
   const [chapterPos, setChapterPos] = useState(0);
   const [chapterCount, setChapterCount] = useState(0);
@@ -72,13 +74,16 @@ export default function Reader() {
         .filter((c) => c.publishedAt)
         .sort((a, b) => a.number - b.number);
       const idx = list.findIndex((c) => c.id === id);
+      const next = idx >= 0 && idx < list.length - 1 ? list[idx + 1] : null;
       setPrevId(idx > 0 ? list[idx - 1].id : null);
-      setNextId(idx >= 0 && idx < list.length - 1 ? list[idx + 1].id : null);
+      setNextId(next ? next.id : null);
+      setNextNeedsAd(!!next && next.isFree === false);
       setChapterPos(idx >= 0 ? idx : 0);
       setChapterCount(list.length);
     } catch {
       setPrevId(null);
       setNextId(null);
+      setNextNeedsAd(false);
       setChapterPos(0);
       setChapterCount(0);
     }
@@ -213,27 +218,6 @@ export default function Reader() {
           {locked ? chapter.excerpt : chapter.body}
         </Text>
 
-        {locked && (
-          <View style={[styles.endCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-            <Text style={[styles.endText, { color: theme.inkMuted }]}>
-              That&apos;s the preview — keep reading:
-            </Text>
-            <Pressable
-              style={[styles.adBtn, { backgroundColor: primaryBg }]}
-              onPress={() => router.replace(`/watch-ad?chapterId=${id}`)}
-            >
-              <Ionicons name="play" size={15} color={primaryInk} />
-              <Text style={[styles.adBtnText, { color: primaryInk }]}>
-                Watch a short ad to continue
-              </Text>
-            </Pressable>
-            <Pressable onPress={() => router.push('/plus')} hitSlop={6}>
-              <Text style={[styles.plus, { color: colors.signal }]}>
-                No ads with NovelStack+ — $6.99/month
-              </Text>
-            </Pressable>
-          </View>
-        )}
       </ScrollView>
 
       {/* Footer: big prev / next buttons */}
@@ -253,19 +237,40 @@ export default function Reader() {
             <Text style={[styles.navSecondaryText, { color: theme.ink }]}>Previous</Text>
           </Pressable>
 
-          <Pressable
-            style={[
-              styles.navBtn,
-              styles.navPrimary,
-              { backgroundColor: primaryBg },
-              !nextId && styles.navOff,
-            ]}
-            disabled={!nextId}
-            onPress={() => nextId && router.replace(`/read/${nextId}`)}
-          >
-            <Text style={[styles.navPrimaryText, { color: primaryInk }]}>Next chapter</Text>
-            <Ionicons name="chevron-forward" size={18} color={primaryInk} />
-          </Pressable>
+          {nextId ? (
+            <Pressable
+              style={[styles.navBtn, styles.navPrimary, { backgroundColor: primaryBg }]}
+              onPress={() =>
+                router.replace(
+                  nextNeedsAd ? `/watch-ad?chapterId=${nextId}` : `/read/${nextId}`,
+                )
+              }
+            >
+              {nextNeedsAd && (
+                <Ionicons name="play-circle" size={17} color={primaryInk} />
+              )}
+              <Text style={[styles.navPrimaryText, { color: primaryInk }]}>
+                {nextNeedsAd ? 'Watch ad · Next' : 'Next chapter'}
+              </Text>
+              {!nextNeedsAd && (
+                <Ionicons name="chevron-forward" size={18} color={primaryInk} />
+              )}
+            </Pressable>
+          ) : (
+            <Pressable
+              style={[styles.navBtn, styles.navPrimary, { backgroundColor: primaryBg }]}
+              onPress={() => router.replace(`/story/${chapter.story.slug}`)}
+            >
+              <Ionicons
+                name={chapter.story?.status === 'complete' ? 'checkmark' : 'sparkles'}
+                size={17}
+                color={primaryInk}
+              />
+              <Text style={[styles.navPrimaryText, { color: primaryInk }]}>
+                {chapter.story?.status === 'complete' ? 'Finish book' : 'All caught up'}
+              </Text>
+            </Pressable>
+          )}
         </View>
       </View>
     </SafeAreaView>

@@ -1,5 +1,5 @@
-import { type ComponentProps, useState } from 'react';
-import { ScrollView, View, Text, Pressable, StyleSheet } from 'react-native';
+import { type ComponentProps, useEffect, useRef, useState } from 'react';
+import { Animated, ScrollView, View, Text, Pressable, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -39,6 +39,20 @@ const PERKS: { icon: IconName; title: string; sub: string }[] = [
 
 export default function Plus() {
   const [tapped, setTapped] = useState(false);
+  const enter = useRef(new Animated.Value(0)).current; // entrance
+  const float = useRef(new Animated.Value(0)).current; // badge drift
+
+  useEffect(() => {
+    Animated.timing(enter, { toValue: 1, duration: 520, useNativeDriver: true }).start();
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(float, { toValue: 1, duration: 2400, useNativeDriver: true }),
+        Animated.timing(float, { toValue: 0, duration: 2400, useNativeDriver: true }),
+      ]),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [enter, float]);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -48,9 +62,29 @@ export default function Plus() {
           <Ionicons name="chevron-back" size={22} color={colors.ink} />
         </Pressable>
 
-        <View style={styles.badge}>
+        <Animated.View
+          style={{
+            alignItems: 'center',
+            width: '100%',
+            opacity: enter,
+            transform: [
+              { translateY: enter.interpolate({ inputRange: [0, 1], outputRange: [18, 0] }) },
+            ],
+          }}
+        >
+        <Animated.View
+          style={[
+            styles.badge,
+            {
+              transform: [
+                { scale: float.interpolate({ inputRange: [0, 1], outputRange: [1, 1.06] }) },
+                { translateY: float.interpolate({ inputRange: [0, 1], outputRange: [0, -5] }) },
+              ],
+            },
+          ]}
+        >
           <Ionicons name="sparkles" size={26} color="#15100E" />
-        </View>
+        </Animated.View>
         <Text style={styles.title}>
           NovelStack<Text style={{ color: colors.signal }}>+</Text>
         </Text>
@@ -89,6 +123,7 @@ export default function Plus() {
         ) : (
           <Text style={styles.fine}>Cancel anytime · billing handled by the App Store.</Text>
         )}
+        </Animated.View>
       </ScrollView>
     </SafeAreaView>
   );
