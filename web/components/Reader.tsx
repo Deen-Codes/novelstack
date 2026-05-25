@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { recordAdUnlock, markProgress } from '@/app/read/actions';
 import { BannerAd } from '@/components/BannerAd';
 import { TipButton } from '@/components/TipButton';
+import { ChapterProse } from '@/components/ChapterProse';
 
 type Props = {
   chapterId: string;
@@ -82,9 +83,7 @@ export function Reader(props: Props) {
           {props.title}
         </h1>
 
-        <div style={{ fontFamily: 'var(--font-serif)', fontSize: size, lineHeight: 1.75, whiteSpace: 'pre-wrap' }}>
-          {locked ? props.excerpt : props.body}
-        </div>
+        <ChapterProse body={locked ? props.excerpt : props.body ?? ''} fontSize={size} soft={c.soft} />
 
         {locked && (
           <div style={{ marginTop: 40, borderTop: `1px solid ${c.soft}`, paddingTop: 32, textAlign: 'center' }}>

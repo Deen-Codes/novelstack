@@ -3,7 +3,6 @@ import {
   ScrollView,
   View,
   Text,
-  TextInput,
   Pressable,
   ActivityIndicator,
   Alert,
@@ -15,7 +14,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { colors, spacing, radius, fonts } from '@/theme/tokens';
 import { apiGet, apiSend, apiUpload } from '@/lib/api';
 import { Cover } from '@/components/Cover';
-import type { Shelf, Story, Chapter, StoryDetail, ChapterDetail } from '@/lib/types';
+import type { Shelf, Story, Chapter, StoryDetail } from '@/lib/types';
 
 export default function StoryWriter() {
   const { storyId } = useLocalSearchParams<{ storyId: string }>();
@@ -26,13 +25,6 @@ export default function StoryWriter() {
   const [status, setStatus] = useState('');
   const [coverBusy, setCoverBusy] = useState(false);
   const [coverError, setCoverError] = useState('');
-
-  // Inline editor state — which chapter is open + its draft fields. `null`
-  // means nothing open; 'new' means the create-chapter form.
-  const [editing, setEditing] = useState<string | null>(null);
-  const [draftTitle, setDraftTitle] = useState('');
-  const [draftBody, setDraftBody] = useState('');
-  const [draftFree, setDraftFree] = useState(true);
 
   const load = useCallback(async () => {
     // The shelf carries the full Story (incl. slug) for every story we own.
@@ -66,75 +58,17 @@ export default function StoryWriter() {
     }, [load]),
   );
 
-  // Opens the create-chapter form.
+  // Opens the immersive editor to draft a brand-new chapter.
   function openNew() {
-    setEditing('new');
-    setDraftTitle(`Chapter ${chapters.length + 1}`);
-    setDraftBody('');
-    setDraftFree(chapters.length < 3);
-    setStatus('');
+    router.push({
+      pathname: '/write/chapter/[id]',
+      params: { id: 'new', storyId, next: String(chapters.length + 1) },
+    });
   }
 
-  // Opens an existing chapter — its body is fetched (authors can read it).
-  async function openEditor(ch: Chapter) {
-    setEditing(ch.id);
-    setDraftTitle(ch.title);
-    setDraftFree(ch.isFree);
-    setStatus('');
-    try {
-      const detail = await apiGet<ChapterDetail>(`/api/chapters/${ch.id}`);
-      setDraftBody(detail.body ?? '');
-    } catch {
-      setDraftBody('');
-    }
-  }
-
-  // Creating a chapter publishes it immediately (API behaviour).
-  async function createChapter() {
-    if (busy) return;
-    setBusy(true);
-    setStatus('Publishing…');
-    try {
-      await apiSend<Chapter>(`/api/me/stories/${storyId}/chapters`, 'POST', {
-        title: draftTitle.trim() || `Chapter ${chapters.length + 1}`,
-        body: draftBody,
-        isFree: draftFree,
-      });
-      setStatus('Published');
-      setEditing(null);
-      await load();
-    } catch (e) {
-      setStatus(e instanceof Error ? e.message : 'Could not publish.');
-    }
-    setBusy(false);
-  }
-
-  async function saveChapter(ch: Chapter) {
-    if (busy) return;
-    setBusy(true);
-    setStatus('Saving…');
-    try {
-      await apiSend<Chapter>(`/api/me/chapters/${ch.id}`, 'PATCH', {
-        title: draftTitle.trim() || `Chapter ${ch.number}`,
-        body: draftBody,
-        isFree: draftFree,
-      });
-      setStatus('Saved');
-      await load();
-    } catch (e) {
-      setStatus(e instanceof Error ? e.message : 'Could not save.');
-    }
-    setBusy(false);
-  }
-
-  // Toggles whether a published chapter is free.
-  async function toggleFree(ch: Chapter) {
-    try {
-      await apiSend<Chapter>(`/api/me/chapters/${ch.id}`, 'PATCH', { isFree: !ch.isFree });
-      await load();
-    } catch {
-      // Ignore — UI will reflect server state on next load.
-    }
+  // Opens an existing chapter in the immersive editor.
+  function openEditor(ch: Chapter) {
+    router.push({ pathname: '/write/chapter/[id]', params: { id: ch.id } });
   }
 
   // Picks an image from the library, uploads it to R2, saves it on the story.
@@ -391,105 +325,28 @@ export default function StoryWriter() {
           <Text style={styles.addBtnText}>+ New chapter</Text>
         </Pressable>
 
-        {editing === 'new' && (
-          <View style={styles.card}>
-            <View style={styles.editor}>
-              <TextInput
-                value={draftTitle}
-                onChangeText={setDraftTitle}
-                placeholder="Chapter title"
-                placeholderTextColor={colors.inkFaint}
-                style={styles.input}
-              />
-              <TextInput
-                value={draftBody}
-                onChangeText={setDraftBody}
-                placeholder="Write your chapter…"
-                placeholderTextColor={colors.inkFaint}
-                multiline
-                style={[styles.input, styles.bodyInput]}
-              />
-              <Pressable style={styles.freeRow} onPress={() => setDraftFree(!draftFree)}>
-                <View style={[styles.checkbox, draftFree && styles.checkboxOn]}>
-                  {draftFree && <Text style={styles.checkMark}>✓</Text>}
-                </View>
-                <Text style={styles.freeText}>Free chapter (no ad/NovelStack+ gate)</Text>
-              </Pressable>
-              <View style={styles.editorBtns}>
-                <Pressable style={styles.ghostBtn} onPress={() => setEditing(null)}>
-                  <Text style={styles.ghostBtnText}>Cancel</Text>
-                </Pressable>
-                <Pressable
-                  style={[styles.addBtn, { flex: 1, marginTop: 0 }, busy && { opacity: 0.6 }]}
-                  onPress={createChapter}
-                  disabled={busy}
-                >
-                  <Text style={styles.addBtnText}>Publish chapter</Text>
-                </Pressable>
-              </View>
-              {!!status && <Text style={styles.status}>{status}</Text>}
-            </View>
-          </View>
-        )}
-
-        {chapters.length === 0 && editing !== 'new' && (
+        {chapters.length === 0 && (
           <Text style={styles.empty}>No chapters yet. Add your first one above.</Text>
         )}
 
         {chapters.map((ch) => (
-          <View key={ch.id} style={styles.card}>
-            <Pressable
-              style={styles.cardHead}
-              onPress={() => (editing === ch.id ? setEditing(null) : openEditor(ch))}
-            >
+          <Pressable key={ch.id} style={styles.card} onPress={() => openEditor(ch)}>
+            <View style={styles.cardHead}>
               <View style={{ flex: 1 }}>
                 <Text style={styles.cardTitle}>
                   {ch.number}. {ch.title}
                 </Text>
                 <Text style={styles.cardMeta}>
                   {ch.publishedAt ? 'Published' : 'Draft'} · {ch.isFree ? 'Free' : 'Locked'}
+                  {ch.wordCount ? ` · ${ch.wordCount.toLocaleString()} words` : ''}
                 </Text>
               </View>
-              <Text style={styles.chevron}>{editing === ch.id ? '▾' : '›'}</Text>
-            </Pressable>
-
-            {editing === ch.id && (
-              <View style={styles.editor}>
-                <TextInput
-                  value={draftTitle}
-                  onChangeText={setDraftTitle}
-                  placeholder="Chapter title"
-                  placeholderTextColor={colors.inkFaint}
-                  style={styles.input}
-                />
-                <TextInput
-                  value={draftBody}
-                  onChangeText={setDraftBody}
-                  placeholder="Write your chapter…"
-                  placeholderTextColor={colors.inkFaint}
-                  multiline
-                  style={[styles.input, styles.bodyInput]}
-                />
-                <Pressable style={styles.freeRow} onPress={() => toggleFree(ch)}>
-                  <View style={[styles.checkbox, ch.isFree && styles.checkboxOn]}>
-                    {ch.isFree && <Text style={styles.checkMark}>✓</Text>}
-                  </View>
-                  <Text style={styles.freeText}>Free chapter (no ad/NovelStack+ gate)</Text>
-                </Pressable>
-                <View style={styles.editorBtns}>
-                  <Pressable
-                    style={[styles.addBtn, { flex: 1, marginTop: 0 }, busy && { opacity: 0.6 }]}
-                    onPress={() => saveChapter(ch)}
-                    disabled={busy}
-                  >
-                    <Text style={styles.addBtnText}>Save & update</Text>
-                  </Pressable>
-                </View>
-                {!!status && <Text style={styles.status}>{status}</Text>}
-              </View>
-            )}
-          </View>
+              <Text style={styles.chevron}>›</Text>
+            </View>
+          </Pressable>
         ))}
+
+        {!!status && <Text style={styles.status}>{status}</Text>}
 
         <Pressable style={styles.deleteBtn} onPress={confirmDelete}>
           <Text style={styles.deleteBtnText}>Delete story</Text>

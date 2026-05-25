@@ -60,7 +60,18 @@ function slugify(title: string): string {
 }
 
 function summarise(body: string) {
-  const words = body.trim().split(/\s+/).filter(Boolean);
+  // Strip the fiction-markdown syntax so word counts are accurate and the
+  // excerpt (shown to locked readers) never surfaces a stray ** or image tag.
+  const plain = body
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, ' ') // illustrations
+    .replace(/^\s{0,3}#{1,6}\s+/gm, '') // headings
+    .replace(/^\s{0,3}>\s?/gm, '') // blockquotes
+    .replace(/^\s*(?:\*\s*){3,}\s*$/gm, ' ') // scene breaks (* * *)
+    .replace(/^\s*[-_]{3,}\s*$/gm, ' ') // scene breaks (--- / ___)
+    .replace(/\*\*|__/g, '') // bold markers
+    .replace(/(?<!\w)[*_](?=\S)|(?<=\S)[*_](?!\w)/g, '') // italic markers
+    .trim();
+  const words = plain.split(/\s+/).filter(Boolean);
   return {
     wordCount: words.length,
     pageCount: Math.max(1, Math.ceil(words.length / 250)),
@@ -506,6 +517,29 @@ export async function updateChapter(
   }
   const [row] = await db.update(chapters).set(patch).where(eq(chapters.id, chapterId)).returning();
   return row;
+}
+
+// Deletes a chapter the author owns, then closes the gap so the remaining
+// chapter numbers stay contiguous (1, 2, 3 …). Body, reads, comments and
+// ad-unlocks for the chapter cascade away with the row.
+export async function deleteChapter(authorId: string, chapterId: string): Promise<boolean> {
+  const chapter = await db.query.chapters.findFirst({
+    where: eq(chapters.id, chapterId),
+    with: { story: true },
+  });
+  if (!chapter || chapter.story.authorId !== authorId) throw new Error('Not your chapter.');
+
+  await db.delete(chapters).where(eq(chapters.id, chapterId));
+  // Renumber what's left so there's never a missing "Chapter N".
+  await db.execute(sql`
+    with ordered as (
+      select id, row_number() over (order by number) as rn
+      from chapters where story_id = ${chapter.storyId}
+    )
+    update chapters c set number = o.rn, updated_at = now()
+    from ordered o where c.id = o.id and c.number <> o.rn
+  `);
+  return true;
 }
 
 // --- Profile ---------------------------------------------------------------

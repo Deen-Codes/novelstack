@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors, paperMode, spacing, radius, fonts } from '@/theme/tokens';
 import { apiGet, apiGetCached, apiSend } from '@/lib/api';
 import { getCurrentUser } from '@/lib/auth';
+import { MarkdownText } from '@/components/MarkdownText';
 import type { ChapterDetail, StoryDetail } from '@/lib/types';
 
 // Reader: full body if entitled, otherwise the excerpt preview + a (simulated)
@@ -228,9 +229,11 @@ export default function Reader() {
         <Text style={styles.chLabel}>Chapter {chapter.number ?? ''}</Text>
         <Text style={[styles.chTitle, { color: theme.ink }]}>{chapter.title ?? 'Chapter'}</Text>
 
-        <Text style={[styles.prose, { color: theme.ink }]}>
-          {locked ? chapter.excerpt : chapter.body}
-        </Text>
+        <MarkdownText
+          body={locked ? chapter.excerpt ?? '' : chapter.body ?? ''}
+          color={theme.ink}
+          faint={theme.inkFaint}
+        />
 
       </ScrollView>
 

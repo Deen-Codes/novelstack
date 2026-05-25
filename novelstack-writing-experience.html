@@ -1,0 +1,414 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>NovelStack — Writing experience mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Newsreader:ital,opsz@0,6..72;1,6..72&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --paper:#14110F; --paperSoft:#1C1714; --card:#241E1A; --cardHi:#2C2520;
+    --ink:#F2EADC; --inkMuted:#A29685; --inkFaint:#6F6459;
+    --signal:#C8414E; --signalDeep:#8E2C38; --signalSoft:#3A2025;
+    --border:#3F352D; --borderSoft:#332B25; --cream:#F4ECDF;
+    --display:'Bricolage Grotesque', system-ui, sans-serif;
+    --serif:'Newsreader', Georgia, serif;
+    --body:-apple-system, system-ui, sans-serif;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body {
+    background:#0a0908; font-family:var(--body); color:var(--ink);
+    padding:40px 20px 90px;
+  }
+  h1.page { font-family:var(--display); font-weight:800; font-size:26px;
+    text-align:center; letter-spacing:-0.6px; }
+  .lede { color:#8A7F73; font-size:14px; text-align:center; max-width:680px;
+    margin:10px auto 0; line-height:1.55; }
+  .lede b { color:#cdbfa8; }
+
+  .row { display:flex; flex-wrap:wrap; gap:28px; justify-content:center;
+    align-items:flex-start; margin-top:38px; }
+  .stage { width:340px; }
+  .stage .label { font-family:var(--display); font-weight:700; font-size:14px;
+    color:var(--signal); margin-bottom:4px; }
+  .stage .desc { color:#8A7F73; font-size:12.5px; line-height:1.5; margin-bottom:12px; }
+
+  .phone {
+    width:340px; height:710px; background:var(--paper); border-radius:42px;
+    border:9px solid #000; overflow:hidden; position:relative;
+    box-shadow:0 26px 70px rgba(0,0,0,0.55);
+  }
+  .notch { position:absolute; top:0; left:50%; transform:translateX(-50%);
+    width:112px; height:26px; background:#000; border-radius:0 0 16px 16px; z-index:40; }
+  .sb { display:flex; justify-content:space-between; padding:12px 24px 2px;
+    font-size:12px; font-weight:600; color:var(--ink); }
+
+  /* generic */
+  .pad { padding:6px 18px; }
+  .h { font-family:var(--display); font-weight:800; font-size:25px; letter-spacing:-0.5px; }
+  .sub { color:var(--inkMuted); font-size:13px; margin-top:3px; }
+  .row-bar { display:flex; align-items:center; justify-content:space-between; }
+
+  /* My Stories hub */
+  .newcard { display:flex; align-items:center; gap:12px; background:var(--card);
+    border:1px solid var(--border); border-radius:16px; padding:14px; margin-top:14px; }
+  .newcard .ic { width:44px; height:44px; border-radius:12px; background:var(--signalSoft);
+    border:1px solid #6E3138; display:flex; align-items:center; justify-content:center;
+    color:var(--signal); font-size:24px; }
+  .newcard .t { font-family:var(--display); font-weight:700; font-size:15px; }
+  .newcard .s { color:var(--inkMuted); font-size:12px; margin-top:2px; }
+  .sec { font-family:var(--display); font-weight:700; font-size:16px; margin:20px 0 10px; }
+  .book { display:flex; gap:12px; background:var(--card); border:1px solid var(--borderSoft);
+    border-radius:14px; padding:11px; margin-bottom:9px; }
+  .cv { width:48px; height:65px; border-radius:7px; flex:0 0 auto; }
+  .cv.a { background:linear-gradient(150deg,#7a4a2a,#2a1a12); }
+  .cv.b { background:linear-gradient(150deg,#33506b,#141b24); }
+  .cv.c { background:linear-gradient(150deg,#5a2f3a,#221820); }
+  .book .bt { font-family:var(--display); font-weight:700; font-size:14.5px; }
+  .book .bm { color:var(--inkFaint); font-size:12px; margin-top:3px; }
+  .pill { display:inline-block; font-size:10px; font-weight:700; letter-spacing:.4px;
+    text-transform:uppercase; padding:3px 8px; border-radius:6px; margin-top:7px; }
+  .pill.live { background:var(--signalSoft); color:#E59AA0; }
+  .pill.draft { background:var(--cardHi); color:var(--inkFaint); }
+  .chev { margin-left:auto; align-self:center; color:var(--inkFaint); }
+
+  /* chapter list */
+  .chrow { display:flex; align-items:center; gap:12px; padding:13px 0;
+    border-bottom:1px solid var(--borderSoft); }
+  .chnum { font-family:var(--display); font-weight:700; font-size:15px;
+    color:var(--inkFaint); width:22px; }
+  .chttl { font-size:14.5px; font-weight:500; }
+  .chmeta { font-size:11.5px; color:var(--inkFaint); margin-top:2px; }
+  .chstatus { margin-left:auto; font-size:10px; font-weight:700; text-transform:uppercase;
+    letter-spacing:.4px; }
+  .s-live { color:#8FCB9B; }
+  .s-draft { color:var(--inkFaint); }
+  .s-sched { color:#E5B45A; }
+  .addch { display:flex; align-items:center; justify-content:center; gap:8px;
+    border:1px dashed var(--border); border-radius:13px; padding:13px;
+    color:var(--signal); font-weight:700; font-size:14px; margin-top:16px; }
+
+  /* immersive editor */
+  .ed-top { display:flex; align-items:center; justify-content:space-between;
+    padding:8px 16px; }
+  .ed-top .x { color:var(--inkMuted); font-size:20px; }
+  .ed-top .wc { color:var(--inkFaint); font-size:11.5px; }
+  .ed-top .done { color:var(--signal); font-weight:700; font-size:13px; }
+  .ed-body { padding:8px 22px; }
+  .ed-chlabel { font-size:11px; letter-spacing:1px; text-transform:uppercase;
+    color:var(--signal); font-weight:700; }
+  .ed-chtitle { font-family:var(--display); font-weight:800; font-size:23px;
+    margin-top:4px; letter-spacing:-0.4px; }
+  .prose { font-family:var(--serif); font-size:16.5px; line-height:1.62;
+    color:var(--ink); margin-top:14px; }
+  .prose p { margin-bottom:13px; }
+  .prose em { font-style:italic; }
+  .sel { background:rgba(200,65,78,0.32); border-radius:2px; }
+  .scenebreak { text-align:center; color:var(--inkFaint); letter-spacing:6px;
+    margin:6px 0 16px; font-size:13px; }
+  .img-block { border-radius:12px; overflow:hidden; margin:4px 0 6px; }
+  .img-block .pic { height:120px;
+    background:linear-gradient(135deg,#46332a,#1c1512);
+    display:flex; align-items:center; justify-content:center; color:#6F6459; font-size:24px; }
+  .img-block .cap { font-family:var(--body); font-size:11.5px; color:var(--inkFaint);
+    text-align:center; padding:6px 8px; font-style:italic; }
+  .caret { display:inline-block; width:2px; height:18px; background:var(--signal);
+    vertical-align:-3px; }
+
+  /* selection bubble */
+  .bubble { position:absolute; left:46px; top:236px; background:#000;
+    border:1px solid var(--border); border-radius:10px; display:flex;
+    box-shadow:0 8px 24px rgba(0,0,0,0.6); z-index:20; }
+  .bubble div { padding:9px 12px; font-size:13px; color:#fff; border-right:1px solid #2a2520; }
+  .bubble div:last-child { border-right:0; }
+  .bubble .bi { font-style:italic; }
+  .bubble::after { content:''; position:absolute; bottom:-6px; left:24px;
+    border:6px solid transparent; border-top-color:#000; border-bottom:0; }
+
+  /* keyboard accessory bar + keyboard */
+  .kbwrap { position:absolute; left:0; right:0; bottom:0; }
+  .accbar { display:flex; align-items:center; gap:2px; background:var(--paperSoft);
+    border-top:1px solid var(--borderSoft); padding:9px 8px; }
+  .accbar .tool { flex:1; display:flex; align-items:center; justify-content:center;
+    color:var(--ink); font-size:17px; height:30px; }
+  .accbar .tool.b { font-weight:800; }
+  .accbar .tool.i { font-style:italic; font-family:var(--serif); }
+  .accbar .sepr { width:1px; height:20px; background:var(--borderSoft); }
+  .accbar .donebtn { color:var(--signal); font-weight:700; font-size:13px; padding:0 10px; }
+  .keyboard { background:#1b1b1d; padding:8px 4px 26px; }
+  .krow { display:flex; justify-content:center; gap:5px; margin-bottom:7px; }
+  .key { background:#3a3a3c; border-radius:5px; height:34px; flex:1;
+    display:flex; align-items:center; justify-content:center; color:#fff;
+    font-size:14px; max-width:30px; }
+  .key.wide { max-width:none; flex:2; }
+
+  /* publish review */
+  .rev-cover { width:120px; height:168px; border-radius:12px; margin:6px auto 0;
+    background:linear-gradient(150deg,#7a4a2a,#2a1a12); }
+  .rev-title { font-family:var(--display); font-weight:800; font-size:20px;
+    text-align:center; margin-top:14px; }
+  .rev-meta { color:var(--inkMuted); font-size:12.5px; text-align:center; margin-top:4px; }
+  .rev-line { display:flex; align-items:center; justify-content:space-between;
+    padding:13px 0; border-bottom:1px solid var(--borderSoft); font-size:13.5px; }
+  .rev-line .k { color:var(--inkMuted); }
+  .rev-line .v { color:var(--ink); font-weight:600; }
+  .btn-cream { background:var(--cream); color:#15100E; font-weight:700; font-size:15px;
+    text-align:center; padding:15px; border-radius:14px; margin-top:18px; }
+  .btn-ghost { border:1px solid var(--border); color:var(--ink); font-weight:600;
+    font-size:14px; text-align:center; padding:13px; border-radius:13px; margin-top:10px; }
+
+  .tabbar { position:absolute; left:0; right:0; bottom:0; display:flex;
+    justify-content:space-around; background:#0C0A09; border-top:1px solid var(--borderSoft);
+    padding:10px 0 26px; }
+  .tab { display:flex; flex-direction:column; align-items:center; gap:3px;
+    color:#8A7F73; font-size:10px; }
+  .tab .ic { font-size:20px; }
+  .tab.on { color:var(--signal); }
+
+  .notes { max-width:760px; margin:46px auto 0; background:#16130f;
+    border:1px solid var(--borderSoft); border-radius:16px; padding:24px 26px; }
+  .notes h3 { font-family:var(--display); font-weight:700; font-size:16px; margin-bottom:10px; }
+  .notes ul { list-style:none; }
+  .notes li { color:#b9ad99; font-size:13px; line-height:1.7; padding-left:18px;
+    position:relative; }
+  .notes li::before { content:'✦'; position:absolute; left:0; color:var(--signal);
+    font-size:10px; top:3px; }
+  .notes li b { color:var(--ink); }
+</style>
+</head>
+<body>
+
+  <h1 class="page">NovelStack — the writing experience</h1>
+  <p class="lede">
+    The full flow of releasing a novel, mockup-only. Based on writing-platform
+    research: <b>the platform owns typography, the writer owns structure</b> — a
+    deliberately small, tasteful tool set, an immersive editor that hides app
+    chrome while you type, and formatting that renders byte-identical for readers.
+  </p>
+
+  <div class="row">
+
+    <!-- 1. My Stories hub -->
+    <div class="stage">
+      <div class="label">1 · My Stories</div>
+      <div class="desc">The Write tab — every book in one hub, with its draft/live status.</div>
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="sb"><span>9:41</span><span>5G&nbsp;&nbsp;100%</span></div>
+        <div class="pad">
+          <div class="h">Write</div>
+          <div class="sub">Your books, drafts and chapters — all in one place.</div>
+          <div class="newcard">
+            <div class="ic">+</div>
+            <div>
+              <div class="t">Start a new book</div>
+              <div class="s">Set it up, then write chapter by chapter.</div>
+            </div>
+          </div>
+          <div class="sec">Your books</div>
+          <div class="book">
+            <div class="cv a"></div>
+            <div>
+              <div class="bt">The Lighthouse Year</div>
+              <div class="bm">Literary · 8 chapters</div>
+              <span class="pill live">Ongoing</span>
+            </div>
+            <span class="chev">›</span>
+          </div>
+          <div class="book">
+            <div class="cv b"></div>
+            <div>
+              <div class="bt">Cold Harbour</div>
+              <div class="bm">Thriller · 3 chapters</div>
+              <span class="pill draft">Draft</span>
+            </div>
+            <span class="chev">›</span>
+          </div>
+          <div class="book">
+            <div class="cv c"></div>
+            <div>
+              <div class="bt">Salt &amp; Other Small Gods</div>
+              <div class="bm">Fantasy · 21 chapters</div>
+              <span class="pill live">Complete</span>
+            </div>
+            <span class="chev">›</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. Chapter list -->
+    <div class="stage">
+      <div class="label">2 · Book &amp; chapters</div>
+      <div class="desc">Inside a book: cover, blurb, ad-gate, and chapters as Draft / Scheduled / Live.</div>
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="sb"><span>9:41</span><span>5G&nbsp;&nbsp;100%</span></div>
+        <div class="pad">
+          <div class="row-bar" style="padding:4px 0 10px;">
+            <span style="color:var(--inkMuted);font-size:14px;">‹ Write</span>
+            <span style="color:var(--signal);font-size:13px;font-weight:700;">Book settings</span>
+          </div>
+          <div style="display:flex;gap:13px;">
+            <div class="cv a" style="width:66px;height:90px;"></div>
+            <div style="flex:1;">
+              <div style="font-family:var(--display);font-weight:800;font-size:18px;">The Lighthouse Year</div>
+              <div style="color:var(--inkFaint);font-size:12px;margin-top:4px;">Literary fiction · Ongoing</div>
+              <div style="margin-top:8px;font-size:11.5px;color:var(--inkMuted);line-height:1.5;">
+                Chapters 1–2 free · the rest gated behind an ad or NovelStack+.
+              </div>
+            </div>
+          </div>
+          <div class="sec" style="margin-top:18px;">Chapters</div>
+          <div class="chrow">
+            <span class="chnum">1</span>
+            <div><div class="chttl">The keeper's daughter</div>
+              <div class="chmeta">2,140 words</div></div>
+            <span class="chstatus s-live">Live</span>
+          </div>
+          <div class="chrow">
+            <span class="chnum">2</span>
+            <div><div class="chttl">Low tide</div>
+              <div class="chmeta">1,890 words</div></div>
+            <span class="chstatus s-live">Live</span>
+          </div>
+          <div class="chrow">
+            <span class="chnum">3</span>
+            <div><div class="chttl">The wreck of the Caraway</div>
+              <div class="chmeta">Scheduled · Fri 6pm</div></div>
+            <span class="chstatus s-sched">Scheduled</span>
+          </div>
+          <div class="chrow" style="border-bottom:0;">
+            <span class="chnum">4</span>
+            <div><div class="chttl">Untitled chapter</div>
+              <div class="chmeta">740 words · last edited 2h ago</div></div>
+            <span class="chstatus s-draft">Draft</span>
+          </div>
+          <div class="addch">+ &nbsp;New chapter</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. Immersive editor -->
+    <div class="stage">
+      <div class="label">3 · The editor — immersive</div>
+      <div class="desc">App nav + tab bar collapse on keyboard-up. Select text → formatting bubble. A toolbar docks above the keyboard.</div>
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="sb"><span>9:41</span><span>5G&nbsp;&nbsp;100%</span></div>
+        <div class="ed-top">
+          <span class="x">✕</span>
+          <span class="wc">CH 4 · 812 words · saved</span>
+          <span class="done">Preview</span>
+        </div>
+        <div class="ed-body">
+          <div class="ed-chlabel">Chapter 4</div>
+          <div class="ed-chtitle">The wreck of the Caraway</div>
+          <div class="prose">
+            <p>The lamp had not been lit in nine years, and still Mara climbed
+            the stairs each evening as if it might.</p>
+            <p>She told herself it was the <span class="sel">view she came for</span><span class="caret"></span> — the
+            long grey reach of the water, the town behind her folding into dusk.</p>
+            <div class="scenebreak">✦ ✦ ✦</div>
+            <div class="img-block">
+              <div class="pic">▦</div>
+              <div class="cap">The Caraway, as it was — illustration</div>
+            </div>
+            <p>By morning the tide had turned, and with it the small certainties
+            she had built her quiet life upon.</p>
+          </div>
+        </div>
+        <!-- selection bubble -->
+        <div class="bubble">
+          <div class="b">B</div>
+          <div class="bi">I</div>
+          <div>🔗</div>
+          <div>❝</div>
+        </div>
+        <!-- keyboard accessory bar + keyboard -->
+        <div class="kbwrap">
+          <div class="accbar">
+            <span class="tool">🖼️</span>
+            <span class="tool">✦</span>
+            <span class="sepr"></span>
+            <span class="tool b">B</span>
+            <span class="tool i">I</span>
+            <span class="tool">H</span>
+            <span class="sepr"></span>
+            <span class="tool">↶</span>
+            <span class="donebtn">Done</span>
+          </div>
+          <div class="keyboard">
+            <div class="krow">
+              <span class="key">q</span><span class="key">w</span><span class="key">e</span>
+              <span class="key">r</span><span class="key">t</span><span class="key">y</span>
+              <span class="key">u</span><span class="key">i</span><span class="key">o</span>
+              <span class="key">p</span>
+            </div>
+            <div class="krow">
+              <span class="key">a</span><span class="key">s</span><span class="key">d</span>
+              <span class="key">f</span><span class="key">g</span><span class="key">h</span>
+              <span class="key">j</span><span class="key">k</span><span class="key">l</span>
+            </div>
+            <div class="krow">
+              <span class="key wide">⇧</span><span class="key">z</span><span class="key">x</span>
+              <span class="key">c</span><span class="key">v</span><span class="key">b</span>
+              <span class="key">n</span><span class="key">m</span><span class="key wide">⌫</span>
+            </div>
+            <div class="krow">
+              <span class="key wide">space</span><span class="key wide">return</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. Publish review -->
+    <div class="stage">
+      <div class="label">4 · Publish review</div>
+      <div class="desc">A calm pre-publish check, then Publish now or Schedule. Autosave means work is never lost.</div>
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="sb"><span>9:41</span><span>5G&nbsp;&nbsp;100%</span></div>
+        <div class="ed-top">
+          <span class="x">‹</span>
+          <span class="wc" style="font-family:var(--display);color:var(--ink);font-size:14px;font-weight:700;">Publish chapter</span>
+          <span style="width:14px;"></span>
+        </div>
+        <div class="pad">
+          <div class="rev-cover"></div>
+          <div class="rev-title">The wreck of the Caraway</div>
+          <div class="rev-meta">Chapter 4 of The Lighthouse Year</div>
+          <div style="margin-top:18px;">
+            <div class="rev-line"><span class="k">Word count</span><span class="v">2,310 words</span></div>
+            <div class="rev-line"><span class="k">Reader access</span><span class="v">Ad-gated</span></div>
+            <div class="rev-line"><span class="k">Maturity</span><span class="v">Everyone</span></div>
+            <div class="rev-line" style="border-bottom:0;"><span class="k">Illustrations</span><span class="v">1 image</span></div>
+          </div>
+          <div class="btn-cream">Publish now</div>
+          <div class="btn-ghost">Schedule for later</div>
+          <div style="text-align:center;color:var(--inkFaint);font-size:11.5px;margin-top:12px;">
+            Saved automatically · followers are notified on publish
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="notes">
+    <h3>Design decisions baked into this</h3>
+    <ul>
+      <li><b>Immersive editor.</b> The app nav and bottom tab bar collapse the moment the keyboard appears, and return on keyboard-down — focus on the page, no fake fullscreen.</li>
+      <li><b>Restrained, tasteful formatting.</b> Italic, bold, chapter heading, a scene-break divider, and block quote — that's the whole set. <b>No font pickers, no colour, no size sliders</b>: the platform owns typography so every book reads consistently and looks premium.</li>
+      <li><b>Two toolbars.</b> A persistent bar above the keyboard for insert-image / scene-break / bold / italic / heading / undo, plus a Medium-style selection bubble that appears only when text is selected.</li>
+      <li><b>Inline illustrations.</b> Block-level images with a caption and alt text, drag-to-reorder — for illustrated chapters.</li>
+      <li><b>Reader-identical rendering.</b> Chapters are stored as a structured block document (paragraph / heading / scene-break / image / quote with inline marks), not raw HTML — safe, and one shared renderer means a writer's formatting looks byte-identical to every reader, on mobile and web.</li>
+      <li><b>Draft → Scheduled → Live.</b> Every chapter has a status; writers publish now or schedule ahead; autosave never loses a word; followers get a notification on publish.</li>
+    </ul>
+  </div>
+
+</body>
+</html>

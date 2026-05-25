@@ -30,6 +30,7 @@ export default function RootLayout() {
         <Stack.Screen name="read/[id]" />
         <Stack.Screen name="story/[id]" />
         <Stack.Screen name="write/[storyId]" />
+        <Stack.Screen name="write/chapter/[id]" />
         <Stack.Screen name="signin" />
         <Stack.Screen name="auth-callback" />
         <Stack.Screen name="plus" />

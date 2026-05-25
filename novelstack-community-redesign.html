@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>NovelStack — Community redesign mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --paper:#14110F; --paperSoft:#1C1714; --card:#241E1A; --cardHi:#2C2520;
+    --ink:#F2EADC; --inkMuted:#A29685; --inkFaint:#6F6459;
+    --signal:#C8414E; --signalDeep:#8E2C38; --signalSoft:#3A2025;
+    --border:#3F352D; --borderSoft:#332B25;
+    --display:'Bricolage Grotesque', system-ui, sans-serif;
+    --body:-apple-system, system-ui, sans-serif;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body {
+    background:#0a0908; font-family:var(--body);
+    display:flex; flex-direction:column; align-items:center; gap:20px;
+    padding:40px 16px 80px; min-height:100vh;
+  }
+  .caption { color:#8A7F73; font-size:13px; text-align:center; max-width:380px; line-height:1.5; }
+  .caption b { color:#cdbfa8; }
+
+  /* phone */
+  .phone {
+    width:390px; background:var(--paper); border-radius:44px;
+    border:10px solid #000; overflow:hidden; position:relative;
+    box-shadow:0 30px 80px rgba(0,0,0,0.6);
+  }
+  .notch { position:absolute; top:0; left:50%; transform:translateX(-50%);
+    width:128px; height:30px; background:#000; border-radius:0 0 18px 18px; z-index:30; }
+  .statusbar { display:flex; justify-content:space-between; padding:14px 26px 4px;
+    color:var(--ink); font-size:13px; font-weight:600; }
+
+  /* top bar */
+  .topbar { display:flex; align-items:center; justify-content:space-between;
+    padding:8px 18px 10px; }
+  .mark { font-family:var(--display); font-size:24px; font-weight:800;
+    color:var(--ink); letter-spacing:-1px; }
+  .mark .dot { color:var(--signal); }
+  .mark .pg { color:var(--inkMuted); }
+  .topActions { display:flex; gap:10px; }
+  .iconBtn { width:38px; height:38px; border-radius:999px; background:var(--card);
+    display:flex; align-items:center; justify-content:center; position:relative;
+    color:var(--ink); font-size:17px; }
+  .iconBtn .badge { position:absolute; top:-3px; right:-3px; min-width:18px; height:18px;
+    background:var(--signal); border:2px solid var(--paper); border-radius:999px;
+    color:#fff; font-size:10px; font-weight:700; display:flex; align-items:center;
+    justify-content:center; padding:0 4px; }
+  .avatarBtn { width:38px; height:38px; border-radius:999px; background:var(--signalDeep);
+    color:#fff; display:flex; align-items:center; justify-content:center;
+    font-weight:600; font-size:14px; }
+
+  .feed { padding-bottom:18px; }
+
+  /* writers rail */
+  .railHead { font-family:var(--display); font-size:19px; font-weight:700;
+    color:var(--ink); padding:18px 20px 12px; }
+  .rail { display:flex; gap:16px; padding:0 20px 6px; overflow-x:auto; }
+  .rail::-webkit-scrollbar { display:none; }
+  .writer { width:66px; flex:0 0 auto; text-align:center; }
+  .ring { width:66px; height:66px; border-radius:999px; padding:2.5px;
+    background:var(--borderSoft); }
+  .ring.unread { background:linear-gradient(135deg,var(--signal),#E58A52); }
+  .ring .face { width:100%; height:100%; border-radius:999px; background:var(--signalDeep);
+    border:2px solid var(--paper); color:#fff; display:flex; align-items:center;
+    justify-content:center; font-size:22px; font-weight:600; }
+  .writer .nm { font-size:11px; color:var(--inkMuted); margin-top:6px;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .writer.compose .ring .face { background:var(--card); color:var(--signal);
+    font-size:26px; border-style:dashed; border-color:var(--border); }
+
+  /* composer */
+  .composer { display:flex; align-items:center; gap:11px; margin:14px 20px 4px;
+    background:var(--card); border:1px solid var(--border); border-radius:14px;
+    padding:11px 14px; }
+  .composer .me { width:34px; height:34px; border-radius:999px;
+    background:var(--signalDeep); color:#fff; display:flex; align-items:center;
+    justify-content:center; font-weight:600; font-size:13px; }
+  .composer .ph { flex:1; color:var(--inkFaint); font-size:14px; }
+  .composer .send { color:var(--signal); font-size:18px; }
+
+  /* section divider label */
+  .feedLabel { font-family:var(--display); font-size:13px; color:var(--inkFaint);
+    text-transform:uppercase; letter-spacing:1px; padding:22px 20px 10px; }
+
+  /* post card */
+  .post { margin:0 16px 14px; background:var(--card); border:1px solid var(--borderSoft);
+    border-radius:18px; overflow:hidden; }
+  .post .hd { display:flex; align-items:center; gap:10px; padding:13px 14px 0; }
+  .post .hd .av { width:40px; height:40px; border-radius:999px; background:var(--signalDeep);
+    color:#fff; display:flex; align-items:center; justify-content:center;
+    font-weight:600; font-size:16px; overflow:hidden; }
+  .post .hd .av img { width:100%; height:100%; object-fit:cover; }
+  .post .hd .who { flex:1; min-width:0; }
+  .post .hd .nm { font-size:14px; font-weight:600; color:var(--ink); }
+  .post .hd .nm .verified { color:var(--signal); font-size:12px; }
+  .post .hd .meta { font-size:12px; color:var(--inkFaint); margin-top:1px; }
+  .post .hd .kind { font-size:11px; font-weight:700; letter-spacing:0.5px;
+    text-transform:uppercase; padding:4px 8px; border-radius:7px; }
+  .kind.update { background:var(--signalSoft); color:#E59AA0; }
+  .kind.release { background:rgba(127,176,138,0.16); color:#8FCB9B; }
+  .post .body { padding:10px 16px 14px; color:var(--ink); font-size:14.5px;
+    line-height:1.5; }
+
+  /* attached book card inside a post */
+  .bookcard { display:flex; gap:12px; margin:0 14px 14px; background:var(--paperSoft);
+    border:1px solid var(--borderSoft); border-radius:13px; padding:11px; }
+  .bookcard .cv { width:54px; height:74px; border-radius:7px; flex:0 0 auto;
+    background:linear-gradient(150deg,#6E3138,#2A1D2E); display:flex; align-items:flex-end;
+    padding:6px; color:rgba(255,255,255,0.85); font-size:8px; font-weight:700; }
+  .bookcard .info { flex:1; min-width:0; display:flex; flex-direction:column;
+    justify-content:center; }
+  .bookcard .bt { font-family:var(--display); font-size:15px; color:var(--ink); }
+  .bookcard .bm { font-size:12px; color:var(--inkFaint); margin-top:3px; }
+  .bookcard .read { align-self:flex-start; margin-top:8px; background:#F4ECDF;
+    color:#15100E; font-size:12px; font-weight:700; padding:7px 14px; border-radius:999px; }
+
+  /* full-bleed chapter release */
+  .release .cover { height:150px; background:
+    linear-gradient(180deg,rgba(20,17,15,0) 30%,rgba(20,17,15,0.92)),
+    linear-gradient(135deg,#7a4a2a,#2a1a12); display:flex; align-items:flex-end;
+    padding:14px 16px; }
+  .release .cover .ct { font-family:var(--display); font-size:20px; font-weight:800;
+    color:#fff; }
+
+  /* post actions */
+  .actions { display:flex; gap:22px; padding:4px 16px 14px; color:var(--inkMuted);
+    font-size:13px; }
+  .actions .a { display:flex; align-items:center; gap:6px; }
+  .actions .spacer { flex:1; }
+  .actions .share { color:var(--signal); font-weight:600; }
+
+  /* tab bar */
+  .tabbar { display:flex; justify-content:space-around; align-items:center;
+    background:#0C0A09; border-top:1px solid var(--borderSoft); padding:12px 0 30px; }
+  .tab { display:flex; flex-direction:column; align-items:center; gap:4px;
+    color:#8A7F73; font-size:11px; }
+  .tab .ic { font-size:23px; }
+  .tab.on { color:var(--signal); }
+
+  .pill { display:inline-block; font-size:10px; font-weight:700; color:var(--inkFaint);
+    border:1px solid var(--borderSoft); border-radius:6px; padding:2px 6px; }
+</style>
+</head>
+<body>
+
+  <div class="caption">
+    <b>NovelStack — Community redesign.</b> Based on the social-media research:
+    a writers rail up top (Instagram-style, gradient ring = unread), an inline
+    update composer, then one mixed feed of <b>author updates</b> and
+    <b>chapter releases</b> — kept as separate post types so updates never
+    touch reading progress.
+  </div>
+
+  <div class="phone">
+    <div class="notch"></div>
+    <div class="statusbar"><span>9:41</span><span>5G &nbsp; 100%</span></div>
+
+    <!-- top bar -->
+    <div class="topbar">
+      <div class="mark">n<span class="dot">.</span><span class="pg">community</span></div>
+      <div class="topActions">
+        <div class="iconBtn">&#128276;<span class="badge">3</span></div>
+        <div class="avatarBtn">A</div>
+      </div>
+    </div>
+
+    <div class="feed">
+      <!-- writers rail -->
+      <div class="railHead">Writers</div>
+      <div class="rail">
+        <div class="writer compose">
+          <div class="ring"><div class="face">+</div></div>
+          <div class="nm">Discover</div>
+        </div>
+        <div class="writer">
+          <div class="ring unread"><div class="face">M</div></div>
+          <div class="nm">Maya Chen</div>
+        </div>
+        <div class="writer">
+          <div class="ring unread"><div class="face">J</div></div>
+          <div class="nm">J. P. Marsh</div>
+        </div>
+        <div class="writer">
+          <div class="ring"><div class="face">N</div></div>
+          <div class="nm">nina.</div>
+        </div>
+        <div class="writer">
+          <div class="ring"><div class="face">E</div></div>
+          <div class="nm">Eddie Voss</div>
+        </div>
+        <div class="writer">
+          <div class="ring"><div class="face">P</div></div>
+          <div class="nm">Priya A.</div>
+        </div>
+      </div>
+
+      <!-- composer -->
+      <div class="composer">
+        <div class="me">A</div>
+        <div class="ph">Share an update with your readers…</div>
+        <div class="send">&#9993;</div>
+      </div>
+
+      <div class="feedLabel">Latest from your writers</div>
+
+      <!-- author update post WITH attached book -->
+      <div class="post">
+        <div class="hd">
+          <div class="av">M</div>
+          <div class="who">
+            <div class="nm">Maya Chen <span class="verified">&#10003;</span></div>
+            <div class="meta">2h ago</div>
+          </div>
+          <div class="kind update">Update</div>
+        </div>
+        <div class="body">
+          Chapter 12 is up tonight — Hesper finally reaches the lighthouse. Thank
+          you for every comment, they genuinely keep me writing. 🕯️
+        </div>
+        <div class="bookcard">
+          <div class="cv">THE TEASHOP</div>
+          <div class="info">
+            <div class="bt">The Teashop at the Edge of the Map</div>
+            <div class="bm">Maya Chen · Chapter 12 of 14</div>
+            <div class="read">▸ Read</div>
+          </div>
+        </div>
+        <div class="actions">
+          <div class="a">&#9825; 248</div>
+          <div class="a">&#128172; 31</div>
+          <div class="spacer"></div>
+          <div class="a share">&#8599; Share</div>
+        </div>
+      </div>
+
+      <!-- chapter release post (full-bleed) -->
+      <div class="post release">
+        <div class="hd">
+          <div class="av">J</div>
+          <div class="who">
+            <div class="nm">J. P. Marsh</div>
+            <div class="meta">5h ago</div>
+          </div>
+          <div class="kind release">New chapter</div>
+        </div>
+        <div class="body" style="padding-bottom:10px;">
+          <span class="pill">CHAPTER 9</span>&nbsp; “The Empty Seat” is live.
+        </div>
+        <div class="cover" style="margin:0;">
+          <div class="ct">The Commuter</div>
+        </div>
+        <div class="actions" style="padding-top:12px;">
+          <div class="a">&#9825; 96</div>
+          <div class="a">&#128172; 12</div>
+          <div class="spacer"></div>
+          <div class="a share">&#8599; Share</div>
+        </div>
+      </div>
+
+      <!-- text-only update -->
+      <div class="post">
+        <div class="hd">
+          <div class="av">N</div>
+          <div class="who">
+            <div class="nm">nina.</div>
+            <div class="meta">1d ago</div>
+          </div>
+          <div class="kind update">Update</div>
+        </div>
+        <div class="body">
+          Taking a short break this week to outline the final arc — back Friday
+          with two chapters. ❤️
+        </div>
+        <div class="actions">
+          <div class="a">&#9825; 412</div>
+          <div class="a">&#128172; 57</div>
+          <div class="spacer"></div>
+          <div class="a share">&#8599; Share</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- tab bar: Home centred -->
+    <div class="tabbar">
+      <div class="tab"><div class="ic">&#128218;</div>Library</div>
+      <div class="tab"><div class="ic">&#128269;</div>Search</div>
+      <div class="tab"><div class="ic">&#127968;</div>Home</div>
+      <div class="tab on"><div class="ic">&#128101;</div>Community</div>
+      <div class="tab"><div class="ic">&#9998;</div>Write</div>
+    </div>
+  </div>
+
+  <div class="caption">
+    Tap a post’s <b>Share</b> → the native share sheet opens with a generated
+    book-card image (Instagram Stories / TikTok / Copy link). The composer
+    expands inline to write text and attach one of your books.
+  </div>
+
+</body>
+</html>
