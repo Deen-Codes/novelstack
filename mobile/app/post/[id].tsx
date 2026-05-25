@@ -7,6 +7,7 @@ import {
   Image,
   Pressable,
   ActivityIndicator,
+  Alert,
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
@@ -16,18 +17,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { colors, spacing, radius, fonts } from '@/theme/tokens';
 import { apiGet, apiSend } from '@/lib/api';
-import { Cover } from '@/components/Cover';
+import { getCurrentUser } from '@/lib/auth';
 import { ago } from '@/lib/time';
-import type { PostDetail } from '@/lib/types';
+import { Cover } from '@/components/Cover';
+import type { PostComment, PostDetail } from '@/lib/types';
 
 function Avatar({ url, name, size }: { url: string | null; name: string; size: number }) {
   return (
-    <View
-      style={[
-        styles.av,
-        { width: size, height: size, borderRadius: size / 2 },
-      ]}
-    >
+    <View style={[styles.av, { width: size, height: size, borderRadius: size / 2 }]}>
       {url ? (
         <Image source={{ uri: url }} style={{ width: size, height: size }} />
       ) : (
@@ -39,14 +36,22 @@ function Avatar({ url, name, size }: { url: string | null; name: string; size: n
   );
 }
 
-// A community update with its full comment thread. Readers can like and reply.
+// A community update with its full comment thread. Readers can like and
+// reply; authors can edit or delete their own post and comments.
 export default function PostScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [post, setPost] = useState<PostDetail | null>(null);
+  const [meId, setMeId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [comment, setComment] = useState('');
   const [busy, setBusy] = useState(false);
+
+  // Inline editing.
+  const [editingPost, setEditingPost] = useState(false);
+  const [postDraft, setPostDraft] = useState('');
+  const [editCommentId, setEditCommentId] = useState<string | null>(null);
+  const [commentDraft, setCommentDraft] = useState('');
 
   const load = useCallback(async () => {
     try {
@@ -59,6 +64,7 @@ export default function PostScreen() {
 
   useEffect(() => {
     load();
+    getCurrentUser().then((u) => setMeId(u?.id ?? null));
   }, [load]);
 
   async function toggleLike() {
@@ -94,6 +100,85 @@ export default function PostScreen() {
     setBusy(false);
   }
 
+  // --- Post edit / delete --------------------------------------------------
+  function postMenu() {
+    Alert.alert('Your update', undefined, [
+      {
+        text: 'Edit',
+        onPress: () => {
+          setPostDraft(post?.body ?? '');
+          setEditingPost(true);
+        },
+      },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: () =>
+          Alert.alert('Delete update?', 'This removes the post and its comments.', [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Delete', style: 'destructive', onPress: deletePost },
+          ]),
+      },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+  }
+
+  async function savePost() {
+    const text = postDraft.trim();
+    if (!text || busy) return;
+    setBusy(true);
+    try {
+      await apiSend(`/api/posts/${id}`, 'PATCH', { body: text });
+      setEditingPost(false);
+      await load();
+    } catch {
+      // Leave the editor open.
+    }
+    setBusy(false);
+  }
+
+  async function deletePost() {
+    try {
+      await apiSend(`/api/posts/${id}`, 'DELETE');
+      router.back();
+    } catch {
+      // Stay on the screen on failure.
+    }
+  }
+
+  // --- Comment edit / delete ----------------------------------------------
+  async function saveComment(commentId: string) {
+    const text = commentDraft.trim();
+    if (!text || busy) return;
+    setBusy(true);
+    try {
+      await apiSend(`/api/post-comments/${commentId}`, 'PATCH', { body: text });
+      setEditCommentId(null);
+      await load();
+    } catch {
+      // Leave the editor open.
+    }
+    setBusy(false);
+  }
+
+  function confirmDeleteComment(commentId: string) {
+    Alert.alert('Delete comment?', undefined, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await apiSend(`/api/post-comments/${commentId}`, 'DELETE');
+            await load();
+          } catch {
+            // No-op.
+          }
+        },
+      },
+    ]);
+  }
+
   if (loading) {
     return (
       <SafeAreaView style={styles.safe} edges={['top']}>
@@ -117,6 +202,8 @@ export default function PostScreen() {
     );
   }
 
+  const mine = !!meId && post.author?.id === meId;
+
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <View style={styles.head}>
@@ -124,7 +211,13 @@ export default function PostScreen() {
           <Ionicons name="chevron-back" size={22} color={colors.ink} />
         </Pressable>
         <Text style={styles.headTitle}>Update</Text>
-        <View style={{ width: 38 }} />
+        {mine ? (
+          <Pressable style={styles.back} onPress={postMenu} hitSlop={8}>
+            <Ionicons name="ellipsis-horizontal" size={20} color={colors.ink} />
+          </Pressable>
+        ) : (
+          <View style={{ width: 38 }} />
+        )}
       </View>
 
       <KeyboardAvoidingView
@@ -133,7 +226,6 @@ export default function PostScreen() {
         keyboardVerticalOffset={8}
       >
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-          {/* The post */}
           <View style={styles.postHead}>
             <Avatar
               url={post.author?.avatarUrl ?? null}
@@ -148,7 +240,27 @@ export default function PostScreen() {
             </View>
           </View>
 
-          <Text style={styles.body}>{post.body}</Text>
+          {editingPost ? (
+            <View style={styles.editBlock}>
+              <TextInput
+                value={postDraft}
+                onChangeText={setPostDraft}
+                multiline
+                autoFocus
+                style={styles.editInput}
+              />
+              <View style={styles.editRow}>
+                <Pressable onPress={() => setEditingPost(false)}>
+                  <Text style={styles.editCancel}>Cancel</Text>
+                </Pressable>
+                <Pressable onPress={savePost} disabled={busy}>
+                  <Text style={styles.editSave}>{busy ? 'Saving…' : 'Save'}</Text>
+                </Pressable>
+              </View>
+            </View>
+          ) : (
+            <Text style={styles.body}>{post.body}</Text>
+          )}
 
           {post.story && (
             <Pressable
@@ -188,34 +300,72 @@ export default function PostScreen() {
             </Text>
           </View>
 
-          {/* Comments */}
           <View style={styles.divider} />
           {post.comments.length === 0 ? (
-            <Text style={styles.noComments}>
-              No comments yet — be the first to reply.
-            </Text>
+            <Text style={styles.noComments}>No comments yet — be the first to reply.</Text>
           ) : (
-            post.comments.map((c) => (
-              <View key={c.id} style={styles.comment}>
-                <Avatar
-                  url={c.user?.avatarUrl ?? null}
-                  name={c.user?.displayName ?? '?'}
-                  size={34}
-                />
-                <View style={styles.commentBubble}>
-                  <Text style={styles.commentName}>
-                    {c.user?.displayName ?? 'A reader'}
-                    <Text style={styles.commentTime}>  ·  {ago(c.createdAt)}</Text>
-                  </Text>
-                  <Text style={styles.commentBody}>{c.body}</Text>
+            post.comments.map((c: PostComment) => {
+              const mineComment = !!meId && c.user?.id === meId;
+              const editing = editCommentId === c.id;
+              return (
+                <View key={c.id} style={styles.comment}>
+                  <Avatar
+                    url={c.user?.avatarUrl ?? null}
+                    name={c.user?.displayName ?? '?'}
+                    size={34}
+                  />
+                  <View style={styles.commentBubble}>
+                    <Text style={styles.commentName}>
+                      {c.user?.displayName ?? 'A reader'}
+                      <Text style={styles.commentTime}>{'  ·  '}{ago(c.createdAt)}</Text>
+                    </Text>
+                    {editing ? (
+                      <View>
+                        <TextInput
+                          value={commentDraft}
+                          onChangeText={setCommentDraft}
+                          multiline
+                          autoFocus
+                          style={styles.editInput}
+                        />
+                        <View style={styles.editRow}>
+                          <Pressable onPress={() => setEditCommentId(null)}>
+                            <Text style={styles.editCancel}>Cancel</Text>
+                          </Pressable>
+                          <Pressable onPress={() => saveComment(c.id)} disabled={busy}>
+                            <Text style={styles.editSave}>{busy ? 'Saving…' : 'Save'}</Text>
+                          </Pressable>
+                        </View>
+                      </View>
+                    ) : (
+                      <>
+                        <Text style={styles.commentBody}>{c.body}</Text>
+                        {mineComment && (
+                          <View style={styles.ownRow}>
+                            <Pressable
+                              onPress={() => {
+                                setEditCommentId(c.id);
+                                setCommentDraft(c.body);
+                              }}
+                              hitSlop={6}
+                            >
+                              <Text style={styles.ownLink}>Edit</Text>
+                            </Pressable>
+                            <Pressable onPress={() => confirmDeleteComment(c.id)} hitSlop={6}>
+                              <Text style={styles.ownLinkDanger}>Delete</Text>
+                            </Pressable>
+                          </View>
+                        )}
+                      </>
+                    )}
+                  </View>
                 </View>
-              </View>
-            ))
+              );
+            })
           )}
           <View style={{ height: spacing.lg }} />
         </ScrollView>
 
-        {/* Composer */}
         <View style={styles.composer}>
           <TextInput
             value={comment}
@@ -226,7 +376,7 @@ export default function PostScreen() {
             style={styles.input}
           />
           <Pressable
-            style={[styles.send, (!comment.trim() || busy) && styles.sendOff]}
+            style={[styles.sendBtn, (!comment.trim() || busy) && styles.sendOff]}
             onPress={send}
             disabled={!comment.trim() || busy}
           >
@@ -266,6 +416,24 @@ const styles = StyleSheet.create({
   time: { fontSize: 12, color: colors.inkFaint, marginTop: 1 },
   body: { fontSize: 16, color: colors.ink, lineHeight: 24, marginTop: 13 },
 
+  editBlock: { marginTop: 13 },
+  editInput: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 15,
+    color: colors.ink,
+    backgroundColor: colors.card,
+    minHeight: 60,
+    textAlignVertical: 'top',
+    marginTop: 6,
+  },
+  editRow: { flexDirection: 'row', justifyContent: 'flex-end', gap: 18, marginTop: 8 },
+  editCancel: { fontSize: 13, color: colors.inkMuted, fontWeight: '600' },
+  editSave: { fontSize: 13, color: colors.signal, fontWeight: '700' },
+
   bookCard: {
     flexDirection: 'row',
     gap: 12,
@@ -299,6 +467,9 @@ const styles = StyleSheet.create({
   commentName: { fontSize: 13, fontWeight: '600', color: colors.ink },
   commentTime: { fontSize: 11.5, fontWeight: '400', color: colors.inkFaint },
   commentBody: { fontSize: 14, color: colors.ink, lineHeight: 20, marginTop: 4 },
+  ownRow: { flexDirection: 'row', gap: 16, marginTop: 8 },
+  ownLink: { fontSize: 12, color: colors.inkMuted, fontWeight: '600' },
+  ownLinkDanger: { fontSize: 12, color: colors.signal, fontWeight: '600' },
 
   composer: {
     flexDirection: 'row',
@@ -323,7 +494,7 @@ const styles = StyleSheet.create({
     fontSize: 14.5,
     color: colors.ink,
   },
-  send: {
+  sendBtn: {
     width: 38,
     height: 38,
     borderRadius: radius.pill,

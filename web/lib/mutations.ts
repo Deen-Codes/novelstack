@@ -274,6 +274,52 @@ export async function createReport(
   return row;
 }
 
+// Community — edit / delete your own update.
+export async function updatePost(userId: string, postId: string, body: string) {
+  const text = body.trim();
+  if (!text) throw new Error('Write something to share.');
+  if (text.length > 500) throw new Error('Updates are limited to 500 characters.');
+  const [row] = await db
+    .update(posts)
+    .set({ body: text })
+    .where(and(eq(posts.id, postId), eq(posts.authorId, userId)))
+    .returning();
+  if (!row) throw new Error('That update is not yours, or no longer exists.');
+  return row;
+}
+
+export async function deletePost(userId: string, postId: string) {
+  const [row] = await db
+    .delete(posts)
+    .where(and(eq(posts.id, postId), eq(posts.authorId, userId)))
+    .returning({ id: posts.id });
+  if (!row) throw new Error('That update is not yours, or no longer exists.');
+  return { ok: true };
+}
+
+// Community — edit / delete your own comment.
+export async function updatePostComment(userId: string, commentId: string, body: string) {
+  const text = body.trim();
+  if (!text) throw new Error('Write a comment.');
+  if (text.length > 500) throw new Error('Comments are limited to 500 characters.');
+  const [row] = await db
+    .update(postComments)
+    .set({ body: text })
+    .where(and(eq(postComments.id, commentId), eq(postComments.userId, userId)))
+    .returning();
+  if (!row) throw new Error('That comment is not yours, or no longer exists.');
+  return row;
+}
+
+export async function deletePostComment(userId: string, commentId: string) {
+  const [row] = await db
+    .delete(postComments)
+    .where(and(eq(postComments.id, commentId), eq(postComments.userId, userId)))
+    .returning({ id: postComments.id });
+  if (!row) throw new Error('That comment is not yours, or no longer exists.');
+  return { ok: true };
+}
+
 // Community — reply to an update.
 export async function createPostComment(userId: string, postId: string, body: string) {
   const text = body.trim();
