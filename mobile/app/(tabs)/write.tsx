@@ -97,6 +97,7 @@ export default function Write() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
+      <AmbientGlow />
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
         <Text style={styles.h1}>Write</Text>
         <Text style={styles.sub}>Your stories, drafts and chapters — all in one place.</Text>

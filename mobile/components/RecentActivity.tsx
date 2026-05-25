@@ -3,22 +3,8 @@ import { View, Text, Image, Pressable, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { colors, spacing, radius, fonts } from '@/theme/tokens';
 import { Cover } from '@/components/Cover';
+import { ago } from '@/lib/time';
 import type { FeedStory } from '@/lib/types';
-
-// Short relative time, e.g. "3h", "2d", "1w".
-function ago(iso: string | null | undefined): string {
-  if (!iso) return '';
-  const ms = Date.now() - new Date(iso).getTime();
-  if (Number.isNaN(ms) || ms < 0) return 'just now';
-  const m = Math.floor(ms / 60000);
-  if (m < 1) return 'just now';
-  if (m < 60) return `${m}m ago`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h ago`;
-  const d = Math.floor(h / 24);
-  if (d < 7) return `${d}d ago`;
-  return `${Math.floor(d / 7)}w ago`;
-}
 
 // A calm, scrollable feed of writer activity — the social side of Community.
 // Each entry is a post: who did what, and the book it's about.

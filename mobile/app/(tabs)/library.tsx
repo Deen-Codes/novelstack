@@ -139,6 +139,7 @@ export default function Library() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
+      <AmbientGlow />
       <TopBar page="library" />
       <ScrollView contentContainerStyle={isEmpty ? styles.scrollEmpty : styles.scroll}>
         {isEmpty ? (

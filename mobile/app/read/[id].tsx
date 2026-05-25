@@ -13,7 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, paperMode, spacing, radius, fonts } from '@/theme/tokens';
-import { apiGet, apiSend } from '@/lib/api';
+import { apiGet, apiGetCached, apiSend } from '@/lib/api';
 import { getCurrentUser } from '@/lib/auth';
 import type { ChapterDetail, StoryDetail } from '@/lib/types';
 
@@ -69,7 +69,9 @@ export default function Reader() {
 
     // Prev / next + this chapter's position within the book.
     try {
-      const story = await apiGet<StoryDetail>(`/api/stories/${ch.story.slug}`);
+      // Cached — moving Next/Previous through a book reuses the chapter list
+      // instead of refetching the whole story each hop.
+      const story = await apiGetCached<StoryDetail>(`/api/stories/${ch.story.slug}`);
       const list = story.chapters
         .filter((c) => c.publishedAt)
         .sort((a, b) => a.number - b.number);
@@ -96,6 +98,18 @@ export default function Reader() {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+
+  // "Finish book" / "All caught up" — marks every chapter read so the book
+  // moves to the Completed & up-to-date shelf, then returns to the story.
+  async function finishBook() {
+    if (!chapter) return;
+    try {
+      await apiSend(`/api/me/stories/${chapter.story.id}/finish`, 'POST');
+    } catch {
+      // Return to the story even if recording failed.
+    }
+    router.replace(`/story/${chapter.story.slug}`);
+  }
 
   // Track scroll position within the current chapter. A chapter that doesn't
   // scroll contributes 0, so the bar simply rests at this chapter's mark.
@@ -259,7 +273,7 @@ export default function Reader() {
           ) : (
             <Pressable
               style={[styles.navBtn, styles.navPrimary, { backgroundColor: primaryBg }]}
-              onPress={() => router.replace(`/story/${chapter.story.slug}`)}
+              onPress={finishBook}
             >
               <Ionicons
                 name={chapter.story?.status === 'complete' ? 'checkmark' : 'sparkles'}

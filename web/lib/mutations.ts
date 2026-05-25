@@ -2,7 +2,7 @@
 // Every function takes the acting user's id and enforces ownership itself —
 // this is where the old Supabase row-level-security rules now live.
 import 'server-only';
-import { and, eq, ne, sql } from 'drizzle-orm';
+import { and, eq, isNotNull, ne, sql } from 'drizzle-orm';
 import { randomBytes } from 'crypto';
 import { db } from '@/db';
 import {
@@ -150,6 +150,20 @@ export async function recordRead(
       target: [reads.readerId, reads.chapterId],
       set: { progressPct, completedAt },
     });
+}
+
+// Marks every published chapter of a story as read for this reader — backs
+// the reader's "Finish book" / "All caught up" action, so the book moves to
+// the Completed & up-to-date shelf.
+export async function markStoryCaughtUp(userId: string, storyId: string) {
+  const chs = await db
+    .select({ id: chapters.id })
+    .from(chapters)
+    .where(and(eq(chapters.storyId, storyId), isNotNull(chapters.publishedAt)));
+  for (const c of chs) {
+    await recordRead(userId, c.id, 100, true);
+  }
+  return { ok: true, chapters: chs.length };
 }
 
 // --- Comments --------------------------------------------------------------

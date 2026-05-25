@@ -19,22 +19,10 @@ import { Cover } from '@/components/Cover';
 import { TopBar } from '@/components/TopBar';
 import { SignInPitch } from '@/components/SignInPitch';
 import { AmbientGlow } from '@/components/AmbientGlow';
+import { ago } from '@/lib/time';
 import type { Shelf, FeedStory, User, CommunityPost } from '@/lib/types';
 
 const SITE = 'https://novelstack.app';
-
-function ago(iso: string): string {
-  const ms = Date.now() - new Date(iso).getTime();
-  if (Number.isNaN(ms) || ms < 0) return 'just now';
-  const m = Math.floor(ms / 60000);
-  if (m < 1) return 'just now';
-  if (m < 60) return `${m}m ago`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h ago`;
-  const d = Math.floor(h / 24);
-  if (d < 7) return `${d}d ago`;
-  return `${Math.floor(d / 7)}w ago`;
-}
 
 // Community: a writers rail, an update composer, then a feed of author
 // updates — each likeable, commentable and shareable.
@@ -49,32 +37,21 @@ export default function Community() {
 
   const load = useCallback(async () => {
     const token = await getSessionToken();
-    let follows: User[] = [];
-    let user: User | null = null;
-    let updates: CommunityPost[] = [];
-    if (token) {
-      try {
-        const shelf = await apiGetCached<Shelf>('/api/me/shelf');
-        follows = shelf.following ?? [];
-      } catch {
-        follows = [];
-      }
-      user = await getCurrentUser();
-      try {
-        updates = await apiGetCached<CommunityPost[]>('/api/community');
-      } catch {
-        updates = [];
-      }
-    }
-    let stories: FeedStory[] = [];
-    try {
-      stories = await apiGetCached<FeedStory[]>('/api/feed');
-    } catch {
-      stories = [];
-    }
+    // Fetch everything the screen needs in one parallel batch rather than a
+    // four-request waterfall.
+    const [shelf, user, updates, stories] = await Promise.all([
+      token
+        ? apiGetCached<Shelf>('/api/me/shelf').catch(() => null)
+        : Promise.resolve(null),
+      token ? getCurrentUser().catch(() => null) : Promise.resolve(null),
+      token
+        ? apiGetCached<CommunityPost[]>('/api/community').catch(() => [])
+        : Promise.resolve([]),
+      apiGetCached<FeedStory[]>('/api/feed').catch(() => []),
+    ]);
     setSignedIn(!!token);
     setMe(user);
-    setFollowing(follows);
+    setFollowing(shelf?.following ?? []);
     setPosts(updates);
     setFeed(stories);
     setLoading(false);
@@ -181,7 +158,7 @@ export default function Community() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      {!signedIn && !loading && <AmbientGlow />}
+      <AmbientGlow />
       <TopBar page="community" />
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         {loading ? (

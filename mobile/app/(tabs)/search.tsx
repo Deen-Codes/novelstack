@@ -16,6 +16,7 @@ import { colors, spacing, fonts } from '@/theme/tokens';
 import { apiGet, apiGetCached } from '@/lib/api';
 import { Cover } from '@/components/Cover';
 import { TopBar } from '@/components/TopBar';
+import { AmbientGlow } from '@/components/AmbientGlow';
 import type { Story } from '@/lib/types';
 
 export default function Search() {
@@ -95,6 +96,7 @@ export default function Search() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
+      <AmbientGlow />
       <TopBar page="search" />
       <ScrollView
         contentContainerStyle={styles.scroll}
