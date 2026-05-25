@@ -125,6 +125,43 @@ export type PostComment = {
 // GET /api/posts/:id — a post with its full comment thread.
 export type PostDetail = CommunityPost & { comments: PostComment[] };
 
+// GET /api/me/earnings — an author's earnings + payout status.
+export type EarningsTip = {
+  id: string;
+  amountCents: number;
+  message: string | null;
+  from: string;
+  createdAt: string;
+};
+
+export type EarningsPayout = {
+  id: string;
+  periodMonth: string;
+  subscriptionCents: number;
+  adCents: number;
+  tipCents: number;
+  totalCents: number;
+  status: 'pending' | 'processing' | 'paid' | 'failed';
+};
+
+export type Earnings = {
+  // A NovelStack house/seed account — earnings route to the company.
+  routesToCompany: boolean;
+  availableCents: number;
+  thisMonthCents: number;
+  lifetimeCents: number;
+  paidOutCents: number;
+  breakdown: { tipsCents: number; adCents: number; subscriptionCents: number };
+  recentTips: EarningsTip[];
+  payouts: EarningsPayout[];
+  stripe: {
+    connected: boolean;
+    payoutsEnabled: boolean;
+    detailsSubmitted: boolean;
+    needsOnboarding: boolean;
+  };
+};
+
 export type Comment = {
   id: string;
   userId: string;

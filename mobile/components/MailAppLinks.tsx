@@ -1,16 +1,31 @@
 import { useEffect, useState } from 'react';
 import { View, Text, Pressable, Linking, StyleSheet } from 'react-native';
-import { colors, radius } from '@/theme/tokens';
+import { colors } from '@/theme/tokens';
 
-// Mail apps we can hand the reader off to after sending a magic link. The
-// `domains` list lets us guess the reader's provider from the part after the
-// @, so the right app is offered first. Schemes must also be declared in
-// app.json → ios.infoPlist.LSApplicationQueriesSchemes for canOpenURL to work.
+// Mail apps NovelStack can hand the reader off to after sending a magic link.
+// `domains` maps the part after the @ to a provider, so we offer the reader's
+// OWN provider app — and only that — alongside the system Mail app. Nothing
+// else: an Outlook address should never see a Gmail button. Schemes are also
+// declared in app.json → ios.infoPlist.LSApplicationQueriesSchemes.
 type MailApp = { key: string; name: string; scheme: string; domains: string[] };
 
-const MAIL_APPS: MailApp[] = [
-  { key: 'apple', name: 'Mail', scheme: 'message://', domains: ['icloud.com', 'me.com', 'mac.com'] },
-  { key: 'gmail', name: 'Gmail', scheme: 'googlegmail://', domains: ['gmail.com', 'googlemail.com'] },
+// The system Mail app — always offered. It opens whatever account(s) the
+// reader has set up on the device, whatever the provider.
+const SYSTEM_MAIL: MailApp = {
+  key: 'apple',
+  name: 'Mail',
+  scheme: 'message://',
+  domains: ['icloud.com', 'me.com', 'mac.com'],
+};
+
+// Email providers that ship their own iOS app we can deep-link into.
+const PROVIDER_APPS: MailApp[] = [
+  {
+    key: 'gmail',
+    name: 'Gmail',
+    scheme: 'googlegmail://',
+    domains: ['gmail.com', 'googlemail.com'],
+  },
   {
     key: 'outlook',
     name: 'Outlook',
@@ -26,43 +41,50 @@ const MAIL_APPS: MailApp[] = [
     scheme: 'ymail://',
     domains: ['yahoo.com', 'yahoo.co.uk', 'yahoo.fr', 'ymail.com', 'rocketmail.com', 'aol.com'],
   },
-  { key: 'proton', name: 'Proton Mail', scheme: 'protonmail://', domains: ['proton.me', 'protonmail.com', 'pm.me'] },
-  { key: 'fastmail', name: 'Fastmail', scheme: 'fastmail://', domains: ['fastmail.com', 'fastmail.fm'] },
-  { key: 'spark', name: 'Spark', scheme: 'readdle-spark://', domains: [] },
-  { key: 'airmail', name: 'Airmail', scheme: 'airmail://', domains: [] },
+  {
+    key: 'proton',
+    name: 'Proton Mail',
+    scheme: 'protonmail://',
+    domains: ['proton.me', 'protonmail.com', 'pm.me'],
+  },
+  {
+    key: 'fastmail',
+    name: 'Fastmail',
+    scheme: 'fastmail://',
+    domains: ['fastmail.com', 'fastmail.fm'],
+  },
 ];
 
-function suggestedAppKey(email: string): string | null {
+// The provider app matching an email's domain — or null when the domain is
+// unknown, or it's iCloud (iCloud mail lives in the system Mail app).
+function providerFor(email: string): MailApp | null {
   const domain = email.split('@')[1]?.toLowerCase().trim();
   if (!domain) return null;
-  return MAIL_APPS.find((a) => a.domains.includes(domain))?.key ?? null;
+  return PROVIDER_APPS.find((a) => a.domains.includes(domain)) ?? null;
 }
 
-// One-tap shortcuts into the reader's mail app, with their likely provider
-// (guessed from the email domain) offered first.
+// After a magic link is sent, offer just the reader's own mail app (matched
+// from their email domain, when it's installed) plus the system Mail app.
 export function MailAppLinks({ email }: { email: string }) {
-  const [apps, setApps] = useState<MailApp[]>([]);
+  const [providerApp, setProviderApp] = useState<MailApp | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const found: MailApp[] = [];
-      for (const app of MAIL_APPS) {
-        try {
-          if (await Linking.canOpenURL(app.scheme)) found.push(app);
-        } catch {
-          // Scheme not detectable — skip.
-        }
+      const provider = providerFor(email);
+      if (!provider) {
+        if (!cancelled) setProviderApp(null);
+        return;
       }
-      // Apple Mail is a system app; offer it even if the probe came back false.
-      if (!found.some((a) => a.key === 'apple')) found.unshift(MAIL_APPS[0]);
-
-      const suggested = suggestedAppKey(email);
-      if (suggested) {
-        const i = found.findIndex((a) => a.key === suggested);
-        if (i > 0) found.unshift(found.splice(i, 1)[0]);
+      // Only surface the provider's app if it's actually installed —
+      // otherwise the system Mail app handles that account anyway.
+      let installed = false;
+      try {
+        installed = await Linking.canOpenURL(provider.scheme);
+      } catch {
+        installed = false;
       }
-      if (!cancelled) setApps(found);
+      if (!cancelled) setProviderApp(installed ? provider : null);
     })();
     return () => {
       cancelled = true;
@@ -73,11 +95,13 @@ export function MailAppLinks({ email }: { email: string }) {
     try {
       await Linking.openURL(app.scheme);
     } catch {
-      // App not installed / can't open — nothing to do.
+      // App not available — nothing to do.
     }
   }
 
-  if (apps.length === 0) return null;
+  // The reader's own provider app first (when known + installed), then the
+  // system Mail app — at most two buttons, both relevant.
+  const apps = providerApp ? [providerApp, SYSTEM_MAIL] : [SYSTEM_MAIL];
 
   return (
     <View style={styles.wrap}>
@@ -87,9 +111,7 @@ export function MailAppLinks({ email }: { email: string }) {
           style={i === 0 ? styles.btn : styles.btnOutline}
           onPress={() => open(app)}
         >
-          <Text style={i === 0 ? styles.btnText : styles.btnOutlineText}>
-            Open {app.name}
-          </Text>
+          <Text style={i === 0 ? styles.btnText : styles.btnOutlineText}>Open {app.name}</Text>
         </Pressable>
       ))}
     </View>

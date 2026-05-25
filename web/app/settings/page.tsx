@@ -76,10 +76,13 @@ export default async function Settings() {
           </form>
         </div>
 
+        <Link href="/earnings" className="text-[13px] text-signal mt-6 block">
+          Earnings &amp; payouts ›
+        </Link>
         {profile?.username && (
           <Link
             href={`/u/${profile.username}`}
-            className="text-[13px] text-signal mt-6 inline-block"
+            className="text-[13px] text-signal mt-3 block"
           >
             View your public profile ›
           </Link>

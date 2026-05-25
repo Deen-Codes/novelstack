@@ -1,6 +1,99 @@
 # NovelStack — MVP Progress
 
-## Current status — 8-bullet summary (latest)
+---
+
+# ▶ APP STORE SUBMISSION STATUS — updated 2026-05-25
+
+This is the live, current view. Everything below this section is older history,
+kept for reference.
+
+## What got done this session
+
+**Author payouts — built end to end (up to the business-verification line).**
+- `web/lib/earnings.ts` — computes each author's earnings: tips (all-time +
+  this month), ad-revenue share, NovelStack+ pool share, running available
+  balance, lifetime, and payout history. Seed (`is_seed`) accounts are flagged
+  `routesToCompany` — their earnings settle to NovelStack, with no personal
+  payout setup shown.
+- `web/lib/stripe.ts` — Stripe Connect Express helper: create account, hosted
+  onboarding link, Express dashboard link, onboarding/payout status. The Stripe
+  client is `null` until `STRIPE_SECRET_KEY` is set, so the whole app — including
+  the read-only earnings dashboard — works regardless. When the key is added,
+  onboarding and payouts light up with no code changes.
+- API routes: `GET /api/me/earnings`, `POST /api/me/stripe/connect`,
+  `GET /api/me/stripe/dashboard`; Stripe return/refresh pages at
+  `/payouts/done` and `/payouts/refresh`.
+- Web earnings dashboard at `/earnings` (linked from Settings); mobile earnings
+  screen at `mobile/app/earnings.tsx` (linked from Profile). Both show balance,
+  this-month/lifetime, a payout-setup card, the where-it-comes-from breakdown,
+  payout history and recent tips.
+- Both web and mobile type-check clean. **The one genuine wall is Deen's Stripe
+  business verification** (registered business + EIN + bank) — until that's
+  done and `STRIPE_SECRET_KEY` is set, payout setup shows "coming soon" and the
+  rest works read-only.
+
+**RevenueCat — fully configured.**
+- App Store app created in RevenueCat (with the In-App Purchase `.p8` key,
+  Key ID `JWW2NY3ZW6`, Issuer ID set).
+- Products `novelstack.plus.monthly` and `novelstack.plus.annual` created;
+  entitlement `plus` created with both products attached; the `default`
+  offering's Monthly (`$rc_monthly`) and Annual (`$rc_annual`) packages now
+  carry the App Store products.
+- The public SDK key `appl_ZXUWIahuvhxnAIYzlPrSGdhlWGN` is in
+  `mobile/app.json` → `extra.revenueCatKey`. `mobile/lib/iap.ts` reads it.
+
+**App Store Connect — App Review prep done.**
+- Content Rights answered ("Yes, this app has the necessary rights to its
+  third-party content") and saved.
+- App Review Notes filled (magic-link sign-in explained + reviewer login link);
+  "Sign-in required" unchecked (passwordless app, nothing to put in user/pass).
+  Saved.
+
+## ✅ AGENT can finish (code/config, no Deen needed)
+
+- Author-payout module, Stripe Connect scaffold, earnings dashboards — **done**.
+- RevenueCat products/entitlement/offering + SDK key in `app.json` — **done**.
+- App Store Connect App Review notes + Content Rights — **done**.
+- Restore the moderation `reports`/`blocks` tables to the Drizzle schema
+  (task #63) — still open, pure code.
+- Minor polish still open: mobile search matching description/tags, a couple of
+  log-only doc tasks.
+
+## ⛔ DEEN must do (needs your accounts, hardware, or a real business)
+
+1. **Git push** so the web app redeploys — the legal pages (`/privacy`,
+   `/terms`, `/support`) and the new `/earnings` + Stripe routes only go live on
+   novelstack.app after a push + Render deploy.
+2. **Native rebuild** of the iOS app (EAS build) — the RevenueCat SDK key and
+   other native config changed; the build that goes to App Review must be made
+   after this. Needs your Apple/EAS credentials.
+3. **App Store Connect — subscription metadata.** Both subscriptions
+   (`novelstack.plus.monthly`, `novelstack.plus.annual`) are currently
+   **"Missing Metadata"** — each needs a localized display name + description,
+   a price, and (for the first submission) a review screenshot. The app cannot
+   be submitted until these are completed.
+4. **App Store screenshots** — 6.5" display set (1242×2688 / 2688×1242 or
+   1284×2778 / 2778×1284) plus any other required sizes.
+5. **App Review Contact Information** — your first/last name, phone, email on
+   the version page (left blank — I don't enter your personal contact details).
+6. **Upload a build** — the version page still has no build attached
+   (Xcode/Transporter, after the native rebuild in #2).
+7. **`support@` / `privacy@` mailboxes** for novelstack.app.
+8. **Stripe business verification** — registered business (LLC/EIN) + bank, then
+   set `STRIPE_SECRET_KEY` on Render. This switches author payouts from
+   "coming soon" to live.
+9. **`REVENUECAT_WEBHOOK_SECRET` on Render** — set an env var to a long random
+   string and configure the matching RevenueCat webhook
+   (→ `https://novelstack.onrender.com/api/revenuecat-webhook`) so subscription
+   status syncs server-side. (I can set up the RevenueCat side and generate the
+   secret on request — I didn't change your Render env vars unprompted.)
+10. **On-device testing** — sandbox purchases, ads, and the reviewer deep-link
+    sign-in, on a real iPhone.
+11. **`eas init` + APNs key** for push notifications.
+
+---
+
+## Current status — 8-bullet summary (older history below)
 
 - **Project lives in `~/Documents/novelstack`** — canonical source; commit/push from here.
 - **Backend fully live.** Supabase project + schema + seed + migration 001 applied — DOB, reports, blocks, reading_events, takedown/admin flags all live.

@@ -19,7 +19,8 @@
     "postgres": "^3.4.5",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "resend": "^4.0.1"
+    "resend": "^4.0.1",
+    "stripe": "^17.7.0"
   },
   "devDependencies": {
     "@types/node": "^22.7.4",

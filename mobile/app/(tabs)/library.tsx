@@ -29,6 +29,7 @@ export default function Library() {
   const [saved, setSaved] = useState<Story[]>([]);
   const [loading, setLoading] = useState(true);
   const [pendingId, setPendingId] = useState<string | null>(null);
+  const [tab, setTab] = useState<'reading' | 'finished'>('reading');
 
   const load = useCallback(async () => {
     const token = await getSessionToken();
@@ -159,20 +160,36 @@ export default function Library() {
           </View>
         ) : (
           <>
-            {reading.length > 0 && (
-              <>
-                <Text style={styles.section}>In progress</Text>
-                <View style={styles.grid}>{reading.map((s) => bookCell(s, true))}</View>
-              </>
-            )}
-            {finished.length > 0 && (
-              <>
-                <View style={styles.completedHead}>
-                  <Ionicons name="checkmark-circle" size={17} color={colors.signal} />
-                  <Text style={styles.section}>Completed &amp; up to date</Text>
-                </View>
-                <View style={styles.grid}>{finished.map((s) => bookCell(s, false))}</View>
-              </>
+            <View style={styles.tabs}>
+              <Pressable
+                style={[styles.tab, tab === 'reading' && styles.tabOn]}
+                onPress={() => setTab('reading')}
+              >
+                <Text style={[styles.tabText, tab === 'reading' && styles.tabTextOn]}>
+                  In progress
+                </Text>
+              </Pressable>
+              <Pressable
+                style={[styles.tab, tab === 'finished' && styles.tabOn]}
+                onPress={() => setTab('finished')}
+              >
+                <Text style={[styles.tabText, tab === 'finished' && styles.tabTextOn]}>
+                  Completed
+                </Text>
+              </Pressable>
+            </View>
+            {(tab === 'reading' ? reading : finished).length === 0 ? (
+              <Text style={styles.tabEmpty}>
+                {tab === 'reading'
+                  ? 'Nothing in progress right now — open a saved story to start reading.'
+                  : 'No completed books yet. Finish a story and it moves here.'}
+              </Text>
+            ) : (
+              <View style={styles.grid}>
+                {(tab === 'reading' ? reading : finished).map((s) =>
+                  bookCell(s, tab === 'reading'),
+                )}
+              </View>
             )}
           </>
         )}
@@ -203,6 +220,25 @@ const styles = StyleSheet.create({
     gap: 7,
     marginTop: spacing.xl,
   },
+
+  // In progress / Completed switcher.
+  tabs: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: spacing.xs,
+    marginBottom: spacing.lg,
+  },
+  tab: {
+    paddingVertical: 8,
+    paddingHorizontal: 18,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  tabOn: { backgroundColor: colors.signal, borderColor: colors.signal },
+  tabText: { fontSize: 13, fontWeight: '700', color: colors.inkFaint },
+  tabTextOn: { color: '#FFFFFF' },
+  tabEmpty: { fontSize: 13, color: colors.inkMuted, lineHeight: 19 },
 
   emptyWrap: { alignItems: 'center', paddingHorizontal: 16 },
   emptyIcon: {

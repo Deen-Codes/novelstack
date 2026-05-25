@@ -1,173 +1,229 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import {
   View,
   Text,
   TextInput,
   Pressable,
-  ScrollView,
   ActivityIndicator,
   Alert,
   Modal,
-  InputAccessoryView,
+  KeyboardAvoidingView,
   Platform,
   StyleSheet,
-  type NativeSyntheticEvent,
-  type TextInputSelectionChangeEventData,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useFocusEffect, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import {
+  RichText,
+  Toolbar,
+  useEditorBridge,
+  useEditorContent,
+  TenTapStartKit,
+  CoreBridge,
+  DEFAULT_TOOLBAR_ITEMS,
+} from '@10play/tentap-editor';
 import { colors, spacing, radius, fonts } from '@/theme/tokens';
 import { apiGet, apiSend, apiUpload } from '@/lib/api';
-import { MarkdownText } from '@/components/MarkdownText';
+import { mdToHtml, htmlToMd } from '@/lib/chapterFormat';
 import type { Chapter, ChapterDetail } from '@/lib/types';
 
-const ACCESSORY_ID = 'novelstack-editor-toolbar';
+// CSS injected into the editor's webview so the writing surface matches the
+// app's dark theme and the reader's typography — baked in at init, no flash.
+const EDITOR_CSS = `
+  * { -webkit-user-select: text; }
+  body { background-color: ${colors.paper}; margin: 0; }
+  .ProseMirror {
+    background-color: ${colors.paper};
+    color: ${colors.ink};
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 18px;
+    line-height: 1.72;
+    padding: 16px 20px 120px;
+    caret-color: ${colors.signal};
+  }
+  .ProseMirror p { margin: 0 0 16px; }
+  .ProseMirror h1, .ProseMirror h2, .ProseMirror h3 {
+    font-family: -apple-system, system-ui, sans-serif;
+    color: ${colors.ink};
+    font-weight: 800;
+    font-size: 21px;
+    margin: 24px 0 12px;
+  }
+  .ProseMirror blockquote {
+    border-left: 3px solid ${colors.inkFaint};
+    margin: 0 0 16px;
+    padding-left: 14px;
+    color: ${colors.inkMuted};
+    font-style: italic;
+  }
+  .ProseMirror hr {
+    border: none;
+    border-top: 1px solid ${colors.border};
+    margin: 22px 0;
+  }
+  .ProseMirror img { max-width: 100%; height: auto; border-radius: 12px; }
+  .ProseMirror ul, .ProseMirror ol { padding-left: 22px; margin: 0 0 16px; }
+  .ProseMirror strong { font-weight: 700; }
+  .ProseMirror p.is-editor-empty:first-child::before {
+    color: ${colors.inkFaint};
+    content: attr(data-placeholder);
+    float: left;
+    height: 0;
+    pointer-events: none;
+  }
+`;
 
-type Sel = { start: number; end: number };
+// Dark toolbar theme so the formatting bar matches the app instead of the
+// library's white default. Icons are template images, so tintColor recolours
+// them; the active button picks up the ember accent.
+const TOOLBAR_THEME = {
+  toolbarBody: {
+    backgroundColor: colors.paperSoft,
+    borderTopWidth: 1,
+    borderTopColor: colors.borderSoft,
+  },
+  icon: { tintColor: colors.inkMuted },
+  iconActive: { tintColor: '#15100E' },
+  iconDisabled: { tintColor: colors.inkFaint },
+  iconWrapperActive: { backgroundColor: colors.signal, borderRadius: 6 },
+};
 
-// The immersive chapter editor. Pushed over the tab bar so it fills the
-// screen — the writer gets their words, a formatting toolbar above the
-// keyboard, and a live preview that renders exactly what readers will see.
+// A focused formatting toolbar — bold, italic, headings, underline,
+// strikethrough, the two lists, and undo/redo. Link, code block, task list,
+// quote and indent are deliberately left out (indices into the library's
+// DEFAULT_TOOLBAR_ITEMS, which is stable for the pinned version).
+const TOOLBAR_ITEMS = [
+  DEFAULT_TOOLBAR_ITEMS[0], // bold
+  DEFAULT_TOOLBAR_ITEMS[1], // italic
+  DEFAULT_TOOLBAR_ITEMS[4], // headings (opens H1–H3 picker)
+  DEFAULT_TOOLBAR_ITEMS[6], // underline
+  DEFAULT_TOOLBAR_ITEMS[7], // strikethrough
+  DEFAULT_TOOLBAR_ITEMS[9], // numbered list
+  DEFAULT_TOOLBAR_ITEMS[10], // bulleted list
+  DEFAULT_TOOLBAR_ITEMS[13], // undo
+  DEFAULT_TOOLBAR_ITEMS[14], // redo
+];
+
+// Loaded chapter, handed from the loader screen to the editor body.
+type Loaded = {
+  isNew: boolean;
+  chapterId: string;
+  storyId: string;
+  number: number | null;
+  title: string;
+  html: string;
+  isFree: boolean;
+};
+
+// The immersive chapter editor. The screen first loads the chapter, then
+// mounts <EditorBody> — so the rich-text editor is created exactly once,
+// already holding the chapter's content.
 export default function ChapterEditor() {
   const params = useLocalSearchParams<{ id: string; storyId?: string; next?: string }>();
-  const chapterId = params.id;
-  const isNew = chapterId === 'new';
-
-  const [loading, setLoading] = useState(!isNew);
-  const [title, setTitle] = useState('');
-  const [body, setBody] = useState('');
-  const [isFree, setIsFree] = useState(true);
-  const [storyId, setStoryId] = useState(params.storyId ?? '');
-  const [chapterNumber, setChapterNumber] = useState<number | null>(null);
-
-  // Live text selection inside the body field — formatting acts on this.
-  const [sel, setSel] = useState<Sel>({ start: 0, end: 0 });
-  // When we change the text programmatically we briefly control `selection`
-  // to place the cursor, then release it back to uncontrolled.
-  const [pendingSel, setPendingSel] = useState<Sel | null>(null);
-
-  const [preview, setPreview] = useState(false);
-  const [review, setReview] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [status, setStatus] = useState('');
-  const [imageBusy, setImageBusy] = useState(false);
-
-  // Snapshot of the loaded chapter — used to detect unsaved changes.
-  const saved = useRef({ title: '', body: '', isFree: true });
+  const isNew = params.id === 'new';
+  const [loaded, setLoaded] = useState<Loaded | null>(null);
+  const [error, setError] = useState('');
 
   const load = useCallback(async () => {
     if (isNew) {
       const n = Number(params.next);
       const num = Number.isFinite(n) && n > 0 ? n : 1;
-      setChapterNumber(num);
-      setTitle(`Chapter ${num}`);
-      setIsFree(num <= 3);
-      saved.current = { title: '', body: '', isFree: num <= 3 };
+      setLoaded({
+        isNew: true,
+        chapterId: 'new',
+        storyId: params.storyId ?? '',
+        number: num,
+        title: `Chapter ${num}`,
+        html: '<p></p>',
+        isFree: num <= 3,
+      });
       return;
     }
-    setLoading(true);
     try {
-      const ch = await apiGet<ChapterDetail>(`/api/chapters/${chapterId}`);
-      setTitle(ch.title);
-      setBody(ch.body ?? '');
-      setIsFree(ch.isFree);
-      setStoryId(ch.storyId);
-      setChapterNumber(ch.number);
-      saved.current = { title: ch.title, body: ch.body ?? '', isFree: ch.isFree };
+      const ch = await apiGet<ChapterDetail>(`/api/chapters/${params.id}`);
+      setLoaded({
+        isNew: false,
+        chapterId: params.id,
+        storyId: ch.storyId,
+        number: ch.number,
+        title: ch.title,
+        html: mdToHtml(ch.body ?? ''),
+        isFree: ch.isFree,
+      });
     } catch {
-      setStatus('Could not load this chapter.');
+      setError('Could not load this chapter.');
     }
-    setLoading(false);
-  }, [isNew, chapterId, params.next]);
+  }, [isNew, params.id, params.next, params.storyId]);
 
   useFocusEffect(
     useCallback(() => {
-      load();
-    }, [load]),
+      // Load once only — re-running would discard unsaved edits.
+      if (!loaded && !error) load();
+    }, [loaded, error, load]),
   );
 
+  if (error) {
+    return (
+      <SafeAreaView style={styles.safe} edges={['top']}>
+        <View style={styles.topBar}>
+          <Pressable onPress={() => router.back()} hitSlop={10} style={styles.topBtn}>
+            <Text style={styles.topBtnText}>Cancel</Text>
+          </Pressable>
+        </View>
+        <Text style={styles.errorText}>{error}</Text>
+      </SafeAreaView>
+    );
+  }
+
+  if (!loaded) {
+    return (
+      <SafeAreaView style={styles.safe} edges={['top']}>
+        <ActivityIndicator color={colors.signal} style={{ marginTop: 80 }} />
+      </SafeAreaView>
+    );
+  }
+
+  return <EditorBody data={loaded} />;
+}
+
+function EditorBody({ data }: { data: Loaded }) {
+  const { isNew, chapterId, storyId, number } = data;
+  const [title, setTitle] = useState(data.title);
+  const [isFree, setIsFree] = useState(data.isFree);
+  const [review, setReview] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [status, setStatus] = useState('');
+  const [imageBusy, setImageBusy] = useState(false);
+  const [words, setWords] = useState(0);
+
+  // The rich-text editor — created once with the chapter's content already
+  // converted to HTML, themed to the app via baked-in CSS.
+  const editor = useEditorBridge({
+    autofocus: false,
+    avoidIosKeyboard: true,
+    initialContent: data.html,
+    bridgeExtensions: [...TenTapStartKit, CoreBridge.configureCSS(EDITOR_CSS)],
+    theme: {
+      toolbar: TOOLBAR_THEME,
+      webview: { backgroundColor: colors.paper },
+      webviewContainer: { backgroundColor: colors.paper },
+    },
+  });
+
+  // Live HTML drives the unsaved-changes guard. The baseline is whatever the
+  // editor first emits, so simply opening a chapter never counts as an edit.
+  const liveHtml = useEditorContent(editor, { type: 'html' });
+  const baseline = useRef<string | null>(null);
+  if (liveHtml != null && baseline.current === null) baseline.current = liveHtml;
+
   const dirty =
-    title !== saved.current.title ||
-    body !== saved.current.body ||
-    isFree !== saved.current.isFree;
+    title !== data.title ||
+    isFree !== data.isFree ||
+    (liveHtml != null && baseline.current != null && liveHtml !== baseline.current);
 
-  const wordCount = useMemo(() => {
-    const plain = body
-      .replace(/!\[[^\]]*\]\([^)]*\)/g, ' ')
-      .replace(/[*_>#]/g, ' ')
-      .trim();
-    return plain ? plain.split(/\s+/).length : 0;
-  }, [body]);
-  const readMinutes = Math.max(1, Math.round(wordCount / 220));
-
-  // --- text editing helpers ------------------------------------------------
-  function applyEdit(nextBody: string, nextSel: Sel) {
-    setBody(nextBody);
-    setSel(nextSel);
-    setPendingSel(nextSel);
-  }
-
-  function onSelectionChange(
-    e: NativeSyntheticEvent<TextInputSelectionChangeEventData>,
-  ) {
-    setSel(e.nativeEvent.selection);
-    if (pendingSel) setPendingSel(null);
-  }
-
-  // Wraps the selection in a marker (**bold**, *italic*). With no selection,
-  // drops the markers in and parks the cursor between them.
-  function wrap(marker: string) {
-    const { start, end } = sel;
-    const before = body.slice(0, start);
-    const mid = body.slice(start, end);
-    const after = body.slice(end);
-    if (start === end) {
-      applyEdit(before + marker + marker + after, {
-        start: start + marker.length,
-        end: start + marker.length,
-      });
-    } else {
-      applyEdit(before + marker + mid + marker + after, {
-        start: start + marker.length,
-        end: end + marker.length,
-      });
-    }
-  }
-
-  // Toggles a line prefix (`## `, `> `) on the line holding the cursor.
-  function prefixLine(prefix: string) {
-    const { start } = sel;
-    const lineStart = body.lastIndexOf('\n', Math.max(0, start - 1)) + 1;
-    const rest = body.slice(lineStart);
-    if (rest.startsWith(prefix)) {
-      applyEdit(body.slice(0, lineStart) + rest.slice(prefix.length), {
-        start: Math.max(lineStart, start - prefix.length),
-        end: Math.max(lineStart, start - prefix.length),
-      });
-    } else {
-      applyEdit(body.slice(0, lineStart) + prefix + rest, {
-        start: start + prefix.length,
-        end: start + prefix.length,
-      });
-    }
-  }
-
-  // Drops a standalone block (scene break, image) at the cursor, padded with
-  // blank lines so it parses as its own block.
-  function insertBlock(text: string) {
-    const { start, end } = sel;
-    const before = body.slice(0, start);
-    const after = body.slice(end);
-    const padBefore = before.length === 0 ? '' : before.endsWith('\n\n') ? '' : before.endsWith('\n') ? '\n' : '\n\n';
-    const padAfter = after.length === 0 ? '' : after.startsWith('\n\n') ? '' : after.startsWith('\n') ? '\n' : '\n\n';
-    const insert = padBefore + text + padAfter;
-    const pos = before.length + padBefore.length + text.length;
-    applyEdit(before + insert + after, { start: pos, end: pos });
-  }
-
-  // Picks an illustration, uploads it to R2, inserts it as ![caption](url).
+  // Picks an illustration, uploads it to R2, drops it into the editor.
   async function addImage() {
     if (imageBusy) return;
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -191,50 +247,43 @@ export default function ChapterEditor() {
         name: `illustration.${ext}`,
         type,
       });
-      const finish = (caption: string) => {
-        insertBlock(`![${caption.trim()}](${url})`);
-        setStatus('Illustration added.');
-      };
-      // Alert.prompt is iOS-only — the app ships iPhone-first.
-      if (Platform.OS === 'ios') {
-        Alert.prompt(
-          'Caption',
-          'Add an optional caption for this illustration.',
-          [
-            { text: 'Skip', onPress: () => finish('') },
-            { text: 'Add', onPress: (t) => finish(t ?? '') },
-          ],
-          'plain-text',
-        );
-      } else {
-        finish('');
-      }
+      editor.setImage(url);
+      setStatus('Illustration added.');
     } catch (e) {
       setStatus(e instanceof Error ? e.message : 'Could not upload the image.');
     }
     setImageBusy(false);
   }
 
-  // --- save / publish ------------------------------------------------------
+  // Counts words off the plain text, then opens the publish/save sheet.
+  async function openReview() {
+    try {
+      const text = await editor.getText();
+      const trimmed = text.trim();
+      setWords(trimmed ? trimmed.split(/\s+/).length : 0);
+    } catch {
+      setWords(0);
+    }
+    setReview(true);
+  }
+
+  // Saves the chapter — the editor's HTML is converted back to Markdown.
   async function commit() {
     if (busy) return;
     setBusy(true);
     setStatus(isNew ? 'Publishing…' : 'Saving…');
     try {
+      const body = htmlToMd(await editor.getHTML());
+      const payload = {
+        title: title.trim() || `Chapter ${number ?? ''}`.trim(),
+        body,
+        isFree,
+      };
       if (isNew) {
-        await apiSend<Chapter>(`/api/me/stories/${storyId}/chapters`, 'POST', {
-          title: title.trim() || `Chapter ${chapterNumber ?? ''}`.trim(),
-          body,
-          isFree,
-        });
+        await apiSend<Chapter>(`/api/me/stories/${storyId}/chapters`, 'POST', payload);
       } else {
-        await apiSend<Chapter>(`/api/me/chapters/${chapterId}`, 'PATCH', {
-          title: title.trim() || `Chapter ${chapterNumber ?? ''}`.trim(),
-          body,
-          isFree,
-        });
+        await apiSend<Chapter>(`/api/me/chapters/${chapterId}`, 'PATCH', payload);
       }
-      saved.current = { title, body, isFree };
       setReview(false);
       router.back();
     } catch (e) {
@@ -278,13 +327,7 @@ export default function ChapterEditor() {
     ]);
   }
 
-  if (loading) {
-    return (
-      <SafeAreaView style={styles.safe} edges={['top']}>
-        <ActivityIndicator color={colors.signal} style={{ marginTop: 80 }} />
-      </SafeAreaView>
-    );
-  }
+  const readMinutes = Math.max(1, Math.round(words / 220));
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -294,120 +337,72 @@ export default function ChapterEditor() {
           <Text style={styles.topBtnText}>Cancel</Text>
         </Pressable>
         <Text style={styles.topLabel} numberOfLines={1}>
-          {isNew ? 'New chapter' : `Chapter ${chapterNumber ?? ''}`}
+          {isNew ? 'New chapter' : `Chapter ${number ?? ''}`}
         </Text>
         <View style={styles.topRight}>
+          <Pressable onPress={addImage} hitSlop={10} style={styles.iconBtn} disabled={imageBusy}>
+            <Ionicons
+              name="image-outline"
+              size={20}
+              color={imageBusy ? colors.inkFaint : colors.inkMuted}
+            />
+          </Pressable>
           {!isNew && (
-            <Pressable onPress={confirmDelete} hitSlop={10} style={styles.eyeBtn}>
+            <Pressable onPress={confirmDelete} hitSlop={10} style={styles.iconBtn}>
               <Ionicons name="trash-outline" size={19} color={colors.inkMuted} />
             </Pressable>
           )}
           <Pressable
-            onPress={() => setPreview((p) => !p)}
-            hitSlop={10}
-            style={styles.eyeBtn}
-          >
-            <Ionicons
-              name={preview ? 'create-outline' : 'eye-outline'}
-              size={20}
-              color={colors.inkMuted}
-            />
-          </Pressable>
-          <Pressable
             style={[styles.publishBtn, !dirty && !isNew && styles.publishOff]}
-            onPress={() => setReview(true)}
+            onPress={openReview}
           >
-            <Text style={styles.publishText}>{isNew ? 'Publish' : 'Save'}</Text>
+            <Text style={[styles.publishText, !dirty && !isNew && styles.publishTextOff]}>
+              {isNew ? 'Publish' : 'Save'}
+            </Text>
           </Pressable>
         </View>
       </View>
 
-      {preview ? (
-        // Live preview — the same renderer the reader uses.
-        <ScrollView contentContainerStyle={styles.previewScroll}>
-          <Text style={styles.previewChLabel}>
-            Chapter {chapterNumber ?? ''}
-          </Text>
-          <Text style={styles.previewTitle}>{title || 'Untitled chapter'}</Text>
-          {body.trim() ? (
-            <MarkdownText body={body} color={colors.ink} faint={colors.inkFaint} />
-          ) : (
-            <Text style={styles.previewEmpty}>
-              Nothing to preview yet — switch back and start writing.
-            </Text>
-          )}
-        </ScrollView>
-      ) : (
-        <View style={styles.editArea}>
-          <TextInput
-            value={title}
-            onChangeText={setTitle}
-            placeholder="Chapter title"
-            placeholderTextColor={colors.inkFaint}
-            style={styles.titleInput}
-          />
-          <TextInput
-            value={body}
-            onChangeText={setBody}
-            onSelectionChange={onSelectionChange}
-            selection={pendingSel ?? undefined}
-            placeholder="Begin your chapter…"
-            placeholderTextColor={colors.inkFaint}
-            multiline
-            scrollEnabled
-            textAlignVertical="top"
-            inputAccessoryViewID={Platform.OS === 'ios' ? ACCESSORY_ID : undefined}
-            style={styles.bodyInput}
-          />
-        </View>
-      )}
+      <TextInput
+        value={title}
+        onChangeText={setTitle}
+        placeholder="Chapter title"
+        placeholderTextColor={colors.inkFaint}
+        style={styles.titleInput}
+      />
 
       {!!status && <Text style={styles.status}>{status}</Text>}
 
-      {/* Formatting toolbar — rides above the keyboard while writing. */}
-      {Platform.OS === 'ios' && (
-        <InputAccessoryView nativeID={ACCESSORY_ID}>
-          <View style={styles.toolbar}>
-            <ToolBtn label="B" bold onPress={() => wrap('**')} />
-            <ToolBtn label="I" italic onPress={() => wrap('*')} />
-            <ToolIcon name="text" onPress={() => prefixLine('## ')} />
-            <ToolIcon name="chatbox-outline" onPress={() => prefixLine('> ')} />
-            <ToolIcon name="ellipsis-horizontal" onPress={() => insertBlock('* * *')} />
-            <ToolIcon
-              name="image-outline"
-              onPress={addImage}
-              disabled={imageBusy}
-            />
-          </View>
-        </InputAccessoryView>
-      )}
+      {/* The rich-text editor — formatting renders live, no markdown markers. */}
+      <View style={styles.editorWrap}>
+        <RichText editor={editor} />
+      </View>
 
-      {/* Android fallback — no keyboard accessory, so a docked toolbar. */}
-      {Platform.OS !== 'ios' && !preview && (
-        <View style={styles.toolbar}>
-          <ToolBtn label="B" bold onPress={() => wrap('**')} />
-          <ToolBtn label="I" italic onPress={() => wrap('*')} />
-          <ToolIcon name="text" onPress={() => prefixLine('## ')} />
-          <ToolIcon name="chatbox-outline" onPress={() => prefixLine('> ')} />
-          <ToolIcon name="ellipsis-horizontal" onPress={() => insertBlock('* * *')} />
-          <ToolIcon name="image-outline" onPress={addImage} disabled={imageBusy} />
-        </View>
-      )}
+      {/* Formatting toolbar — rides above the keyboard while writing. */}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.toolbarWrap}
+      >
+        <Toolbar editor={editor} items={TOOLBAR_ITEMS} />
+      </KeyboardAvoidingView>
 
       {/* Publish / save review sheet */}
-      <Modal visible={review} transparent animationType="slide" onRequestClose={() => setReview(false)}>
+      <Modal
+        visible={review}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setReview(false)}
+      >
         <Pressable style={styles.backdrop} onPress={() => !busy && setReview(false)} />
         <View style={styles.sheet}>
           <View style={styles.sheetGrip} />
-          <Text style={styles.sheetTitle}>
-            {isNew ? 'Ready to publish?' : 'Save changes?'}
-          </Text>
+          <Text style={styles.sheetTitle}>{isNew ? 'Ready to publish?' : 'Save changes?'}</Text>
           <Text style={styles.sheetChapter} numberOfLines={2}>
-            {title || `Chapter ${chapterNumber ?? ''}`}
+            {title || `Chapter ${number ?? ''}`}
           </Text>
           <View style={styles.sheetStats}>
             <Text style={styles.sheetStat}>
-              {wordCount.toLocaleString()} word{wordCount === 1 ? '' : 's'}
+              {words.toLocaleString()} word{words === 1 ? '' : 's'}
             </Text>
             <Text style={styles.sheetDot}>·</Text>
             <Text style={styles.sheetStat}>{readMinutes} min read</Text>
@@ -453,55 +448,6 @@ export default function ChapterEditor() {
   );
 }
 
-// A text-glyph toolbar button (B / I).
-function ToolBtn({
-  label,
-  bold,
-  italic,
-  onPress,
-}: {
-  label: string;
-  bold?: boolean;
-  italic?: boolean;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable style={styles.toolBtn} onPress={onPress} hitSlop={6}>
-      <Text
-        style={[
-          styles.toolGlyph,
-          bold && { fontWeight: '800' },
-          italic && { fontStyle: 'italic' },
-        ]}
-      >
-        {label}
-      </Text>
-    </Pressable>
-  );
-}
-
-// An icon toolbar button.
-function ToolIcon({
-  name,
-  onPress,
-  disabled,
-}: {
-  name: keyof typeof Ionicons.glyphMap;
-  onPress: () => void;
-  disabled?: boolean;
-}) {
-  return (
-    <Pressable
-      style={[styles.toolBtn, disabled && { opacity: 0.4 }]}
-      onPress={onPress}
-      disabled={disabled}
-      hitSlop={6}
-    >
-      <Ionicons name={name} size={19} color={colors.ink} />
-    </Pressable>
-  );
-}
-
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.paper },
 
@@ -523,79 +469,38 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.ink,
   },
-  topRight: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  eyeBtn: { padding: 4 },
+  topRight: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  iconBtn: { padding: 4 },
   publishBtn: {
-    backgroundColor: colors.signal,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: radius.pill,
+    backgroundColor: '#F4ECDF',
+    paddingHorizontal: 18,
+    paddingVertical: 9,
+    borderRadius: radius.md,
+    marginLeft: 2,
   },
   publishOff: { backgroundColor: colors.cardHi },
-  publishText: { color: '#FFFFFF', fontSize: 13, fontWeight: '700' },
+  publishText: { color: '#15100E', fontSize: 13, fontWeight: '700' },
+  publishTextOff: { color: colors.inkFaint },
 
-  editArea: { flex: 1, paddingHorizontal: spacing.lg },
+  errorText: { fontSize: 14, color: colors.inkMuted, padding: spacing.lg },
+
   titleInput: {
     fontFamily: fonts.displayXl,
     fontSize: 24,
     color: colors.ink,
-    paddingTop: spacing.lg,
-    paddingBottom: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.xs,
     letterSpacing: -0.4,
   },
-  bodyInput: {
-    flex: 1,
-    fontFamily: 'serif',
-    fontSize: 18,
-    lineHeight: 30,
-    color: colors.ink,
-    paddingTop: spacing.sm,
-    paddingBottom: spacing.xl,
-  },
-
-  previewScroll: { padding: spacing.lg, paddingBottom: spacing.xl * 2 },
-  previewChLabel: {
-    fontSize: 12,
-    letterSpacing: 1,
-    color: colors.signal,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-  },
-  previewTitle: {
-    fontFamily: fonts.display,
-    fontSize: 26,
-    color: colors.ink,
-    marginTop: spacing.xs,
-    marginBottom: spacing.lg,
-  },
-  previewEmpty: { fontSize: 14, color: colors.inkFaint, fontStyle: 'italic' },
-
   status: {
     fontSize: 12,
     color: colors.inkMuted,
-    textAlign: 'center',
-    paddingVertical: 6,
+    paddingHorizontal: spacing.lg,
+    paddingBottom: 4,
   },
-
-  toolbar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.sm,
-    backgroundColor: colors.paperSoft,
-    borderTopWidth: 1,
-    borderTopColor: colors.borderSoft,
-  },
-  toolBtn: {
-    width: 42,
-    height: 38,
-    borderRadius: radius.sm,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.card,
-  },
-  toolGlyph: { fontSize: 17, color: colors.ink },
+  editorWrap: { flex: 1 },
+  toolbarWrap: { position: 'absolute', left: 0, right: 0, bottom: 0 },
 
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)' },
   sheet: {
@@ -614,11 +519,7 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     marginBottom: spacing.sm,
   },
-  sheetTitle: {
-    fontFamily: fonts.display,
-    fontSize: 20,
-    color: colors.ink,
-  },
+  sheetTitle: { fontFamily: fonts.display, fontSize: 20, color: colors.ink },
   sheetChapter: { fontSize: 15, color: colors.inkMuted },
   sheetStats: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: spacing.sm },
   sheetStat: { fontSize: 12, color: colors.inkFaint },
@@ -647,13 +548,13 @@ const styles = StyleSheet.create({
   freeHint: { fontSize: 12, color: colors.inkFaint, marginTop: 2, lineHeight: 16 },
 
   confirmBtn: {
-    backgroundColor: colors.signal,
+    backgroundColor: '#F4ECDF',
     paddingVertical: 14,
-    borderRadius: radius.pill,
+    borderRadius: radius.md,
     alignItems: 'center',
     marginTop: spacing.md,
   },
-  confirmText: { color: '#FFFFFF', fontSize: 15, fontWeight: '700' },
+  confirmText: { color: '#15100E', fontSize: 15, fontWeight: '700' },
   sheetNote: {
     fontSize: 12,
     color: colors.inkFaint,

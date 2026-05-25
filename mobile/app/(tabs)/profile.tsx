@@ -11,7 +11,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, router, type Href } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { colors, spacing, radius, fonts } from '@/theme/tokens';
@@ -294,6 +294,17 @@ export default function ProfileScreen() {
           <Text style={styles.saveBtnText}>{busy ? 'Saving…' : 'Save changes'}</Text>
         </Pressable>
 
+        <Pressable style={styles.linkRow} onPress={() => router.push('/earnings' as Href)}>
+          <View style={styles.linkIcon}>
+            <Ionicons name="cash-outline" size={18} color={colors.signal} />
+          </View>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Text style={styles.linkTitle}>Earnings &amp; payouts</Text>
+            <Text style={styles.linkSub}>Track what your stories earn and get paid.</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={colors.inkFaint} />
+        </Pressable>
+
         <Pressable style={styles.signOut} onPress={signOut}>
           <Text style={styles.signOutText}>Sign out</Text>
         </Pressable>
@@ -428,8 +439,32 @@ const styles = StyleSheet.create({
   },
   plusBtnText: { color: '#FFFFFF', fontSize: 14, fontWeight: '700' },
 
-  signOut: {
+  linkRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
     marginTop: spacing.lg,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.lg,
+    padding: spacing.md,
+  },
+  linkIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 11,
+    backgroundColor: colors.signalSoft,
+    borderWidth: 1,
+    borderColor: '#6E3138',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  linkTitle: { fontFamily: fonts.display, fontSize: 15, color: colors.ink },
+  linkSub: { fontSize: 12.5, color: colors.inkMuted, marginTop: 2 },
+
+  signOut: {
+    marginTop: spacing.md,
     paddingVertical: 13,
     borderRadius: 14,
     borderWidth: 1,

@@ -25,10 +25,12 @@ export default function Write() {
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [title, setTitle] = useState('');
-  const [genre, setGenre] = useState('romance');
+  const [genre, setGenre] = useState('');
+  const [genreQuery, setGenreQuery] = useState('');
   const [desc, setDesc] = useState('');
   const [mature, setMature] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
 
   const load = useCallback(async () => {
     const token = await getSessionToken();
@@ -55,7 +57,16 @@ export default function Write() {
   );
 
   async function createStory() {
-    if (!title.trim() || busy) return;
+    if (busy) return;
+    // Tell the writer exactly what's missing rather than failing silently.
+    const missing: string[] = [];
+    if (!title.trim()) missing.push('a story title');
+    if (!genre) missing.push('a genre');
+    if (missing.length > 0) {
+      setError(`Please add ${missing.join(' and ')} before creating the story.`);
+      return;
+    }
+    setError('');
     setBusy(true);
     try {
       const story = await apiSend<Story>('/api/me/stories', 'POST', {
@@ -65,12 +76,14 @@ export default function Write() {
         isMature: mature,
       });
       setTitle('');
+      setGenre('');
+      setGenreQuery('');
       setDesc('');
       setMature(false);
       setCreating(false);
       router.push(`/write/${story.id}`);
     } catch {
-      // Leave the form open so the writer can retry.
+      setError('Something went wrong creating the story. Please try again.');
     }
     setBusy(false);
   }
@@ -123,18 +136,50 @@ export default function Write() {
               placeholderTextColor={colors.inkFaint}
               style={styles.input}
             />
-            <View style={styles.chips}>
-              {GENRES.map((g) => (
+            <View style={styles.genreField}>
+              <Text style={styles.fieldLabel}>Genre</Text>
+              {genre ? (
                 <Pressable
-                  key={g.value}
-                  style={[styles.chip, genre === g.value && styles.chipActive]}
-                  onPress={() => setGenre(g.value)}
+                  style={styles.genrePicked}
+                  onPress={() => {
+                    setGenre('');
+                    setGenreQuery('');
+                  }}
                 >
-                  <Text style={[styles.chipText, genre === g.value && styles.chipTextActive]}>
-                    {g.label}
-                  </Text>
+                  <Text style={styles.genrePickedText}>{genreLabel(genre)}</Text>
+                  <Ionicons name="close-circle" size={17} color={colors.signal} />
                 </Pressable>
-              ))}
+              ) : (
+                <>
+                  <TextInput
+                    value={genreQuery}
+                    onChangeText={setGenreQuery}
+                    placeholder="Search genres…"
+                    placeholderTextColor={colors.inkFaint}
+                    style={styles.input}
+                    autoCorrect={false}
+                  />
+                  <View style={styles.chips}>
+                    {GENRES.filter((g) =>
+                      g.label.toLowerCase().includes(genreQuery.trim().toLowerCase()),
+                    )
+                      .slice(0, 8)
+                      .map((g) => (
+                        <Pressable
+                          key={g.value}
+                          style={styles.chip}
+                          onPress={() => {
+                            setGenre(g.value);
+                            setGenreQuery('');
+                            setError('');
+                          }}
+                        >
+                          <Text style={styles.chipText}>{g.label}</Text>
+                        </Pressable>
+                      ))}
+                  </View>
+                </>
+              )}
             </View>
             <TextInput
               value={desc}
@@ -152,8 +197,20 @@ export default function Write() {
                 Mature (18+) — adult content. Readers confirm their age first.
               </Text>
             </Pressable>
+            {!!error && (
+              <View style={styles.errorRow}>
+                <Ionicons name="alert-circle" size={15} color={colors.signal} />
+                <Text style={styles.errorText}>{error}</Text>
+              </View>
+            )}
             <View style={styles.formBtns}>
-              <Pressable style={styles.ghostBtn} onPress={() => setCreating(false)}>
+              <Pressable
+                style={styles.ghostBtn}
+                onPress={() => {
+                  setCreating(false);
+                  setError('');
+                }}
+              >
                 <Text style={styles.ghostBtnText}>Cancel</Text>
               </Pressable>
               <Pressable
@@ -284,6 +341,41 @@ const styles = StyleSheet.create({
   chipActive: { backgroundColor: colors.signal, borderColor: colors.signal },
   chipText: { fontSize: 12, color: colors.inkMuted, textTransform: 'capitalize' },
   chipTextActive: { color: '#FFFFFF' },
+
+  // Genre picker.
+  genreField: { gap: 8 },
+  fieldLabel: { fontSize: 12.5, fontWeight: '600', color: colors.inkMuted },
+  genrePicked: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    backgroundColor: colors.signalSoft,
+    borderWidth: 1,
+    borderColor: colors.signal,
+    borderRadius: radius.pill,
+    paddingLeft: 13,
+    paddingRight: 9,
+    paddingVertical: 7,
+  },
+  genrePickedText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.ink,
+    textTransform: 'capitalize',
+  },
+
+  // Validation message.
+  errorRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 7,
+    backgroundColor: colors.signalSoft,
+    borderRadius: radius.md,
+    paddingHorizontal: 11,
+    paddingVertical: 9,
+  },
+  errorText: { flex: 1, fontSize: 12.5, color: colors.ink, lineHeight: 17 },
   matureRow: { flexDirection: 'row', alignItems: 'center', gap: 9 },
   checkbox: {
     width: 22,

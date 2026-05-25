@@ -61,18 +61,20 @@
           "color": "#C8414E"
         }
       ],
-      "react-native-google-mobile-ads"
+      [
+        "react-native-google-mobile-ads",
+        {
+          "iosAppId": "ca-app-pub-4785473067647076~8254338656",
+          "androidAppId": "ca-app-pub-4785473067647076~7241851333"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
     },
     "extra": {
       "apiBaseUrl": "https://novelstack.onrender.com",
-      "revenueCatKey": ""
+      "revenueCatKey": "appl_ZXUWIahuvhxnAIYzlPrSGdhlWGN"
     }
-  },
-  "react-native-google-mobile-ads": {
-    "iosAppId": "ca-app-pub-4785473067647076~8254338656",
-    "androidAppId": "ca-app-pub-4785473067647076~7241851333"
   }
 }

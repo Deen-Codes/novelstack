@@ -13,6 +13,7 @@ import { useLocalSearchParams, useFocusEffect, router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { colors, spacing, radius, fonts } from '@/theme/tokens';
 import { apiGet, apiSend, apiUpload } from '@/lib/api';
+import { genreLabel } from '@/lib/genres';
 import { Cover } from '@/components/Cover';
 import type { Shelf, Story, Chapter, StoryDetail } from '@/lib/types';
 
@@ -25,6 +26,7 @@ export default function StoryWriter() {
   const [status, setStatus] = useState('');
   const [coverBusy, setCoverBusy] = useState(false);
   const [coverError, setCoverError] = useState('');
+  const [tab, setTab] = useState<'cover' | 'status' | 'access'>('cover');
 
   const load = useCallback(async () => {
     // The shelf carries the full Story (incl. slug) for every story we own.
@@ -125,8 +127,9 @@ export default function StoryWriter() {
     }
   }
 
-  // Sets the story's status — draft → ongoing (live), or ongoing ⟷ complete.
-  async function changeStatus(next: 'ongoing' | 'complete') {
+  // Sets the story's status — draft → live, ongoing ⟷ complete, or back
+  // to draft to take the story offline.
+  async function changeStatus(next: 'draft' | 'ongoing' | 'complete') {
     if (busy || !story || story.status === next) return;
     setBusy(true);
     try {
@@ -214,112 +217,152 @@ export default function StoryWriter() {
         </Pressable>
         <Text style={styles.h1}>{story.title}</Text>
         <Text style={styles.sub}>
-          {story.genre} · {story.status}
+          {genreLabel(story.genre)} · {story.status === 'draft' ? 'Offline draft' : story.status}
         </Text>
 
-        <View style={styles.coverCard}>
-          <Cover
-            coverUrl={story.coverUrl}
-            coverColor={story.coverColor}
-            title={story.title}
-            style={styles.coverThumb}
-          />
-          <View style={{ flex: 1 }}>
-            <Text style={styles.coverLabel}>Cover image</Text>
-            <Text style={styles.coverHint}>JPEG, PNG or WebP · up to 5 MB</Text>
+        <View style={styles.tabs}>
+          {(['cover', 'status', 'access'] as const).map((t) => (
             <Pressable
-              style={[styles.coverBtn, coverBusy && { opacity: 0.6 }]}
-              onPress={pickCover}
-              disabled={coverBusy}
+              key={t}
+              style={[styles.tab, tab === t && styles.tabOn]}
+              onPress={() => setTab(t)}
             >
-              <Text style={styles.coverBtnText}>
-                {coverBusy ? 'Uploading…' : story.coverUrl ? 'Replace cover' : 'Upload cover'}
+              <Text style={[styles.tabText, tab === t && styles.tabTextOn]}>
+                {t === 'cover' ? 'Cover' : t === 'status' ? 'Status' : 'Access'}
               </Text>
             </Pressable>
-            {!!coverError && <Text style={styles.coverError}>{coverError}</Text>}
-          </View>
+          ))}
         </View>
 
-        <Pressable style={styles.matureRow} onPress={toggleMature}>
-          <View style={[styles.checkbox, story.isMature && styles.checkboxOn]}>
-            {story.isMature && <Text style={styles.checkMark}>✓</Text>}
-          </View>
-          <Text style={styles.freeText}>Mature (18+) — readers confirm their age first</Text>
-        </Pressable>
-
-        {story.status === 'draft' ? (
-          <Pressable
-            style={[styles.addBtn, busy && { opacity: 0.6 }]}
-            onPress={() => changeStatus('ongoing')}
-            disabled={busy}
-          >
-            <Text style={styles.addBtnText}>Make story live</Text>
-          </Pressable>
-        ) : (
-          <View style={styles.settingCard}>
-            <Text style={styles.cardLabel}>Story status</Text>
-            <View style={styles.segment}>
+        {tab === 'cover' && (
+          <View style={styles.coverCard}>
+            <Cover
+              coverUrl={story.coverUrl}
+              coverColor={story.coverColor}
+              title={story.title}
+              style={styles.coverThumb}
+            />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.coverLabel}>Cover image</Text>
+              <Text style={styles.coverHint}>JPEG, PNG or WebP · up to 5 MB</Text>
               <Pressable
-                style={[styles.segBtn, story.status === 'ongoing' && styles.segOn]}
+                style={[styles.coverBtn, coverBusy && { opacity: 0.6 }]}
+                onPress={pickCover}
+                disabled={coverBusy}
+              >
+                <Text style={styles.coverBtnText}>
+                  {coverBusy ? 'Uploading…' : story.coverUrl ? 'Replace cover' : 'Upload cover'}
+                </Text>
+              </Pressable>
+              {!!coverError && <Text style={styles.coverError}>{coverError}</Text>}
+            </View>
+          </View>
+        )}
+
+        {tab === 'status' && (
+          <>
+            <Pressable style={styles.matureRow} onPress={toggleMature}>
+              <View style={[styles.checkbox, story.isMature && styles.checkboxOn]}>
+                {story.isMature && <Text style={styles.checkMark}>✓</Text>}
+              </View>
+              <Text style={styles.freeText}>
+                Mature (18+) — readers confirm their age first
+              </Text>
+            </Pressable>
+
+            {story.status === 'draft' ? (
+              <Pressable
+                style={[styles.addBtn, busy && { opacity: 0.6 }]}
                 onPress={() => changeStatus('ongoing')}
                 disabled={busy}
               >
-                <Text
-                  style={[styles.segText, story.status === 'ongoing' && styles.segTextOn]}
-                >
-                  Ongoing
-                </Text>
+                <Text style={styles.addBtnText}>Make story live</Text>
               </Pressable>
-              <Pressable
-                style={[styles.segBtn, story.status === 'complete' && styles.segOn]}
-                onPress={() => changeStatus('complete')}
-                disabled={busy}
-              >
-                <Text
-                  style={[styles.segText, story.status === 'complete' && styles.segTextOn]}
-                >
-                  Complete
+            ) : (
+              <View style={styles.settingCard}>
+                <Text style={styles.cardLabel}>Story status</Text>
+                <View style={styles.segment}>
+                  <Pressable
+                    style={[styles.segBtn, story.status === 'ongoing' && styles.segOn]}
+                    onPress={() => changeStatus('ongoing')}
+                    disabled={busy}
+                  >
+                    <Text
+                      style={[styles.segText, story.status === 'ongoing' && styles.segTextOn]}
+                    >
+                      Ongoing
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    style={[styles.segBtn, story.status === 'complete' && styles.segOn]}
+                    onPress={() => changeStatus('complete')}
+                    disabled={busy}
+                  >
+                    <Text
+                      style={[styles.segText, story.status === 'complete' && styles.segTextOn]}
+                    >
+                      Complete
+                    </Text>
+                  </Pressable>
+                </View>
+                <Text style={styles.cardHint}>
+                  {story.status === 'complete'
+                    ? 'Readers see this as a finished book.'
+                    : 'Readers know more chapters are still coming.'}
                 </Text>
-              </Pressable>
-            </View>
-            <Text style={styles.cardHint}>
-              {story.status === 'complete'
-                ? 'Readers see this as a finished book.'
-                : 'Readers know more chapters are still coming.'}
-            </Text>
-          </View>
+                <Pressable
+                  style={[styles.offlineBtn, busy && { opacity: 0.5 }]}
+                  onPress={() => changeStatus('draft')}
+                  disabled={busy}
+                >
+                  <Text style={styles.offlineBtnText}>Take offline — back to draft</Text>
+                </Pressable>
+                <Text style={styles.cardHint}>
+                  An offline story is hidden from readers until you make it live again.
+                </Text>
+              </View>
+            )}
+          </>
         )}
 
-        {chapters.length > 0 && (
-          <View style={styles.settingCard}>
-            <Text style={styles.cardLabel}>Reader access</Text>
-            <View style={styles.stepper}>
-              <Pressable
-                style={[styles.stepBtn, busy && { opacity: 0.5 }]}
-                onPress={() => setFreeChapters(Math.max(0, freeCount - 1))}
-                disabled={busy || freeCount === 0}
-              >
-                <Text style={styles.stepBtnText}>−</Text>
-              </Pressable>
-              <Text style={styles.stepValue}>{freeCount}</Text>
-              <Pressable
-                style={[styles.stepBtn, busy && { opacity: 0.5 }]}
-                onPress={() => setFreeChapters(Math.min(chapters.length, freeCount + 1))}
-                disabled={busy || freeCount >= chapters.length}
-              >
-                <Text style={styles.stepBtnText}>+</Text>
-              </Pressable>
-              <Text style={styles.stepLabel}>
-                free chapter{freeCount === 1 ? '' : 's'}
+        {tab === 'access' &&
+          (chapters.length > 0 ? (
+            <View style={styles.settingCard}>
+              <Text style={styles.cardLabel}>Reader access</Text>
+              <View style={styles.stepper}>
+                <Pressable
+                  style={[styles.stepBtn, busy && { opacity: 0.5 }]}
+                  onPress={() => setFreeChapters(Math.max(0, freeCount - 1))}
+                  disabled={busy || freeCount === 0}
+                >
+                  <Text style={styles.stepBtnText}>−</Text>
+                </Pressable>
+                <Text style={styles.stepValue}>{freeCount}</Text>
+                <Pressable
+                  style={[styles.stepBtn, busy && { opacity: 0.5 }]}
+                  onPress={() => setFreeChapters(Math.min(chapters.length, freeCount + 1))}
+                  disabled={busy || freeCount >= chapters.length}
+                >
+                  <Text style={styles.stepBtnText}>+</Text>
+                </Pressable>
+                <Text style={styles.stepLabel}>
+                  free chapter{freeCount === 1 ? '' : 's'}
+                </Text>
+              </View>
+              <Text style={styles.cardHint}>
+                {freeCount >= chapters.length
+                  ? 'Every chapter is free to read.'
+                  : `Chapter ${freeCount + 1} onward is gated behind an ad or NovelStack+.`}
               </Text>
             </View>
-            <Text style={styles.cardHint}>
-              {freeCount >= chapters.length
-                ? 'Every chapter is free to read.'
-                : `Chapter ${freeCount + 1} onward is gated behind an ad or NovelStack+.`}
-            </Text>
-          </View>
-        )}
+          ) : (
+            <View style={styles.settingCard}>
+              <Text style={styles.cardLabel}>Reader access</Text>
+              <Text style={styles.cardHint}>
+                Add chapters first — then choose how many are free to read before the ad gate.
+              </Text>
+            </View>
+          ))}
 
         <Pressable style={[styles.addBtn, busy && { opacity: 0.6 }]} onPress={openNew} disabled={busy}>
           <Text style={styles.addBtnText}>+ New chapter</Text>
@@ -360,6 +403,25 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.paper },
   scroll: { padding: spacing.lg, paddingBottom: spacing.xl * 3 },
   back: { fontSize: 14, color: colors.inkMuted, marginBottom: spacing.md },
+  tabs: {
+    flexDirection: 'row',
+    gap: 4,
+    marginTop: spacing.lg,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    padding: 4,
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: 9,
+    borderRadius: radius.sm,
+    alignItems: 'center',
+  },
+  tabOn: { backgroundColor: colors.signal },
+  tabText: { fontSize: 13, fontWeight: '700', color: colors.inkMuted },
+  tabTextOn: { color: '#FFFFFF' },
   h1: { fontFamily: fonts.displayXl, fontSize: 26, color: colors.ink, letterSpacing: -0.5 },
   sub: { fontSize: 13, color: colors.inkFaint, marginTop: 4, textTransform: 'capitalize' },
   empty: { fontSize: 13, color: colors.inkMuted, marginTop: spacing.md },
@@ -401,13 +463,23 @@ const styles = StyleSheet.create({
   },
   deleteBtnText: { fontSize: 14, color: '#D9656F', fontWeight: '500' },
   addBtn: {
-    backgroundColor: colors.signal,
-    paddingVertical: 12,
-    borderRadius: radius.pill,
+    backgroundColor: '#F4ECDF',
+    paddingVertical: 15,
+    borderRadius: radius.md,
     alignItems: 'center',
     marginTop: spacing.lg,
   },
-  addBtnText: { color: colors.paper, fontSize: 14, fontWeight: '500' },
+  addBtnText: { color: '#15100E', fontSize: 15, fontWeight: '700' },
+  offlineBtn: {
+    alignSelf: 'flex-start',
+    marginTop: spacing.md,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  offlineBtnText: { fontSize: 12.5, color: colors.inkMuted, fontWeight: '600' },
   card: {
     backgroundColor: colors.white,
     borderWidth: 1,
