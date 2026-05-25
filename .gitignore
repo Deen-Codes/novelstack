@@ -21,6 +21,15 @@ web-build/
 .env
 .env*.local
 
+# credentials — App Store / Play signing keys, never commit these
+*.p8
+*.p12
+*.mobileprovision
+*.keystore
+*.jks
+AuthKey_*
+SubscriptionKey_*
+
 # misc
 .DS_Store
 *.log

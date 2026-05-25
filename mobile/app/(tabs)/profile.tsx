@@ -7,6 +7,7 @@ import {
   TextInput,
   Pressable,
   ActivityIndicator,
+  Alert,
   StyleSheet,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -128,6 +129,32 @@ export default function ProfileScreen() {
   }
 
   async function signOut() {
+    await clearSessionAuth();
+    setProfile(null);
+    setSignedIn(false);
+  }
+
+  function confirmDeleteAccount() {
+    Alert.alert(
+      'Delete your account?',
+      'This permanently deletes your account, your stories and all your data. It cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete account', style: 'destructive', onPress: deleteAccountNow },
+      ],
+    );
+  }
+
+  async function deleteAccountNow() {
+    try {
+      await apiSend('/api/me', 'DELETE');
+    } catch (e) {
+      setError(
+        e instanceof Error ? e.message : 'Could not delete your account. Please try again.',
+      );
+      return;
+    }
+    // Account is gone — clear the local session and return to signed-out.
     await clearSessionAuth();
     setProfile(null);
     setSignedIn(false);
@@ -270,6 +297,10 @@ export default function ProfileScreen() {
         <Pressable style={styles.signOut} onPress={signOut}>
           <Text style={styles.signOutText}>Sign out</Text>
         </Pressable>
+
+        <Pressable style={styles.deleteAccount} onPress={confirmDeleteAccount} hitSlop={6}>
+          <Text style={styles.deleteAccountText}>Delete account</Text>
+        </Pressable>
       </ScrollView>
     </SafeAreaView>
   );
@@ -406,4 +437,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   signOutText: { fontSize: 14, color: colors.inkMuted, fontWeight: '500' },
+  deleteAccount: { marginTop: spacing.md, alignItems: 'center', paddingVertical: 8 },
+  deleteAccountText: { fontSize: 13, color: '#D9656F', fontWeight: '500' },
 });

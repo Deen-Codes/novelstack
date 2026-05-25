@@ -61,6 +61,8 @@ export type ChapterDetail = Chapter & {
   story: Story & { author: User | null };
   body: string | null;
   locked: boolean;
+  // True for everyone except NovelStack+ members — drives the reader banner.
+  showAds: boolean;
 };
 
 // GET /api/users/:username — author with their published stories.

@@ -1,14 +1,8 @@
 // Renders a story cover: the uploaded image when one exists, otherwise the
 // solid colour block with the title typeset on it. `mature` overlays an
 // "18+" badge so readers can see a story is mature.
-import {
-  Image,
-  View,
-  Text,
-  StyleSheet,
-  type StyleProp,
-  type ViewStyle,
-} from 'react-native';
+import { View, Text, StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
+import { Image } from 'expo-image';
 import { colors } from '@/theme/tokens';
 
 export function Cover({
@@ -31,7 +25,10 @@ export function Cover({
         <Image
           source={{ uri: coverUrl }}
           style={styles.fill}
-          resizeMode="cover"
+          contentFit="cover"
+          // Disk + memory cache so a cover loads instantly on the next view.
+          cachePolicy="memory-disk"
+          transition={180}
           accessibilityLabel={title}
         />
       ) : (

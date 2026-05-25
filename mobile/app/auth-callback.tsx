@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { apiSend, setSessionToken } from '@/lib/api';
 import { markAuthChanged } from '@/lib/auth';
+import { registerForPush } from '@/lib/push';
 import type { User } from '@/lib/types';
 import { colors, spacing, radius } from '@/theme/tokens';
 
@@ -56,6 +57,8 @@ export default function AuthCallback() {
         try {
           await setSessionToken(session);
           markAuthChanged();
+          // Ask for push permission now that they're signed in.
+          void registerForPush();
           router.replace('/(tabs)');
         } catch {
           setError('Could not start that session. Open the link again.');
@@ -91,6 +94,8 @@ export default function AuthCallback() {
 
         await setSessionToken(result.token);
         markAuthChanged();
+        // Ask for push permission now that they're signed in.
+        void registerForPush();
         router.replace('/(tabs)');
       } catch (e) {
         const msg = e instanceof Error ? e.message : 'Something went wrong signing you in.';

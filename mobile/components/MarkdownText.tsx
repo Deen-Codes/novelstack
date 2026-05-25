@@ -9,8 +9,11 @@
 //   ![caption](url)       inline illustration with an optional caption
 //   **bold**  *italic*    inline emphasis (also _italic_)
 //   blank line            paragraph break
-import { Fragment, useState } from 'react';
-import { View, Text, Image, StyleSheet } from 'react-native';
+//
+// When `activeWord` is set (read-aloud is playing) the component renders one
+// <Text> per word so the word currently being spoken can be highlighted.
+import { useState, type ReactNode } from 'react';
+import { View, Text, Image, StyleSheet, type TextStyle } from 'react-native';
 import { fonts } from '@/theme/tokens';
 
 type Props = {
@@ -21,10 +24,15 @@ type Props = {
   faint: string;
   // Optional override for the base prose size (reader uses 18).
   fontSize?: number;
+  // Document-order index of the word being read aloud, or undefined when
+  // read-aloud is off (the fast, single-Text-per-line render path).
+  activeWord?: number;
 };
 
+// Tint behind the word currently being narrated.
+const HIGHLIGHT_BG = 'rgba(200, 65, 78, 0.32)';
+
 // --- inline emphasis -------------------------------------------------------
-// Splits a line into styled segments. Honours **bold**, *italic* and _italic_.
 type Seg = { text: string; bold: boolean; italic: boolean };
 
 const isWordChar = (c: string | undefined) => c !== undefined && /[A-Za-z0-9]/.test(c);
@@ -69,33 +77,6 @@ function parseInline(line: string): Seg[] {
   return segs.length ? segs : [{ text: '', bold: false, italic: false }];
 }
 
-function InlineText({
-  line,
-  style,
-  color,
-}: {
-  line: string;
-  style: object;
-  color: string;
-}) {
-  const segs = parseInline(line);
-  return (
-    <Text style={[style, { color }]}>
-      {segs.map((s, idx) => (
-        <Text
-          key={idx}
-          style={{
-            fontWeight: s.bold ? '700' : '400',
-            fontStyle: s.italic ? 'italic' : 'normal',
-          }}
-        >
-          {s.text}
-        </Text>
-      ))}
-    </Text>
-  );
-}
-
 // --- block parsing ---------------------------------------------------------
 // An inline illustration. Starts at a sensible placeholder ratio and adopts
 // the image's true aspect ratio once it loads — so art is never cropped.
@@ -130,10 +111,69 @@ function ChapterImage({
 const SCENE_BREAK = /^(?:\*\s*){3,}$|^-{3,}$|^_{3,}$/;
 const IMAGE = /^!\[([^\]]*)\]\(([^)]+)\)$/;
 
-export function MarkdownText({ body, color, faint, fontSize = 18 }: Props) {
-  const proseStyle = { fontFamily: 'serif', fontSize, lineHeight: fontSize * 1.72 };
-  // Split into blocks on blank lines; keep single newlines inside a block.
+export function MarkdownText({ body, color, faint, fontSize = 18, activeWord }: Props) {
+  const proseStyle: TextStyle = {
+    fontFamily: 'serif',
+    fontSize,
+    lineHeight: fontSize * 1.72,
+  };
   const blocks = (body ?? '').replace(/\r\n/g, '\n').split(/\n{2,}/);
+  const highlight = typeof activeWord === 'number';
+  // Running word index across the whole chapter — only meaningful while a
+  // chapter is being read aloud. Reset on every render so it stays in sync.
+  const counter = { n: 0 };
+
+  // Renders one line of inline text. Off the read-aloud path this is a single
+  // <Text>; on it, each word becomes its own <Text> so it can be lit up.
+  function renderInline(line: string, base: TextStyle, col: string, key: string): ReactNode {
+    const segs = parseInline(line);
+    if (!highlight) {
+      return (
+        <Text key={key} style={[base, { color: col }]}>
+          {segs.map((s, i) => (
+            <Text
+              key={i}
+              style={{
+                fontWeight: s.bold ? '700' : '400',
+                fontStyle: s.italic ? 'italic' : 'normal',
+              }}
+            >
+              {s.text}
+            </Text>
+          ))}
+        </Text>
+      );
+    }
+    const parts: ReactNode[] = [];
+    segs.forEach((s, si) => {
+      s.text.split(/(\s+)/).forEach((tok, ti) => {
+        if (!tok) return;
+        if (/^\s+$/.test(tok)) {
+          parts.push(tok);
+          return;
+        }
+        const idx = counter.n;
+        counter.n += 1;
+        parts.push(
+          <Text
+            key={`${si}-${ti}`}
+            style={{
+              fontWeight: s.bold ? '700' : '400',
+              fontStyle: s.italic ? 'italic' : 'normal',
+              ...(idx === activeWord ? { backgroundColor: HIGHLIGHT_BG } : null),
+            }}
+          >
+            {tok}
+          </Text>,
+        );
+      });
+    });
+    return (
+      <Text key={key} style={[base, { color: col }]}>
+        {parts}
+      </Text>
+    );
+  }
 
   return (
     <View>
@@ -158,14 +198,7 @@ export function MarkdownText({ body, color, faint, fontSize = 18 }: Props) {
 
         // Heading.
         if (block.startsWith('## ')) {
-          return (
-            <InlineText
-              key={bi}
-              line={block.slice(3).trim()}
-              color={color}
-              style={styles.heading}
-            />
-          );
+          return renderInline(block.slice(3).trim(), styles.heading, color, `h${bi}`);
         }
 
         // Block quote — one or more `> ` lines.
@@ -176,23 +209,15 @@ export function MarkdownText({ body, color, faint, fontSize = 18 }: Props) {
             .join('\n');
           return (
             <View key={bi} style={[styles.quote, { borderLeftColor: faint }]}>
-              <InlineText
-                line={text}
-                color={faint}
-                style={{ ...proseStyle, fontStyle: 'italic' }}
-              />
+              {renderInline(text, { ...proseStyle, fontStyle: 'italic' }, faint, `q${bi}`)}
             </View>
           );
         }
 
         // Default: a paragraph. Soft single newlines become spaces so wrapped
-        // editor lines don't fracture; deliberate breaks need a blank line.
+        // editor lines do not fracture; deliberate breaks need a blank line.
         const para = block.split('\n').join(' ');
-        return (
-          <Fragment key={bi}>
-            <InlineText line={para} color={color} style={{ ...proseStyle, ...styles.para }} />
-          </Fragment>
-        );
+        return renderInline(para, { ...proseStyle, ...styles.para }, color, `p${bi}`);
       })}
     </View>
   );

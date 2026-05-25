@@ -132,25 +132,28 @@ export async function getChapterForReader(chapterId: string, viewerId?: string) 
   });
   if (!chapter) return null;
 
+  // An active NovelStack+ membership unlocks every chapter and hides ads.
+  let isSubscriber = false;
+  if (viewerId) {
+    const [sub] = await db
+      .select({ id: subscriptions.id })
+      .from(subscriptions)
+      .where(and(eq(subscriptions.readerId, viewerId), eq(subscriptions.status, 'active')))
+      .limit(1);
+    isSubscriber = !!sub;
+  }
+
   let canRead = chapter.isFree;
   if (!canRead && viewerId) {
-    if (chapter.story.authorId === viewerId) {
+    if (chapter.story.authorId === viewerId || isSubscriber) {
       canRead = true;
     } else {
-      const [sub] = await db
-        .select({ id: subscriptions.id })
-        .from(subscriptions)
-        .where(and(eq(subscriptions.readerId, viewerId), eq(subscriptions.status, 'active')))
+      const [unlock] = await db
+        .select({ id: adUnlocks.id })
+        .from(adUnlocks)
+        .where(and(eq(adUnlocks.chapterId, chapterId), eq(adUnlocks.readerId, viewerId)))
         .limit(1);
-      if (sub) canRead = true;
-      if (!canRead) {
-        const [unlock] = await db
-          .select({ id: adUnlocks.id })
-          .from(adUnlocks)
-          .where(and(eq(adUnlocks.chapterId, chapterId), eq(adUnlocks.readerId, viewerId)))
-          .limit(1);
-        if (unlock) canRead = true;
-      }
+      if (unlock) canRead = true;
     }
   }
 
@@ -161,7 +164,8 @@ export async function getChapterForReader(chapterId: string, viewerId?: string) 
     });
     body = content?.body ?? '';
   }
-  return { ...chapter, body, locked: !canRead };
+  // showAds: everyone except NovelStack+ members sees the in-reader banner.
+  return { ...chapter, body, locked: !canRead, showAds: !isSubscriber };
 }
 
 // ============================================================

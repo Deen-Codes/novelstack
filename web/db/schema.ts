@@ -367,6 +367,19 @@ export const notifications = pgTable('notifications', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
+// Expo push tokens — one row per device a user has signed in on. Drives the
+// lock-screen push notifications that accompany the in-app feed.
+export const deviceTokens = pgTable('device_tokens', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  token: text('token').notNull().unique(),
+  platform: text('platform').notNull().default('ios'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
 // ============================================================
 // RELATIONS — let Drizzle's query API fetch nested data
 // (story.author, story.chapters, chapter.content, …)

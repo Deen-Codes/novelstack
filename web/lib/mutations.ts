@@ -22,7 +22,9 @@ import {
   adUnlocks,
   reports,
   notifications,
+  deviceTokens,
 } from '@/db/schema';
+import { sendPush } from '@/lib/push';
 
 // Records a notification for `userId`. Self-actions are skipped, and a
 // failure here never breaks the action that triggered it.
@@ -45,6 +47,68 @@ async function notify(opts: {
   } catch {
     // Best-effort — notifications must not fail the parent write.
   }
+  // Fan out a lock-screen push too. Deliberately not awaited so it never
+  // adds latency to the request that triggered it.
+  void pushForNotification(opts);
+}
+
+// Turns a notification into a human push message and delivers it.
+async function pushForNotification(opts: {
+  userId: string;
+  kind: string;
+  actorId?: string | null;
+  postId?: string | null;
+  storyId?: string | null;
+}) {
+  try {
+    let actorName = 'Someone';
+    if (opts.actorId) {
+      const [actor] = await db
+        .select({ name: users.displayName })
+        .from(users)
+        .where(eq(users.id, opts.actorId))
+        .limit(1);
+      if (actor?.name) actorName = actor.name;
+    }
+    const body: Record<string, string> = {
+      follow: `${actorName} started following you`,
+      tip: `${actorName} sent you a tip`,
+      post_comment: `${actorName} commented on your update`,
+      post_like: `${actorName} liked your update`,
+    };
+    const message = body[opts.kind];
+    if (!message) return;
+    await sendPush(opts.userId, {
+      title: 'NovelStack',
+      body: message,
+      data: { kind: opts.kind, postId: opts.postId ?? null },
+    });
+  } catch {
+    // Best-effort.
+  }
+}
+
+// Permanently deletes a user account and everything that belongs to it.
+// Stories, chapters, comments, posts, follows, reads, tokens etc. all carry
+// `on delete cascade` to `users`, so removing the row removes the lot.
+export async function deleteAccount(userId: string): Promise<boolean> {
+  const rows = await db
+    .delete(users)
+    .where(eq(users.id, userId))
+    .returning({ id: users.id });
+  return rows.length > 0;
+}
+
+// Registers (or refreshes) an Expo push token for a user's device. Keyed on
+// the token so re-signing in on the same device just updates the owner.
+export async function saveDeviceToken(userId: string, token: string, platform: string) {
+  await db
+    .insert(deviceTokens)
+    .values({ userId, token, platform })
+    .onConflictDoUpdate({
+      target: deviceTokens.token,
+      set: { userId, platform, updatedAt: new Date() },
+    });
 }
 
 type Genre = typeof stories.$inferSelect.genre;

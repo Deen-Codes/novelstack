@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import {
@@ -7,6 +8,9 @@ import {
   BricolageGrotesque_800ExtraBold,
 } from '@expo-google-fonts/bricolage-grotesque';
 import { colors } from '@/theme/tokens';
+import { registerForPush } from '@/lib/push';
+import { configurePurchases } from '@/lib/iap';
+import { initAds } from '@/lib/ads';
 
 export default function RootLayout() {
   // Bricolage Grotesque — the display typeface for logo, headings and titles.
@@ -15,6 +19,14 @@ export default function RootLayout() {
     BricolageGrotesque_700Bold,
     BricolageGrotesque_800ExtraBold,
   });
+  // Set up push + in-app purchases on launch. Both are no-ops when signed
+  // out, on a simulator, or before their account keys are configured.
+  useEffect(() => {
+    configurePurchases();
+    registerForPush();
+    initAds();
+  }, []);
+
   if (!fontsLoaded) return null;
 
   return (

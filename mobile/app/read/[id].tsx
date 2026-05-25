@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   ScrollView,
   View,
@@ -12,11 +12,28 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import * as Speech from 'expo-speech';
+import { BannerAd, BannerAdSize } from 'react-native-google-mobile-ads';
 import { colors, paperMode, spacing, radius, fonts } from '@/theme/tokens';
+import { BANNER_UNIT } from '@/lib/ads';
 import { apiGet, apiGetCached, apiSend } from '@/lib/api';
 import { getCurrentUser } from '@/lib/auth';
 import { MarkdownText } from '@/components/MarkdownText';
 import type { ChapterDetail, StoryDetail } from '@/lib/types';
+
+// Strips the fiction-Markdown down to clean prose for text-to-speech, so the
+// narrator never reads out "asterisk asterisk" or an image URL.
+function plainText(md: string): string {
+  return (md ?? '')
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, ' ')
+    .replace(/^\s{0,3}#{1,6}\s+/gm, '')
+    .replace(/^\s{0,3}>\s?/gm, '')
+    .replace(/^\s*(?:\*\s*){3,}\s*$/gm, ' ')
+    .replace(/^\s*[-_]{3,}\s*$/gm, ' ')
+    .replace(/\*\*|__/g, '')
+    .replace(/[*_]/g, '')
+    .trim();
+}
 
 // Reader: full body if entitled, otherwise the excerpt preview + a (simulated)
 // rewarded-ad gate. The top progress bar tracks position through the WHOLE
@@ -37,6 +54,12 @@ export default function Reader() {
   const [scrollFrac, setScrollFrac] = useState(0);
   // Local-only reading-mode toggle: false = dark theme, true = light "paper".
   const [paper, setPaper] = useState(false);
+  // True while the chapter is being read aloud (on-device text-to-speech).
+  const [speaking, setSpeaking] = useState(false);
+  // Document-order index of the word being narrated, for read-along highlight.
+  const [activeWord, setActiveWord] = useState<number | null>(null);
+  // Char offset of every word in the spoken text — maps onBoundary to a word.
+  const wordStarts = useRef<number[]>([]);
 
   // When a signed-in reader opens a chapter they can read: record progress
   // (keeps the feed's genre affinity fresh) and auto-save the story.
@@ -58,6 +81,10 @@ export default function Reader() {
   async function load() {
     setLoading(true);
     setScrollFrac(0);
+    // Stop any narration carried over from the previous chapter.
+    Speech.stop();
+    setSpeaking(false);
+    setActiveWord(null);
     let ch: ChapterDetail;
     try {
       ch = await apiGet<ChapterDetail>(`/api/chapters/${id}`);
@@ -97,8 +124,69 @@ export default function Reader() {
 
   useEffect(() => {
     load();
+    // Always stop narration when leaving the reader.
+    return () => {
+      Speech.stop();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+
+  // Read-aloud: narrates the chapter with on-device TTS and highlights each
+  // word as it is spoken. onBoundary reports the character index of the word
+  // being voiced; we map that to a word index the renderer can light up.
+  function toggleReadAloud() {
+    if (speaking) {
+      Speech.stop();
+      setSpeaking(false);
+      setActiveWord(null);
+      return;
+    }
+    if (!chapter) return;
+    const lockedNow = chapter.locked || !chapter.body;
+    const source = lockedNow ? chapter.excerpt ?? '' : chapter.body ?? '';
+    const text = plainText(source);
+    if (!text) return;
+
+    // Record where every word starts so a boundary char-index maps to a word.
+    const starts: number[] = [];
+    const re = /\S+/g;
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(text)) !== null) starts.push(m.index);
+    if (starts.length === 0) return;
+    wordStarts.current = starts;
+
+    setSpeaking(true);
+    setActiveWord(0);
+    Speech.speak(text, {
+      onBoundary: (ev: { charIndex?: number } | null) => {
+        const ci = ev?.charIndex ?? 0;
+        const arr = wordStarts.current;
+        // Binary search for the largest word-start <= the spoken char index.
+        let lo = 0;
+        let hi = arr.length - 1;
+        let idx = 0;
+        while (lo <= hi) {
+          const mid = (lo + hi) >> 1;
+          if (arr[mid] <= ci) {
+            idx = mid;
+            lo = mid + 1;
+          } else {
+            hi = mid - 1;
+          }
+        }
+        setActiveWord(idx);
+      },
+      onDone: () => {
+        setSpeaking(false);
+        setActiveWord(null);
+      },
+      onStopped: () => setActiveWord(null),
+      onError: () => {
+        setSpeaking(false);
+        setActiveWord(null);
+      },
+    });
+  }
 
   // "Finish book" / "All caught up" — marks every chapter read so the book
   // moves to the Completed & up-to-date shelf, then returns to the story.
@@ -208,6 +296,18 @@ export default function Reader() {
 
         <Pressable
           style={[styles.circleBtn, { backgroundColor: theme.surface }]}
+          onPress={toggleReadAloud}
+          hitSlop={8}
+        >
+          <Ionicons
+            name={speaking ? 'stop' : 'headset-outline'}
+            size={19}
+            color={speaking ? colors.signal : theme.ink}
+          />
+        </Pressable>
+
+        <Pressable
+          style={[styles.circleBtn, { backgroundColor: theme.surface }]}
           onPress={() => setPaper((p) => !p)}
           hitSlop={8}
         >
@@ -233,9 +333,18 @@ export default function Reader() {
           body={locked ? chapter.excerpt ?? '' : chapter.body ?? ''}
           color={theme.ink}
           faint={theme.inkFaint}
+          activeWord={speaking && activeWord !== null ? activeWord : undefined}
         />
 
       </ScrollView>
+
+      {/* Ad banner — anchored above the nav buttons, hidden for NovelStack+
+          members. It's a layout sibling, so the chapter still scrolls fully. */}
+      {chapter.showAds && (
+        <View style={[styles.adBar, { borderTopColor: theme.border }]}>
+          <BannerAd unitId={BANNER_UNIT} size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER} />
+        </View>
+      )}
 
       {/* Footer: big prev / next buttons */}
       <View style={[styles.footer, { backgroundColor: theme.bg, borderTopColor: theme.border }]}>
@@ -318,6 +427,8 @@ const styles = StyleSheet.create({
 
   progressTrack: { height: 3, width: '100%' },
   progressFill: { height: 3, backgroundColor: colors.signal },
+
+  adBar: { alignItems: 'center', borderTopWidth: 1, paddingVertical: 4 },
 
   scroll: { padding: spacing.lg, paddingBottom: spacing.xl },
   chLabel: {

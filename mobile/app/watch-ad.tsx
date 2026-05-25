@@ -1,43 +1,48 @@
-import { useEffect, useState } from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { View, Text, Pressable, ActivityIndicator, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
 import { colors, spacing, radius, fonts } from '@/theme/tokens';
 import { apiSend } from '@/lib/api';
+import { showRewardedAd } from '@/lib/ads';
 
-const AD_SECONDS = 5;
-
-// Rewarded-ad screen. The reader sends a chapterId; once the (simulated) ad
-// finishes, the reader is re-opened so the chapter can continue.
+// Rewarded-ad screen. The reader sends a chapterId; we load and show a real
+// AdMob rewarded ad, and once the reward is earned we record the unlock and
+// reopen the chapter. If the ad can't load, the reader can retry or upgrade.
 export default function WatchAd() {
   const params = useLocalSearchParams<{ chapterId?: string | string[] }>();
   const chapterId = Array.isArray(params.chapterId)
     ? params.chapterId[0]
     : params.chapterId;
 
-  const [left, setLeft] = useState(AD_SECONDS);
-  const done = left <= 0;
+  const [phase, setPhase] = useState<'loading' | 'failed'>('loading');
+  const started = useRef(false);
 
-  // Tick the countdown down to zero.
   useEffect(() => {
-    if (left <= 0) return;
-    const t = setTimeout(() => setLeft((n) => n - 1), 1000);
-    return () => clearTimeout(t);
-  }, [left]);
+    if (started.current) return;
+    started.current = true;
+    run();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  async function finish() {
-    if (chapterId) {
-      // Record the rewarded-ad unlock so the chapter actually opens.
-      try {
-        await apiSend('/api/ad-unlocks', 'POST', { chapterId });
-      } catch {
-        // Return the reader to the chapter even if recording failed.
+  async function run() {
+    setPhase('loading');
+    const earned = await showRewardedAd();
+    if (earned) {
+      // Record the rewarded-ad unlock, then reopen the chapter.
+      if (chapterId) {
+        try {
+          await apiSend('/api/ad-unlocks', 'POST', { chapterId });
+        } catch {
+          // Open the chapter even if recording failed.
+        }
+        router.replace(`/read/${chapterId}`);
+      } else {
+        router.back();
       }
-      router.replace(`/read/${chapterId}`);
     } else {
-      router.back();
+      setPhase('failed');
     }
   }
 
@@ -45,59 +50,39 @@ export default function WatchAd() {
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <View style={styles.head}>
         <Text style={styles.label}>Advertisement</Text>
-        <Pressable
-          style={[styles.close, !done && styles.closeOff]}
-          onPress={done ? finish : undefined}
-          disabled={!done}
-          hitSlop={8}
-        >
-          <Ionicons name="close" size={18} color={done ? colors.ink : colors.inkFaint} />
+        <Pressable style={styles.close} onPress={() => router.back()} hitSlop={8}>
+          <Ionicons name="close" size={18} color={colors.ink} />
         </Pressable>
       </View>
 
-      {/* Simulated ad creative */}
-      <View style={styles.adWrap}>
-        <LinearGradient
-          colors={['#2C2C5A', '#121221']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.ad}
-        >
-          <Ionicons name="play-circle" size={56} color="rgba(255,255,255,0.9)" />
-          <Text style={styles.adTitle}>Your ad plays here</Text>
-          <Text style={styles.adSub}>A short message from a NovelStack sponsor.</Text>
-        </LinearGradient>
+      <View style={styles.body}>
+        {phase === 'loading' ? (
+          <>
+            <ActivityIndicator color={colors.signal} />
+            <Text style={styles.title}>Loading your ad…</Text>
+            <Text style={styles.sub}>
+              Watch a short ad and your chapter opens straight after.
+            </Text>
+          </>
+        ) : (
+          <>
+            <View style={styles.iconWrap}>
+              <Ionicons name="cloud-offline-outline" size={30} color={colors.inkMuted} />
+            </View>
+            <Text style={styles.title}>That ad didn&apos;t load</Text>
+            <Text style={styles.sub}>
+              No ad was available just now. Try again, or skip ads for good with
+              NovelStack+.
+            </Text>
+            <Pressable style={styles.cta} onPress={run}>
+              <Text style={styles.ctaText}>Try again</Text>
+            </Pressable>
+            <Pressable onPress={() => router.replace('/plus')} hitSlop={8}>
+              <Text style={styles.plusLink}>Read ad-free with NovelStack+</Text>
+            </Pressable>
+          </>
+        )}
       </View>
-
-      {/* Countdown / reward status */}
-      <View style={styles.statusRow}>
-        <View style={[styles.timer, done && styles.timerDone]}>
-          {done ? (
-            <Ionicons name="checkmark" size={17} color="#15100E" />
-          ) : (
-            <Text style={styles.timerNum}>{left}</Text>
-          )}
-        </View>
-        <Text style={styles.statusText}>
-          {done
-            ? 'All done — thanks for watching.'
-            : `Keep watching — your chapter is ${left}s away.`}
-        </Text>
-      </View>
-
-      <Pressable
-        style={[styles.cta, !done && styles.ctaOff]}
-        onPress={finish}
-        disabled={!done}
-      >
-        <Text style={[styles.ctaText, !done && styles.ctaTextOff]}>
-          {done ? 'Continue reading' : 'Please wait…'}
-        </Text>
-      </Pressable>
-
-      <Pressable onPress={() => router.replace('/plus')} hitSlop={8}>
-        <Text style={styles.plusLink}>Tired of ads? Read ad-free with NovelStack+</Text>
-      </Pressable>
     </SafeAreaView>
   );
 }
@@ -128,57 +113,42 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  closeOff: { opacity: 0.5 },
 
-  adWrap: { flex: 1, justifyContent: 'center' },
-  ad: {
-    borderRadius: 22,
-    paddingVertical: 72,
-    paddingHorizontal: 24,
-    alignItems: 'center',
-    gap: 6,
-  },
-  adTitle: { fontFamily: fonts.display, fontSize: 19, color: '#FFFFFF', marginTop: 10 },
-  adSub: { fontSize: 13, color: 'rgba(255,255,255,0.72)', textAlign: 'center' },
-
-  statusRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 11,
-    marginTop: spacing.lg,
-  },
-  timer: {
-    width: 36,
-    height: 36,
+  body: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
+  iconWrap: {
+    width: 64,
+    height: 64,
     borderRadius: radius.pill,
     backgroundColor: colors.card,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.borderSoft,
     alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: 4,
   },
-  timerDone: { backgroundColor: '#F4ECDF', borderColor: '#F4ECDF' },
-  timerNum: { color: colors.ink, fontSize: 15, fontWeight: '700' },
-  statusText: { flex: 1, fontSize: 13.5, color: colors.inkMuted },
-
+  title: { fontFamily: fonts.display, fontSize: 19, color: colors.ink, marginTop: 6 },
+  sub: {
+    fontSize: 13.5,
+    color: colors.inkMuted,
+    textAlign: 'center',
+    lineHeight: 20,
+    paddingHorizontal: 12,
+  },
   cta: {
-    height: 54,
+    height: 50,
+    minWidth: 200,
     borderRadius: 14,
     backgroundColor: '#F4ECDF',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: spacing.lg,
+    marginTop: spacing.md,
   },
-  ctaOff: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border },
   ctaText: { color: '#15100E', fontSize: 15, fontWeight: '700' },
-  ctaTextOff: { color: colors.inkFaint },
-
   plusLink: {
     fontSize: 13,
     color: colors.signal,
     fontWeight: '600',
     textAlign: 'center',
     marginTop: spacing.md,
-    marginBottom: spacing.sm,
   },
 });

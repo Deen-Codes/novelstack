@@ -48,11 +48,31 @@
         {
           "photosPermission": "NovelStack needs access to your photos so you can choose a cover image for your story."
         }
-      ]
+      ],
+      [
+        "expo-tracking-transparency",
+        {
+          "userTrackingPermission": "NovelStack uses this to show ads that are more relevant to you. Your data is never sold."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#C8414E"
+        }
+      ],
+      "react-native-google-mobile-ads"
     ],
-    "experiments": { "typedRoutes": true },
+    "experiments": {
+      "typedRoutes": true
+    },
     "extra": {
-      "apiBaseUrl": "https://novelstack.onrender.com"
+      "apiBaseUrl": "https://novelstack.onrender.com",
+      "revenueCatKey": ""
     }
+  },
+  "react-native-google-mobile-ads": {
+    "iosAppId": "ca-app-pub-4785473067647076~8254338656",
+    "androidAppId": "ca-app-pub-4785473067647076~7241851333"
   }
 }
