@@ -1,8 +1,10 @@
-// NovelStack — in-app purchases (NovelStack+ membership) via RevenueCat.
-// The public SDK key lives in app.json `extra.revenueCatKey`; until it's set,
-// every function here degrades gracefully so the rest of the app is unaffected.
+// NovelStack — in-app purchases (NovelStack+ membership + tip products) via
+// RevenueCat. The public SDK key lives in app.json `extra.revenueCatKey`;
+// until it's set, every function here degrades gracefully so the rest of the
+// app is unaffected.
 import Constants from 'expo-constants';
 import Purchases, { type PurchasesPackage } from 'react-native-purchases';
+import { apiSend } from '@/lib/api';
 
 // RevenueCat entitlement identifier — must match the entitlement configured
 // in the RevenueCat dashboard.
@@ -164,5 +166,124 @@ export async function restorePlus(): Promise<PurchaseResult> {
   } catch (e) {
     const err = e as { message?: string };
     return { ok: false, active: false, cancelled: false, error: err.message ?? 'Restore failed.' };
+  }
+}
+
+// ============================================================
+// TIP PRODUCTS — non-renewing consumables, one per price tier
+// ============================================================
+
+// Apple product identifiers, set up in App Store Connect as
+// "non-renewing subscriptions / consumables" against the four tiers below.
+export const TIP_PRODUCT_IDS = {
+  spark: 'novelstack.tip.099',
+  cheer: 'novelstack.tip.199',
+  ovation: 'novelstack.tip.499',
+  patron: 'novelstack.tip.999',
+} as const;
+
+export type TipProductId =
+  | typeof TIP_PRODUCT_IDS.spark
+  | typeof TIP_PRODUCT_IDS.cheer
+  | typeof TIP_PRODUCT_IDS.ovation
+  | typeof TIP_PRODUCT_IDS.patron;
+
+// Cents value for each tip product — used both by the bottom-sheet UI and by
+// the backend split when crediting the writer.
+export const TIP_PRODUCT_CENTS: Record<TipProductId, number> = {
+  [TIP_PRODUCT_IDS.spark]: 99,
+  [TIP_PRODUCT_IDS.cheer]: 199,
+  [TIP_PRODUCT_IDS.ovation]: 499,
+  [TIP_PRODUCT_IDS.patron]: 999,
+};
+
+// Display copy for each tier — kept here so the screen and any future
+// re-themes pick the same name.
+export type TipTier = {
+  productId: TipProductId;
+  name: string;
+  priceLabel: string;
+  description: string;
+};
+
+export const TIP_TIERS: TipTier[] = [
+  {
+    productId: TIP_PRODUCT_IDS.spark,
+    name: 'Spark',
+    priceLabel: '£0.99',
+    description: 'A small thank-you for a chapter you loved.',
+  },
+  {
+    productId: TIP_PRODUCT_IDS.cheer,
+    name: 'Cheer',
+    priceLabel: '£1.99',
+    description: 'Say the writing made your day.',
+  },
+  {
+    productId: TIP_PRODUCT_IDS.ovation,
+    name: 'Standing ovation',
+    priceLabel: '£4.99',
+    description: 'For a writer you keep coming back to.',
+  },
+  {
+    productId: TIP_PRODUCT_IDS.patron,
+    name: 'Patron',
+    priceLabel: '£9.99',
+    description: 'A real lift — proper patronage of a story you adore.',
+  },
+];
+
+export type TipPurchaseResult = {
+  ok: boolean;
+  cancelled: boolean;
+  alreadyCredited?: boolean;
+  error?: string;
+};
+
+// Purchases a tip product through the App Store, then asks the backend to
+// credit the writer's earnings ledger. The transactionId carried back from
+// StoreKit (via RevenueCat) is the dedup key — the backend stamps it on the
+// tips row so a retry never double-credits.
+export async function purchaseTip(
+  productId: TipProductId | string,
+  recipientUserId: string,
+  storyId?: string | null,
+): Promise<TipPurchaseResult> {
+  configurePurchases();
+  if (!configured) {
+    return { ok: false, cancelled: false, error: 'Purchases are not available.' };
+  }
+  try {
+    // `purchaseProduct` consumes a non-subscription product directly. We use
+    // it for tips because they are non-renewing consumables set up outside
+    // the subscription offerings in App Store Connect. INAPP tells the SDK
+    // to treat them as in-app purchases rather than subscriptions.
+    const result = await Purchases.purchaseProduct(String(productId), null);
+
+    const transactionId =
+      result.transaction?.transactionIdentifier ||
+      // Fall back to a synthesized id so the backend still has a dedup key.
+      `${String(productId)}:${result.customerInfo.originalAppUserId}:${Date.now()}`;
+
+    const credit = await apiSend<{ ok: boolean; alreadyCredited?: boolean }>(
+      '/api/tips/iap-credit',
+      'POST',
+      {
+        productId: String(productId),
+        recipientUserId,
+        storyId: storyId ?? null,
+        transactionId,
+      },
+    );
+
+    return {
+      ok: !!credit.ok,
+      cancelled: false,
+      alreadyCredited: !!credit.alreadyCredited,
+    };
+  } catch (e) {
+    const err = e as { userCancelled?: boolean; message?: string };
+    if (err.userCancelled) return { ok: false, cancelled: true };
+    return { ok: false, cancelled: false, error: err.message ?? 'Tip failed.' };
   }
 }

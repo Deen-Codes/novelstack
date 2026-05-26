@@ -305,6 +305,17 @@ export default function ProfileScreen() {
           <Ionicons name="chevron-forward" size={18} color={colors.inkFaint} />
         </Pressable>
 
+        <Pressable style={styles.linkRow} onPress={() => router.push('/blocked' as Href)}>
+          <View style={styles.linkIcon}>
+            <Ionicons name="ban-outline" size={18} color={colors.signal} />
+          </View>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Text style={styles.linkTitle}>Blocked users</Text>
+            <Text style={styles.linkSub}>People you&apos;ve hidden from NovelStack.</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={colors.inkFaint} />
+        </Pressable>
+
         <Pressable style={styles.signOut} onPress={signOut}>
           <Text style={styles.signOutText}>Sign out</Text>
         </Pressable>

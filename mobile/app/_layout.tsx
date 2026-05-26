@@ -51,6 +51,8 @@ export default function RootLayout() {
         <Stack.Screen name="notifications" />
         <Stack.Screen name="post/[id]" />
         <Stack.Screen name="compose" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="u/[username]" />
+        <Stack.Screen name="blocked" />
       </Stack>
     </>
   );

@@ -317,10 +317,47 @@ export async function createTip(
 
 // Records a rewarded-ad unlock so the chapter opens for this reader — the
 // reader entitlement check in getChapterForReader looks for this row.
+//
+// The row lands as `status='pending'` with `authorPayoutCents=null`. A nightly
+// admin job (web/app/admin/payouts) reconciles pending unlocks against the
+// real AdMob payout for that window and stamps each row 'confirmed' with the
+// per-unlock cents value. Until then the author's pending revenue surfaces in
+// the earnings dashboard as an estimate, not a credit.
 export async function unlockChapter(userId: string, chapterId: string) {
   if (!chapterId) throw new Error('Missing chapter.');
-  await db.insert(adUnlocks).values({ readerId: userId, chapterId });
+  await db.insert(adUnlocks).values({
+    readerId: userId,
+    chapterId,
+    status: 'pending',
+    authorPayoutCents: null,
+  });
   return { ok: true };
+}
+
+// Bulk-confirms ad unlocks in a date range, stamping each pending row with
+// the per-unlock cents value the admin computed from the AdMob report.
+// Returns the number of rows confirmed.
+export async function confirmAdUnlocks(opts: {
+  centsPerUnlock: number;
+  from: Date;
+  to: Date;
+}): Promise<number> {
+  const cents = Number(opts.centsPerUnlock);
+  if (!Number.isFinite(cents) || cents < 0) {
+    throw new Error('Cents per unlock must be a non-negative number.');
+  }
+  const rows = await db
+    .update(adUnlocks)
+    .set({ status: 'confirmed', authorPayoutCents: cents.toString() })
+    .where(
+      and(
+        eq(adUnlocks.status, 'pending'),
+        sql`${adUnlocks.createdAt} >= ${opts.from}`,
+        sql`${adUnlocks.createdAt} < ${opts.to}`,
+      ),
+    )
+    .returning({ id: adUnlocks.id });
+  return rows.length;
 }
 
 // Files a content report against a story or chapter.

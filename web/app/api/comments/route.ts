@@ -9,7 +9,8 @@ export async function GET(req: NextRequest) {
   if (!chapterId) {
     return NextResponse.json({ error: 'Missing chapterId.' }, { status: 400 });
   }
-  const list = await getChapterComments(chapterId);
+  const viewer = await getSessionUser();
+  const list = await getChapterComments(chapterId, viewer?.id);
   return NextResponse.json(list);
 }
 

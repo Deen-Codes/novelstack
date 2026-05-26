@@ -21,6 +21,7 @@ import { genreLabel } from '@/lib/genres';
 import { Cover } from '@/components/Cover';
 import { DobField } from '@/components/DobField';
 import { BottomSheet } from '@/components/BottomSheet';
+import { purchaseTip, TIP_TIERS, type TipTier } from '@/lib/iap';
 import type { StoryDetail, Shelf, User, Story, HomeExtras } from '@/lib/types';
 
 const SITE = 'https://novelstack.app';
@@ -42,7 +43,6 @@ function hexA(hex: string, a: number): string {
   return `rgba(${r},${g},${b},${a})`;
 }
 
-const TIP_AMOUNTS = [300, 500, 1000];
 const REPORT_REASONS = [
   { v: 'csam', l: 'Child exploitation (CSAM)' },
   { v: 'harassment', l: 'Harassment or bullying' },
@@ -73,9 +73,9 @@ export default function StoryScreen() {
   const [gateErr, setGateErr] = useState('');
 
   const [tipOpen, setTipOpen] = useState(false);
-  const [tipAmount, setTipAmount] = useState(500);
-  const [tipMsg, setTipMsg] = useState('');
   const [tipDone, setTipDone] = useState(false);
+  const [tipPending, setTipPending] = useState<string | null>(null);
+  const [tipError, setTipError] = useState('');
 
   const [reportOpen, setReportOpen] = useState(false);
   const [reportReason, setReportReason] = useState('harassment');
@@ -194,22 +194,27 @@ export default function StoryScreen() {
     }
   }
 
-  async function sendTip() {
-    if (requireSignIn() || busy || !story) return;
-    setBusy(true);
+  async function sendTip(tier: TipTier) {
+    if (requireSignIn() || tipPending || !story) return;
+    setTipPending(tier.productId);
+    setTipError('');
     try {
-      await apiSend('/api/tips', 'POST', {
-        recipientId: story.authorId,
-        storyId: story.id,
-        amount: tipAmount,
-        message: tipMsg.trim(),
-      });
+      const out = await purchaseTip(tier.productId, story.authorId, story.id);
+      if (out.cancelled) {
+        setTipPending(null);
+        return;
+      }
+      if (!out.ok && out.error) {
+        setTipError(out.error);
+        setTipPending(null);
+        return;
+      }
       setTipDone(true);
       setTipOpen(false);
-    } catch {
-      // Leave the sheet open so the reader can retry.
+    } catch (e) {
+      setTipError(e instanceof Error ? e.message : 'Tip failed.');
     }
-    setBusy(false);
+    setTipPending(null);
   }
 
   async function submitReport() {
@@ -422,33 +427,36 @@ export default function StoryScreen() {
             </View>
 
             <BottomSheet visible={tipOpen && !tipDone} onClose={() => setTipOpen(false)}>
-              <Text style={styles.sheetTitle}>Send a tip</Text>
+              <Text style={styles.sheetTitle}>Tip this writer</Text>
               <Text style={styles.sheetSub}>
-                A little support goes a long way — writers keep 70%.
+                Pick a tier. Charged through your Apple ID — secure and one-tap.
               </Text>
-              <View style={styles.tipRow}>
-                {TIP_AMOUNTS.map((a) => (
-                  <Pressable
-                    key={a}
-                    style={[styles.tipChip, tipAmount === a && styles.tipChipOn]}
-                    onPress={() => setTipAmount(a)}
-                  >
-                    <Text style={[styles.tipChipText, tipAmount === a && styles.tipChipTextOn]}>
-                      ${a / 100}
-                    </Text>
-                  </Pressable>
-                ))}
+              <View style={styles.tierList}>
+                {TIP_TIERS.map((tier) => {
+                  const isPending = tipPending === tier.productId;
+                  return (
+                    <Pressable
+                      key={tier.productId}
+                      style={[styles.tierRow, isPending && { opacity: 0.6 }]}
+                      onPress={() => sendTip(tier)}
+                      disabled={!!tipPending}
+                    >
+                      <View style={{ flex: 1, minWidth: 0 }}>
+                        <Text style={styles.tierName}>{tier.name}</Text>
+                        <Text style={styles.tierDesc}>{tier.description}</Text>
+                      </View>
+                      <Text style={styles.tierPrice}>
+                        {isPending ? '…' : tier.priceLabel}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
               </View>
-              <TextInput
-                value={tipMsg}
-                onChangeText={setTipMsg}
-                placeholder="Add a message (optional)"
-                placeholderTextColor={colors.inkFaint}
-                style={styles.input}
-              />
-              <Pressable style={styles.sheetBtn} onPress={sendTip} disabled={busy}>
-                <Text style={styles.sheetBtnText}>Send ${tipAmount / 100} tip</Text>
-              </Pressable>
+              {!!tipError && <Text style={styles.tipError}>{tipError}</Text>}
+              <Text style={styles.tipFinePrint}>
+                Tips are processed by Apple. Writers receive the majority share after
+                Apple&apos;s fee and a small platform cut.
+              </Text>
             </BottomSheet>
 
             <BottomSheet visible={reportOpen && !reportDone} onClose={() => setReportOpen(false)}>
@@ -664,18 +672,28 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   panelTitle: { fontSize: 15, fontWeight: '600', color: colors.ink },
-  tipRow: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.md },
-  tipChip: {
+  tierList: { gap: 10, marginBottom: 6 },
+  tierRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.card,
     borderRadius: radius.md,
-    paddingVertical: 10,
-    paddingHorizontal: 18,
   },
-  tipChipOn: { backgroundColor: colors.signal, borderColor: colors.signal },
-  tipChipText: { fontSize: 14, fontWeight: '500', color: colors.ink },
-  tipChipTextOn: { color: '#FFFFFF' },
+  tierName: { fontSize: 15, fontWeight: '600', color: colors.ink },
+  tierDesc: { fontSize: 12.5, color: colors.inkMuted, marginTop: 2 },
+  tierPrice: { fontSize: 15, fontWeight: '700', color: colors.ink },
+  tipError: { fontSize: 13, color: colors.signal, marginTop: 8 },
+  tipFinePrint: {
+    fontSize: 11.5,
+    color: colors.inkFaint,
+    lineHeight: 16,
+    marginTop: spacing.md,
+  },
   reasonWrap: { gap: 4, marginBottom: spacing.md },
   reason: { paddingVertical: 7, paddingHorizontal: 10, borderRadius: radius.sm },
   reasonOn: { backgroundColor: colors.cardHi },

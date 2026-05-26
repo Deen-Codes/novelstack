@@ -6,6 +6,6 @@ import { searchStories, isAdult } from '@/lib/queries';
 export async function GET(req: NextRequest) {
   const user = await getSessionUser();
   const q = req.nextUrl.searchParams.get('q') ?? '';
-  const results = await searchStories(q, isAdult(user?.dateOfBirth));
+  const results = await searchStories(q, isAdult(user?.dateOfBirth), user?.id);
   return NextResponse.json(results);
 }

@@ -234,6 +234,25 @@ export default function EarningsScreen() {
             label="NovelStack+ pool share"
             value={money(data.breakdown.subscriptionCents)}
           />
+          {data.pendingAdUnlocks > 0 && (
+            <>
+              <View style={styles.divider} />
+              <View style={styles.pendingRow}>
+                <View style={styles.breakdownIcon}>
+                  <Ionicons name="time-outline" size={17} color={colors.signal} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.breakdownLabel}>Pending ad revenue</Text>
+                  <Text style={styles.pendingSub}>
+                    {data.pendingAdUnlocks} unlocks, settles in ~48h
+                  </Text>
+                </View>
+                <Text style={styles.pendingValue}>
+                  ~{money(data.pendingAdCentsEstimate)}
+                </Text>
+              </View>
+            </>
+          )}
         </View>
 
         {/* Payout history */}
@@ -435,6 +454,10 @@ const styles = StyleSheet.create({
   },
   breakdownLabel: { flex: 1, fontSize: 14, color: colors.ink },
   breakdownValue: { fontSize: 14.5, fontWeight: '700', color: colors.ink },
+
+  pendingRow: { flexDirection: 'row', alignItems: 'center', gap: 11, paddingVertical: 9 },
+  pendingSub: { fontSize: 12, color: colors.inkFaint, marginTop: 2 },
+  pendingValue: { fontSize: 13.5, fontWeight: '600', color: colors.inkMuted },
 
   payoutRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10 },
   payoutMonth: { fontSize: 14, fontWeight: '600', color: colors.ink },

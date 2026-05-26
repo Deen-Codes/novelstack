@@ -2,9 +2,10 @@
 // These typed functions replace every Supabase read. Website server components
 // call them directly; the mobile API route handlers wrap them over HTTP.
 import 'server-only';
-import { and, asc, desc, eq, ilike, inArray, isNotNull, ne, or, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, ilike, inArray, isNotNull, ne, notInArray, or, sql } from 'drizzle-orm';
 import { db } from '@/db';
 import { stories, chapters, chapterContent, bookmarks, follows, reads, subscriptions, adUnlocks, comments, posts, postComments, postLikes, notifications } from '@/db/schema';
+import { getBlockedUserIds } from '@/lib/blocks';
 
 // 18 is adult. Mature stories stay hidden until a date of birth proves it.
 export function isAdult(dateOfBirth: string | null | undefined): boolean {
@@ -48,6 +49,9 @@ export async function getFeed(opts: {
     const t = `%${opts.query.trim()}%`;
     conds.push(or(ilike(stories.title, t), ilike(stories.description, t))!);
   }
+  // Hide authors the viewer has blocked (in either direction).
+  const blocked = await getBlockedUserIds(opts.viewerId);
+  if (blocked.length) conds.push(notInArray(stories.authorId, blocked));
 
   const candidates = await feedCandidates(and(...conds));
 
@@ -267,7 +271,11 @@ export async function getCommunityFeed(userId: string) {
     .select({ authorId: follows.authorId })
     .from(follows)
     .where(eq(follows.followerId, userId));
-  const authorIds = [userId, ...myFollows.map((f) => f.authorId)];
+  // Hide blocked authors even if the viewer still follows them — block wins.
+  const blocked = new Set(await getBlockedUserIds(userId));
+  const authorIds = [userId, ...myFollows.map((f) => f.authorId)].filter(
+    (id) => !blocked.has(id),
+  );
   const rows = await db.query.posts.findMany({
     where: inArray(posts.authorId, authorIds),
     with: { author: true, story: true },
@@ -374,6 +382,13 @@ export async function getPostDetail(postId: string, userId: string) {
     },
   });
   if (!post) return null;
+  // Hide the post entirely if either party has blocked the other.
+  const blocked = new Set(await getBlockedUserIds(userId));
+  if (blocked.has(post.authorId)) return null;
+  // And strip blocked-author comments out of the thread.
+  if (blocked.size && post.comments?.length) {
+    post.comments = post.comments.filter((c) => !blocked.has(c.userId));
+  }
   const [withCounts] = await attachPostCounts([post], userId);
   return withCounts;
 }
@@ -455,20 +470,32 @@ export async function getReadingStreak(userId: string): Promise<number> {
   return streak;
 }
 
-export async function getAuthorByUsername(username: string) {
-  return db.query.users.findFirst({
+export async function getAuthorByUsername(username: string, viewerId?: string) {
+  const profile = await db.query.users.findFirst({
     where: (u, { eq: e }) => e(u.username, username),
     with: { stories: { where: ne(stories.status, 'draft'), orderBy: [desc(stories.totalReads)] } },
   });
+  if (!profile) return null;
+  // Pretend a blocked author doesn't exist — symmetrical to how their content
+  // is filtered out of every other surface.
+  if (viewerId && viewerId !== profile.id) {
+    const blocked = await getBlockedUserIds(viewerId);
+    if (blocked.includes(profile.id)) return null;
+  }
+  return profile;
 }
 
 // ============================================================
 // COMMENTS
 // ============================================================
-// A chapter's comments, newest-first, each with its author.
-export async function getChapterComments(chapterId: string) {
+// A chapter's comments, newest-first, each with its author. Hides comments
+// written by anyone the viewer has blocked (or who has blocked the viewer).
+export async function getChapterComments(chapterId: string, viewerId?: string) {
+  const blocked = await getBlockedUserIds(viewerId);
+  const conds = [eq(comments.chapterId, chapterId)];
+  if (blocked.length) conds.push(notInArray(comments.userId, blocked));
   return db.query.comments.findMany({
-    where: eq(comments.chapterId, chapterId),
+    where: and(...conds),
     with: {
       user: {
         columns: { id: true, username: true, displayName: true, avatarUrl: true },
@@ -481,7 +508,7 @@ export async function getChapterComments(chapterId: string) {
 // ============================================================
 // SEARCH
 // ============================================================
-export async function searchStories(query: string, viewerIsAdult = false) {
+export async function searchStories(query: string, viewerIsAdult = false, viewerId?: string) {
   const q = query.trim();
   if (!q) return [];
   const t = `%${q}%`;
@@ -490,6 +517,8 @@ export async function searchStories(query: string, viewerIsAdult = false) {
     or(ilike(stories.title, t), ilike(stories.description, t), sql`${stories.genre}::text ilike ${t}`)!,
   ];
   if (!viewerIsAdult) conds.push(eq(stories.isMature, false));
+  const blocked = await getBlockedUserIds(viewerId);
+  if (blocked.length) conds.push(notInArray(stories.authorId, blocked));
   return db.query.stories.findMany({
     where: and(...conds),
     with: { author: true },

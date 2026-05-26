@@ -152,6 +152,8 @@ export type Earnings = {
   lifetimeCents: number;
   paidOutCents: number;
   breakdown: { tipsCents: number; adCents: number; subscriptionCents: number };
+  pendingAdUnlocks: number;
+  pendingAdCentsEstimate: number;
   recentTips: EarningsTip[];
   payouts: EarningsPayout[];
   stripe: {

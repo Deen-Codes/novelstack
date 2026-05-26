@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { getSessionUser } from '@/lib/auth';
 import { createReport } from '@/lib/mutations';
+import { blockUser, unblockUser, hasBlocked } from '@/lib/blocks';
 
 // File a content report — persisted to the `reports` table.
 export async function submitReport(formData: FormData) {
@@ -19,11 +20,21 @@ export async function submitReport(formData: FormData) {
   }
 }
 
-// Block / unblock another user.
+// Block / unblock another user. Flips state based on the current row.
 export async function toggleBlock(formData: FormData) {
   const user = await getSessionUser();
   if (!user) return;
-  const username = String(formData.get('username'));
-  // TODO: persist block once a `blocks` table exists in the new schema.
-  revalidatePath(`/u/${username}`);
+  const username = String(formData.get('username') || '');
+  const targetId = String(formData.get('targetId') || '');
+  if (!targetId || targetId === user.id) {
+    if (username) revalidatePath(`/u/${username}`);
+    return;
+  }
+  const already = await hasBlocked(user.id, targetId);
+  if (already) {
+    await unblockUser(user.id, targetId);
+  } else {
+    await blockUser(user.id, targetId);
+  }
+  if (username) revalidatePath(`/u/${username}`);
 }

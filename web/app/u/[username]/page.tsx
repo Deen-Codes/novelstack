@@ -1,9 +1,11 @@
 import { notFound } from 'next/navigation';
 import { getSessionUser } from '@/lib/auth';
 import { getAuthorByUsername, getFollowing } from '@/lib/queries';
+import { hasBlocked } from '@/lib/blocks';
 import { AppHeader } from '@/components/AppHeader';
 import { StoryCard } from '@/components/StoryCard';
 import { toggleFollow } from '../actions';
+import { toggleBlock } from '@/app/moderation/actions';
 import { ReportButton } from '@/components/ReportButton';
 import { TipButton } from '@/components/TipButton';
 
@@ -18,16 +20,18 @@ export default async function ProfilePage({
   params: Promise<{ username: string }>;
 }) {
   const { username } = await params;
-  const profile = await getAuthorByUsername(username);
+  const user = await getSessionUser();
+  const profile = await getAuthorByUsername(username, user?.id);
   if (!profile) notFound();
 
   const stories = profile.stories;
 
-  const user = await getSessionUser();
   let following = false;
+  let blocked = false;
   if (user && user.id !== profile.id) {
     const followed = await getFollowing(user.id);
     following = followed.some((a) => a.id === profile.id);
+    blocked = await hasBlocked(user.id, profile.id);
   }
 
   return (
@@ -69,6 +73,19 @@ export default async function ProfilePage({
           <div className="flex items-center gap-4 mt-4 flex-wrap">
             <TipButton recipientId={profile.id} signedIn={true} />
             <ReportButton targetType="user" targetId={profile.id} signedIn={true} />
+            <form action={toggleBlock}>
+              <input type="hidden" name="targetId" value={profile.id} />
+              <input type="hidden" name="username" value={profile.username} />
+              <button
+                className={`text-[13px] px-3 py-1.5 rounded-full font-medium ${
+                  blocked
+                    ? 'border border-border-soft text-ink-muted'
+                    : 'border border-signal/50 text-signal'
+                }`}
+              >
+                {blocked ? 'Unblock' : 'Block'}
+              </button>
+            </form>
           </div>
         )}
 

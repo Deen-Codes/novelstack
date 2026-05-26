@@ -77,7 +77,7 @@
       "typedRoutes": true
     },
     "extra": {
-      "apiBaseUrl": "https://novelstack.onrender.com",
+      "apiBaseUrl": "https://novelstack.app",
       "revenueCatKey": "appl_ZXUWIahuvhxnAIYzlPrSGdhlWGN",
       "router": {
         "origin": false

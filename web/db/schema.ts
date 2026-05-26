@@ -175,7 +175,11 @@ export const adUnlocks = pgTable('ad_unlocks', {
     .notNull()
     .references(() => chapters.id, { onDelete: 'cascade' }),
   adRevenueCents: numeric('ad_revenue_cents', { precision: 10, scale: 4 }).notNull().default('0'),
-  authorPayoutCents: numeric('author_payout_cents', { precision: 10, scale: 4 }).notNull().default('0'),
+  // Nullable until a real AdMob revenue figure is confirmed and imported.
+  authorPayoutCents: numeric('author_payout_cents', { precision: 10, scale: 4 }),
+  // 'pending' until the admin import-ad-revenue job confirms the cents value;
+  // earnings only count 'confirmed' unlocks in the ad-revenue total.
+  status: text('status').notNull().default('pending'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -190,6 +194,9 @@ export const tips = pgTable('tips', {
   storyId: uuid('story_id').references(() => stories.id, { onDelete: 'set null' }),
   amountCents: integer('amount_cents').notNull(),
   message: text('message'),
+  // Apple/RevenueCat transaction id for IAP-funded tips. Unique to prevent
+  // double-crediting the same purchase if the client retries.
+  transactionId: text('transaction_id').unique(),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -270,6 +277,23 @@ export const likes = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [primaryKey({ columns: [t.userId, t.chapterId] })],
+);
+
+// User-to-user blocks. A single row means "blocker → blocked". The viewer
+// experience filters in both directions (see lib/blocks.ts) so a block is a
+// mutual hide: neither party sees the other's content or appearance.
+export const blocks = pgTable(
+  'blocks',
+  {
+    blockerId: uuid('blocker_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    blockedId: uuid('blocked_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.blockerId, t.blockedId] })],
 );
 
 // ============================================================

@@ -133,6 +133,15 @@ export default async function EarningsPage() {
               <span className="text-[14px] font-semibold text-ink">{money(row.value)}</span>
             </div>
           ))}
+          {earnings.pendingAdUnlocks > 0 && (
+            <div className="flex items-center justify-between px-5 py-3.5">
+              <span className="text-[14px] text-ink-muted">Pending ad revenue</span>
+              <span className="text-[13px] text-ink-muted">
+                ~{money(earnings.pendingAdCentsEstimate)} ({earnings.pendingAdUnlocks} unlocks,
+                settles in ~48h)
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Payout history */}

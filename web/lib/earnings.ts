@@ -52,28 +52,41 @@ export type AuthorEarnings = {
   routesToCompany: boolean;
   // Finalised earnings not yet paid out (unpaid tips + ad share).
   availableCents: number;
-  // Earned so far this calendar month (tips + ad share) — still accruing.
+  // Earned so far this calendar month (tips + confirmed ad share) — still accruing.
   thisMonthCents: number;
   // Everything earned, all-time, across all three sources.
   lifetimeCents: number;
   // Total already transferred to the author.
   paidOutCents: number;
   breakdown: { tipsCents: number; adCents: number; subscriptionCents: number };
+  // Ad unlocks awaiting reconciliation against the real AdMob payout. A rough
+  // estimate is surfaced alongside so authors see something is coming.
+  pendingAdUnlocks: number;
+  pendingAdCentsEstimate: number;
   recentTips: EarningsTip[];
   payouts: EarningsPayout[];
 };
+
+// Placeholder per-unlock estimate (cents). Trivially conservative — replaced
+// with the real figure once the v1.1 AdMob Reporting API integration lands.
+const PENDING_AD_ESTIMATE_CENTS = 1;
 
 // Computes a writer's full earnings picture in one shot.
 export async function getAuthorEarnings(userId: string, isSeed: boolean): Promise<AuthorEarnings> {
   const since = monthStart();
   const sumCents = sql<number>`coalesce(sum(${tips.amountCents}), 0)`;
+  // Only confirmed unlocks count toward the actual ad-revenue figure.
   const sumAd = sql<number>`coalesce(sum(${adUnlocks.authorPayoutCents}), 0)`;
+  const countPending = sql<number>`count(*)::int`;
+  const confirmed = eq(adUnlocks.status, 'confirmed');
+  const pending = eq(adUnlocks.status, 'pending');
 
   const [
     tipsAll,
     tipsMonth,
     adAll,
     adMonth,
+    pendingCount,
     payoutRows,
     recent,
   ] = await Promise.all([
@@ -87,13 +100,19 @@ export async function getAuthorEarnings(userId: string, isSeed: boolean): Promis
       .from(adUnlocks)
       .innerJoin(chapters, eq(chapters.id, adUnlocks.chapterId))
       .innerJoin(stories, eq(stories.id, chapters.storyId))
-      .where(eq(stories.authorId, userId)),
+      .where(and(eq(stories.authorId, userId), confirmed)),
     db
       .select({ cents: sumAd })
       .from(adUnlocks)
       .innerJoin(chapters, eq(chapters.id, adUnlocks.chapterId))
       .innerJoin(stories, eq(stories.id, chapters.storyId))
-      .where(and(eq(stories.authorId, userId), gte(adUnlocks.createdAt, since))),
+      .where(and(eq(stories.authorId, userId), confirmed, gte(adUnlocks.createdAt, since))),
+    db
+      .select({ n: countPending })
+      .from(adUnlocks)
+      .innerJoin(chapters, eq(chapters.id, adUnlocks.chapterId))
+      .innerJoin(stories, eq(stories.id, chapters.storyId))
+      .where(and(eq(stories.authorId, userId), pending)),
     db
       .select()
       .from(payouts)
@@ -118,6 +137,8 @@ export async function getAuthorEarnings(userId: string, isSeed: boolean): Promis
   const tipCentsMonth = Math.round(Number(tipsMonth[0]?.cents ?? 0));
   const adCentsAll = Math.round(Number(adAll[0]?.cents ?? 0));
   const adCentsMonth = Math.round(Number(adMonth[0]?.cents ?? 0));
+  const pendingAdUnlocks = Number(pendingCount[0]?.n ?? 0);
+  const pendingAdCentsEstimate = pendingAdUnlocks * PENDING_AD_ESTIMATE_CENTS;
 
   const subCentsAll = payoutRows.reduce((s, p) => s + p.subscriptionCents, 0);
   const payoutsTotalAll = payoutRows.reduce((s, p) => s + p.totalCents, 0);
@@ -140,6 +161,8 @@ export async function getAuthorEarnings(userId: string, isSeed: boolean): Promis
       adCents: adCentsAll,
       subscriptionCents: subCentsAll,
     },
+    pendingAdUnlocks,
+    pendingAdCentsEstimate,
     recentTips: recent.map((r) => ({
       id: r.id,
       amountCents: r.amountCents,
