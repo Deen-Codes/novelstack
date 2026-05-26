@@ -10,10 +10,10 @@
     "splash": {
       "image": "./assets/splash.png",
       "backgroundColor": "#14110F",
-      "resizeMode": "contain"
+      "resizeMode": "cover"
     },
     "ios": {
-      "supportsTablet": true,
+      "supportsTablet": false,
       "bundleIdentifier": "app.novelstack",
       "buildNumber": "1",
       "infoPlist": {
