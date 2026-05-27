@@ -15,7 +15,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "app.novelstack",
-      "buildNumber": "3",
+      "buildNumber": "4",
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "NovelStack needs access to your photos so you can choose a cover image for your story.",
         "LSApplicationQueriesSchemes": [

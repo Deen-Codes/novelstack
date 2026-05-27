@@ -240,40 +240,31 @@ export default function Write() {
             </Text>
           </View>
         ) : (
-          stories.map((s) => (
-            <Pressable
-              key={s.id}
-              style={styles.storyCard}
-              onPress={() => router.push(`/write/${s.id}`)}
-            >
-              <Cover
-                coverUrl={s.coverUrl}
-                coverColor={s.coverColor}
-                title={s.title}
-                mature={s.isMature}
-                style={styles.storyCover}
-              />
-              <View style={styles.storyText}>
-                <Text style={styles.storyTitle} numberOfLines={2}>
+          <View style={styles.storiesGrid}>
+            {stories.map((s) => (
+              <Pressable
+                key={s.id}
+                style={styles.storyGridItem}
+                onPress={() => router.push(`/write/${s.id}`)}
+              >
+                <Cover
+                  coverUrl={s.coverUrl}
+                  coverColor={s.coverColor}
+                  title={s.title}
+                  mature={s.isMature}
+                  style={styles.storyGridCover}
+                />
+                <Text style={styles.storyGridTitle} numberOfLines={2}>
                   {s.title}
                 </Text>
-                <Text style={styles.storyGenre}>{genreLabel(s.genre)}</Text>
-                <View
-                  style={[styles.statusPill, s.status === 'draft' && styles.statusDraft]}
-                >
-                  <Text
-                    style={[
-                      styles.statusText,
-                      s.status === 'draft' && styles.statusTextDraft,
-                    ]}
-                  >
-                    {s.status}
-                  </Text>
-                </View>
-              </View>
-              <Ionicons name="chevron-forward" size={18} color={colors.inkFaint} />
-            </Pressable>
-          ))
+                {s.status === 'draft' && (
+                  <View style={styles.storyGridDraft}>
+                    <Text style={styles.storyGridDraftText}>Draft</Text>
+                  </View>
+                )}
+              </Pressable>
+            ))}
+          </View>
         )}
       </ScrollView>
     </SafeAreaView>
@@ -446,6 +437,39 @@ const styles = StyleSheet.create({
   },
   storyCover: { width: 50, height: 68, borderRadius: 7 },
   storyText: { flex: 1, minWidth: 0, gap: 5 },
+
+  // 3-col grid for the writer's own stories — Instagram-style cells with
+  // the cover, a short title underneath, and a Draft pill for unpublished
+  // ones. Sits on the same horizontal padding as the rest of the screen.
+  storiesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginTop: spacing.sm,
+  },
+  storyGridItem: { width: '31.5%' },
+  storyGridCover: { width: '100%', aspectRatio: 3 / 4, borderRadius: 10 },
+  storyGridTitle: {
+    fontSize: 12.5,
+    fontWeight: '600',
+    color: colors.ink,
+    marginTop: 6,
+  },
+  storyGridDraft: {
+    alignSelf: 'flex-start',
+    marginTop: 4,
+    backgroundColor: colors.signalSoft,
+    borderRadius: 5,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  storyGridDraftText: {
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.3,
+    color: colors.signal,
+    textTransform: 'uppercase',
+  },
   storyTitle: { fontFamily: fonts.display, fontSize: 15.5, color: colors.ink },
   storyGenre: { fontSize: 12, color: colors.inkFaint, textTransform: 'capitalize' },
   statusPill: {

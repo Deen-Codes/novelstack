@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import { getSessionUser } from '@/lib/auth';
 import { getAuthorByUsername } from '@/lib/queries';
 import { hasBlocked } from '@/lib/blocks';
@@ -18,6 +18,15 @@ export async function GET(
   if (!author) return NextResponse.json({ error: 'User not found.' }, { status: 404 });
   // Expose whether the viewer has blocked this author + whether they follow
   // them — drives the mobile profile screen's Block/Unblock and Follow toggles.
+  // Always-cheap: how many writers does this author follow? Surfaced in
+  // place of a follower count, deliberately — NovelStack doesn't expose a
+  // follower number to avoid the popularity-chase loop.
+  const followingCountRow = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(follows)
+    .where(eq(follows.followerId, author.id));
+  const followingCount = followingCountRow[0]?.count ?? 0;
+
   const [blockedByMe, followRow] = viewer
     ? await Promise.all([
         hasBlocked(viewer.id, author.id),
@@ -33,5 +42,10 @@ export async function GET(
       ])
     : [false, []];
   const followedByMe = followRow.length > 0;
-  return NextResponse.json({ ...author, blockedByMe, followedByMe });
+  return NextResponse.json({
+    ...author,
+    blockedByMe,
+    followedByMe,
+    followingCount,
+  });
 }

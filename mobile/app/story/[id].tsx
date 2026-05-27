@@ -112,7 +112,7 @@ export default function StoryScreen() {
   const [bookmarked, setBookmarked] = useState(false);
   const [following, setFollowing] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [tab, setTab] = useState<'chapters' | 'reviews' | 'more'>('chapters');
+  const [tab, setTab] = useState<'chapters' | 'more'>('chapters');
   const [moreLikeThis, setMoreLikeThis] = useState<Story[]>([]);
   // Lazy reviews — loaded the first time the Reviews tab is opened, then kept
   // in memory until the screen unmounts.
@@ -140,6 +140,11 @@ export default function StoryScreen() {
   const [reportReason, setReportReason] = useState('harassment');
   const [reportDetail, setReportDetail] = useState('');
   const [reportDone, setReportDone] = useState(false);
+
+  // Reviews bottom sheet — opens from the action row, holds either the form
+  // for first-time reviewers OR an inline-editable version of your own
+  // review, with the full list of everyone else's reviews underneath.
+  const [reviewsOpen, setReviewsOpen] = useState(false);
 
   const userId = user?.id ?? null;
 
@@ -543,6 +548,18 @@ export default function StoryScreen() {
                 </Pressable>
               )}
               {!isOwnStory && (
+                <Pressable style={styles.act} onPress={() => setReviewsOpen(true)}>
+                  <Ionicons
+                    name={reviewData?.myReview ? 'star' : 'star-outline'}
+                    size={21}
+                    color={reviewData?.myReview ? colors.signal : colors.ink}
+                  />
+                  <Text style={styles.actText}>
+                    {reviewData?.myReview ? 'Reviewed' : 'Review'}
+                  </Text>
+                </Pressable>
+              )}
+              {!isOwnStory && (
                 <Pressable style={styles.act} onPress={() => setReportOpen((o) => !o)}>
                   <Ionicons name="flag-outline" size={21} color={colors.ink} />
                   <Text style={styles.actText}>{reportDone ? 'Reported' : 'Report'}</Text>
@@ -614,12 +631,98 @@ export default function StoryScreen() {
               </Pressable>
             </BottomSheet>
 
+            {/* Reviews sheet — composer/inline-edit for your own review at the
+                top (whichever applies), then everyone else's reviews below.
+                Tap a star or the body to edit; Save appears the moment
+                anything differs from what's already stored. */}
+            <BottomSheet visible={reviewsOpen} onClose={() => setReviewsOpen(false)}>
+              <Text style={styles.sheetTitle}>
+                {reviewSummary.count > 0 && reviewSummary.avg != null
+                  ? `Reviews · ${reviewSummary.avg.toFixed(1)} (${reviewSummary.count})`
+                  : 'Reviews'}
+              </Text>
+
+              {userId && userId !== story.authorId && (
+                <View style={styles.reviewForm}>
+                  <Text style={styles.reviewFormLabel}>
+                    {reviewData?.myReview ? 'Your review' : 'Leave a review'}
+                  </Text>
+                  <StarSelector value={draftRating} onChange={setDraftRating} />
+                  <TextInput
+                    value={draftBody}
+                    onChangeText={setDraftBody}
+                    placeholder="A line or two (optional)"
+                    placeholderTextColor={colors.inkFaint}
+                    multiline
+                    style={[styles.input, { height: 76, textAlignVertical: 'top' }]}
+                  />
+                  {/* Save button only appears when there's something to save
+                      — first-time post if you have a rating, or an edit
+                      that diverges from your stored review. */}
+                  {(() => {
+                    const my = reviewData?.myReview;
+                    const dirty = my
+                      ? draftRating !== my.rating || draftBody.trim() !== my.body
+                      : draftRating > 0;
+                    if (!dirty && !reviewBusy) return null;
+                    return (
+                      <Pressable
+                        style={[
+                          styles.reviewBtn,
+                          (draftRating < 1 || reviewBusy) && { opacity: 0.5 },
+                        ]}
+                        onPress={submitReview}
+                        disabled={draftRating < 1 || reviewBusy}
+                      >
+                        <Text style={styles.reviewBtnText}>
+                          {reviewBusy
+                            ? 'Saving…'
+                            : my
+                              ? 'Save changes'
+                              : 'Post review'}
+                        </Text>
+                      </Pressable>
+                    );
+                  })()}
+                </View>
+              )}
+
+              {reviewData == null ? (
+                <ActivityIndicator color={colors.signal} style={{ marginTop: 20 }} />
+              ) : reviewData.reviews.filter((r) => r.user?.id !== userId).length ===
+                0 ? (
+                <Text style={styles.emptyNote}>
+                  No other reviews yet — yours will be the first.
+                </Text>
+              ) : (
+                reviewData.reviews
+                  // Hide your own review from the public list — it lives in
+                  // the editable section above instead.
+                  .filter((r) => r.user?.id !== userId)
+                  .map((r) => (
+                    <View key={r.id} style={styles.reviewRow}>
+                      <View style={styles.reviewHead}>
+                        <Pressable
+                          onPress={() => {
+                            setReviewsOpen(false);
+                            r.user?.username && router.push(`/u/${r.user.username}`);
+                          }}
+                        >
+                          <Text style={styles.reviewName}>
+                            {r.user?.displayName ?? 'A reader'}
+                          </Text>
+                        </Pressable>
+                        <Stars value={r.rating} size={13} />
+                      </View>
+                      {!!r.body && <Text style={styles.reviewBody}>{r.body}</Text>}
+                    </View>
+                  ))
+              )}
+            </BottomSheet>
+
             <View style={styles.tabs}>
               <Pressable onPress={() => setTab('chapters')}>
                 <Text style={[styles.tab, tab === 'chapters' && styles.tabOn]}>Chapters</Text>
-              </Pressable>
-              <Pressable onPress={() => setTab('reviews')}>
-                <Text style={[styles.tab, tab === 'reviews' && styles.tabOn]}>Reviews</Text>
               </Pressable>
               <Pressable onPress={() => setTab('more')}>
                 <Text style={[styles.tab, tab === 'more' && styles.tabOn]}>More like this</Text>
@@ -652,68 +755,6 @@ export default function StoryScreen() {
                   );
                 })
               )
-            ) : tab === 'reviews' ? (
-              <View>
-                {/* Composer — every signed-in reader who isn't the author can
-                    leave one review per story. POSTing again updates theirs. */}
-                {userId && userId !== story.authorId && (
-                  <View style={styles.reviewForm}>
-                    <Text style={styles.reviewFormLabel}>
-                      {reviewData?.myReview ? 'Update your review' : 'Leave a review'}
-                    </Text>
-                    <StarSelector value={draftRating} onChange={setDraftRating} />
-                    <TextInput
-                      value={draftBody}
-                      onChangeText={setDraftBody}
-                      placeholder="A line or two (optional)"
-                      placeholderTextColor={colors.inkFaint}
-                      multiline
-                      style={[styles.input, { height: 76, textAlignVertical: 'top' }]}
-                    />
-                    <Pressable
-                      style={[
-                        styles.reviewBtn,
-                        (draftRating < 1 || reviewBusy) && { opacity: 0.5 },
-                      ]}
-                      onPress={submitReview}
-                      disabled={draftRating < 1 || reviewBusy}
-                    >
-                      <Text style={styles.reviewBtnText}>
-                        {reviewBusy
-                          ? 'Saving…'
-                          : reviewData?.myReview
-                            ? 'Update review'
-                            : 'Post review'}
-                      </Text>
-                    </Pressable>
-                  </View>
-                )}
-                {reviewData == null ? (
-                  <ActivityIndicator color={colors.signal} style={{ marginTop: 20 }} />
-                ) : reviewData.reviews.length === 0 ? (
-                  <Text style={styles.emptyNote}>
-                    No reviews yet — be the first to share what you thought.
-                  </Text>
-                ) : (
-                  reviewData.reviews.map((r) => (
-                    <View key={r.id} style={styles.reviewRow}>
-                      <View style={styles.reviewHead}>
-                        <Pressable
-                          onPress={() =>
-                            r.user?.username && router.push(`/u/${r.user.username}`)
-                          }
-                        >
-                          <Text style={styles.reviewName}>
-                            {r.user?.displayName ?? 'A reader'}
-                          </Text>
-                        </Pressable>
-                        <Stars value={r.rating} size={13} />
-                      </View>
-                      {!!r.body && <Text style={styles.reviewBody}>{r.body}</Text>}
-                    </View>
-                  ))
-                )}
-              </View>
             ) : moreLikeThis.length === 0 ? (
               <Text style={styles.emptyNote}>Nothing similar yet.</Text>
             ) : (

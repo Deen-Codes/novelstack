@@ -4,10 +4,10 @@ import { useFocusEffect } from 'expo-router';
 import { useCallback } from 'react';
 import { colors } from '@/theme/tokens';
 
-// A drawn-out type-out of a string, ending with a blinking caret that stays
-// put. Re-runs every time the screen comes into focus (so navigating away
-// and back retriggers the animation, rather than burning the effect on
-// first mount only).
+// A drawn-out type-out of a string, with a blinking caret that's visible
+// the whole time and trails the end of the growing text — like a real
+// terminal cursor. Re-runs every time the screen comes into focus so
+// navigating away and back retriggers the animation.
 export function Typewriter({
   text,
   style,
@@ -22,7 +22,7 @@ export function Typewriter({
   startDelayMs?: number;
 }) {
   const [shown, setShown] = useState('');
-  const caretOpacity = useRef(new Animated.Value(0)).current;
+  const caretOpacity = useRef(new Animated.Value(1)).current;
   const tickRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const blinkLoop = useRef<Animated.CompositeAnimation | null>(null);
 
@@ -32,6 +32,10 @@ export function Typewriter({
     useCallback(() => {
       let cancelled = false;
       setShown('');
+
+      // Steady-on while typing (PC-like — no flicker mid-word), then settle
+      // into a normal blink once the line is finished.
+      caretOpacity.setValue(1);
 
       const startTimer = setTimeout(() => {
         let i = 0;
@@ -78,7 +82,7 @@ export function Typewriter({
         if (tickRef.current) clearTimeout(tickRef.current);
         clearTimeout(startTimer);
         blinkLoop.current?.stop();
-        caretOpacity.setValue(0);
+        caretOpacity.setValue(1);
       };
     }, [text, speedMs, startDelayMs, caretOpacity]),
   );

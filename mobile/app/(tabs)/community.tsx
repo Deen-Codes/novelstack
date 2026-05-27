@@ -164,20 +164,6 @@ export default function Community() {
   }
 
   const followedIds = new Set(following.map((w) => w.id));
-  const suggested: User[] = [];
-  const seen = new Set<string>();
-  for (const s of feed) {
-    const a = s.author;
-    if (a && !seen.has(a.id) && !followedIds.has(a.id) && a.id !== me?.id) {
-      seen.add(a.id);
-      suggested.push(a);
-    }
-    if (suggested.length >= 16) break;
-  }
-  const writers: { user: User; isFollowing: boolean }[] = [
-    ...following.map((w) => ({ user: w, isFollowing: true })),
-    ...suggested.map((w) => ({ user: w, isFollowing: false })),
-  ].slice(0, 16);
 
   // Rank writers worth surfacing in the empty-feed "Writers to follow"
   // section. Score combines straight popularity (reads + followers) with
@@ -216,20 +202,17 @@ export default function Community() {
     })
     .slice(0, 6);
 
-  // While the reader follows fewer than 5 writers, mix "ghost" discovery
-  // cards into the feed. They look like normal posts (avatar, name, body,
-  // book card) but the body is the story's own description and an honest
-  // "Suggested" badge sits in place of the usual "Update" pill — so the
-  // feed never feels empty while the reader is still figuring out who they
-  // care about. Once they've committed (5+ follows) discovery steps back.
-  const FOLLOW_THRESHOLD = 5;
-  const ghostItems =
-    following.length < FOLLOW_THRESHOLD
-      ? suggestedWriters
-          .filter((s) => !justFollowed.has(s.user.id))
-          .slice(0, 5)
-          .map((s) => ({ kind: 'ghost' as const, key: `g-${s.user.id}`, pick: s }))
-      : [];
+  // Mix "ghost" discovery cards into the feed at all times — fewer when the
+  // reader already follows lots of writers, more when they're new. They look
+  // like normal posts (avatar, name, body, book card) but the body is the
+  // story's own description and an honest "Suggested" badge sits in place of
+  // the "Update" pill. Always keeps something fresh in the feed even after
+  // the reader has caught up with everyone they follow.
+  const ghostCount = following.length < 5 ? 5 : 3;
+  const ghostItems = suggestedWriters
+    .filter((s) => !justFollowed.has(s.user.id))
+    .slice(0, ghostCount)
+    .map((s) => ({ kind: 'ghost' as const, key: `g-${s.user.id}`, pick: s }));
   type FeedItem =
     | { kind: 'post'; key: string; post: CommunityPost }
     | { kind: 'ghost'; key: string; pick: typeof suggestedWriters[number] };
@@ -252,45 +235,9 @@ export default function Community() {
           />
         ) : (
           <>
-            {writers.length > 0 && (
-              <>
-                <Text style={styles.sectionTitle}>Writers</Text>
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.rail}
-                >
-                  {writers.map(({ user: w, isFollowing }, idx) => (
-                    <StaggerIn key={w.id} index={idx} baseDelayMs={45}>
-                    <Pressable
-                      style={styles.writer}
-                      onPress={() => router.push(`/u/${w.username}`)}
-                      hitSlop={4}
-                    >
-                      <View
-                        style={[
-                          styles.wAvatar,
-                          isFollowing ? styles.wFollowed : styles.wDiscover,
-                        ]}
-                      >
-                        {w.avatarUrl ? (
-                          <Image source={{ uri: w.avatarUrl }} style={styles.wAvatarImg} />
-                        ) : (
-                          <Text style={styles.wInitial}>
-                            {(w.displayName ?? '?').slice(0, 1).toUpperCase()}
-                          </Text>
-                        )}
-                      </View>
-                      <Text style={styles.wName} numberOfLines={1}>
-                        {w.displayName}
-                      </Text>
-                    </Pressable>
-                    </StaggerIn>
-                  ))}
-                </ScrollView>
-              </>
-            )}
-
+            {/* Writers rail removed — Instagram-style stories rail was
+                misleading (we don't do 24-hour stories), so the feed leads
+                straight with the composer + posts + discovery cards. */}
             <Pressable style={styles.composer} onPress={() => router.push('/compose')}>
               <View style={styles.composerAv}>
                 {me?.avatarUrl ? (

@@ -198,7 +198,11 @@ export default function StoryWriter() {
     return (
       <SafeAreaView style={styles.safe} edges={['top']}>
         <View style={styles.scroll}>
-          <Pressable onPress={() => router.back()}>
+          <Pressable
+            onPress={() => router.back()}
+            hitSlop={16}
+            style={styles.backWrap}
+          >
             <Text style={styles.back}>‹ Write</Text>
           </Pressable>
           <Text style={styles.empty}>Story not found, or it isn&apos;t yours.</Text>
@@ -402,7 +406,9 @@ export default function StoryWriter() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.paper },
   scroll: { padding: spacing.lg, paddingBottom: spacing.xl * 3 },
-  back: { fontSize: 14, color: colors.inkMuted, marginBottom: spacing.md },
+  // Larger hit target — the small "‹ Write" link was a pain to tap.
+  backWrap: { paddingVertical: 8, paddingRight: 16, marginBottom: 4, alignSelf: 'flex-start' },
+  back: { fontSize: 16, fontWeight: '500', color: colors.ink },
   tabs: {
     flexDirection: 'row',
     gap: 4,

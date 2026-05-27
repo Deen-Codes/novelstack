@@ -7,6 +7,7 @@ import {
   Pressable,
   ActivityIndicator,
   Alert,
+  Share,
   StyleSheet,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -18,14 +19,27 @@ import { getCurrentUser } from '@/lib/auth';
 import { Cover } from '@/components/Cover';
 import type { AuthorProfile, User } from '@/lib/types';
 
+const SITE = 'https://novelstack.app';
+
 type ProfileResponse = AuthorProfile & {
   blockedByMe?: boolean;
   followedByMe?: boolean;
+  followingCount?: number;
 };
 
-// Writer's public profile screen. Shows their bio + stories, plus the
-// follow/block actions a signed-in reader can take. Reached from anywhere
-// an author byline is rendered.
+// "12,400" / "1.2k" / "12.4k" — quick compactor for stat numbers so the
+// row stays balanced across small phones.
+function compact(n: number): string {
+  if (n >= 100_000) return `${Math.round(n / 1000)}k`;
+  if (n >= 10_000) return `${(n / 1000).toFixed(1)}k`;
+  if (n >= 1000) return `${(n / 1000).toFixed(1)}k`;
+  return n.toLocaleString('en-US');
+}
+
+// Writer's public profile screen. Instagram-style top card: avatar on the
+// left, name + handle next to it, bio below, then a stat row (stories ·
+// reads · following — never follower count), Follow + Share buttons, and a
+// stories grid. Block lives top-right as a small icon.
 export default function WriterProfile() {
   const { username } = useLocalSearchParams<{ username: string }>();
   const [profile, setProfile] = useState<ProfileResponse | null>(null);
@@ -59,10 +73,33 @@ export default function WriterProfile() {
     }, [load]),
   );
 
+  async function toggleFollow() {
+    if (!profile || followBusy) return;
+    setFollowBusy(true);
+    const next = !following;
+    setFollowing(next);
+    try {
+      await apiSend('/api/follows', 'POST', { authorId: profile.id });
+    } catch {
+      setFollowing(!next);
+    }
+    setFollowBusy(false);
+  }
+
+  async function shareProfile() {
+    if (!profile) return;
+    try {
+      await Share.share({
+        message: `${profile.displayName} on NovelStack — ${SITE}/u/${profile.username}`,
+      });
+    } catch {
+      // Cancelled.
+    }
+  }
+
   function confirmBlock() {
     if (!profile) return;
     if (blocked) {
-      // No confirmation needed to unblock.
       void doToggleBlock();
       return;
     }
@@ -76,21 +113,6 @@ export default function WriterProfile() {
     );
   }
 
-  async function toggleFollow() {
-    if (!profile || followBusy) return;
-    setFollowBusy(true);
-    // Optimistic — flip immediately, revert on failure. The API is the same
-    // single endpoint that toggles in either direction server-side.
-    const next = !following;
-    setFollowing(next);
-    try {
-      await apiSend('/api/follows', 'POST', { authorId: profile.id });
-    } catch {
-      setFollowing(!next);
-    }
-    setFollowBusy(false);
-  }
-
   async function doToggleBlock() {
     if (!profile || busy) return;
     setBusy(true);
@@ -101,10 +123,7 @@ export default function WriterProfile() {
         method,
       );
       setBlocked(next);
-      if (next) {
-        // After a block the rest of the screen is no longer relevant — go back.
-        router.back();
-      }
+      if (next) router.back();
     } catch (e) {
       Alert.alert('Could not update block', e instanceof Error ? e.message : 'Try again.');
     }
@@ -123,7 +142,7 @@ export default function WriterProfile() {
     return (
       <SafeAreaView style={styles.safe} edges={['top']}>
         <View style={styles.head}>
-          <Pressable style={styles.back} onPress={() => router.back()} hitSlop={8}>
+          <Pressable style={styles.back} onPress={() => router.back()} hitSlop={12}>
             <Ionicons name="chevron-back" size={22} color={colors.ink} />
           </Pressable>
         </View>
@@ -133,67 +152,103 @@ export default function WriterProfile() {
   }
 
   const isOwn = me?.id === profile.id;
+  const totalReads = profile.stories.reduce(
+    (sum, s) => sum + (s.totalReads ?? 0),
+    0,
+  );
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <ScrollView contentContainerStyle={styles.scroll}>
+        {/* Top bar — back left, block right (when not your own profile). */}
         <View style={styles.head}>
-          <Pressable style={styles.back} onPress={() => router.back()} hitSlop={8}>
+          <Pressable style={styles.back} onPress={() => router.back()} hitSlop={12}>
             <Ionicons name="chevron-back" size={22} color={colors.ink} />
           </Pressable>
           {!isOwn && me && (
             <Pressable
-              style={[styles.blockBtn, blocked && styles.blockBtnOn, busy && { opacity: 0.5 }]}
+              style={styles.blockIcon}
               onPress={confirmBlock}
               disabled={busy}
-              hitSlop={6}
+              hitSlop={10}
             >
               <Ionicons
                 name={blocked ? 'lock-open-outline' : 'ban-outline'}
-                size={14}
+                size={20}
                 color={blocked ? colors.inkMuted : colors.signal}
               />
-              <Text style={[styles.blockBtnText, blocked && styles.blockBtnTextOn]}>
-                {blocked ? 'Unblock' : 'Block'}
-              </Text>
             </Pressable>
           )}
         </View>
 
-        <View style={styles.avatar}>
-          {profile.avatarUrl ? (
-            <Image source={{ uri: profile.avatarUrl }} style={styles.avatarImg} />
-          ) : (
-            <Text style={styles.avatarInitial}>
-              {(profile.displayName ?? '?').slice(0, 1).toUpperCase()}
-            </Text>
+        {/* Instagram-style top card — avatar left, name + handle right of it,
+            stats row below. */}
+        <View style={styles.card}>
+          <View style={styles.cardRow}>
+            <View style={styles.avatar}>
+              {profile.avatarUrl ? (
+                <Image source={{ uri: profile.avatarUrl }} style={styles.avatarImg} />
+              ) : (
+                <Text style={styles.avatarInitial}>
+                  {(profile.displayName ?? '?').slice(0, 1).toUpperCase()}
+                </Text>
+              )}
+            </View>
+            <View style={styles.cardMain}>
+              <Text style={styles.name} numberOfLines={1}>
+                {profile.displayName}
+              </Text>
+              <Text style={styles.handle} numberOfLines={1}>
+                @{profile.username}
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.stats}>
+            <View style={styles.stat}>
+              <Text style={styles.statN}>{profile.stories.length}</Text>
+              <Text style={styles.statL}>
+                {profile.stories.length === 1 ? 'story' : 'stories'}
+              </Text>
+            </View>
+            <View style={styles.stat}>
+              <Text style={styles.statN}>{compact(totalReads)}</Text>
+              <Text style={styles.statL}>reads</Text>
+            </View>
+            <View style={styles.stat}>
+              <Text style={styles.statN}>{compact(profile.followingCount ?? 0)}</Text>
+              <Text style={styles.statL}>following</Text>
+            </View>
+          </View>
+
+          {!!profile.bio && <Text style={styles.bio}>{profile.bio}</Text>}
+
+          {!isOwn && me && (
+            <View style={styles.ctaRow}>
+              <Pressable
+                style={[
+                  styles.followBtn,
+                  following ? styles.followBtnOn : styles.followBtnOff,
+                  followBusy && { opacity: 0.6 },
+                ]}
+                onPress={toggleFollow}
+                disabled={followBusy}
+              >
+                <Text
+                  style={[
+                    styles.followBtnText,
+                    following ? styles.followBtnTextOn : styles.followBtnTextOff,
+                  ]}
+                >
+                  {following ? 'Following' : 'Follow'}
+                </Text>
+              </Pressable>
+              <Pressable style={styles.shareBtn} onPress={shareProfile} hitSlop={6}>
+                <Ionicons name="arrow-redo-outline" size={18} color={colors.ink} />
+              </Pressable>
+            </View>
           )}
         </View>
-
-        <Text style={styles.name}>{profile.displayName}</Text>
-        <Text style={styles.handle}>@{profile.username}</Text>
-        {!isOwn && me && (
-          <Pressable
-            style={[
-              styles.followBtn,
-              following ? styles.followBtnOn : styles.followBtnOff,
-              followBusy && { opacity: 0.6 },
-            ]}
-            onPress={toggleFollow}
-            disabled={followBusy}
-            hitSlop={6}
-          >
-            <Text
-              style={[
-                styles.followBtnText,
-                following ? styles.followBtnTextOn : styles.followBtnTextOff,
-              ]}
-            >
-              {following ? 'Following' : 'Follow'}
-            </Text>
-          </Pressable>
-        )}
-        {!!profile.bio && <Text style={styles.bio}>{profile.bio}</Text>}
 
         <Text style={styles.section}>Stories</Text>
         {profile.stories.length === 0 ? (
@@ -233,52 +288,80 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingTop: 6,
-    paddingBottom: 6,
+    paddingBottom: 12,
   },
-  back: { width: 38, height: 38, alignItems: 'center', justifyContent: 'center' },
-  blockBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    borderWidth: 1,
-    borderColor: 'rgba(200,65,78,0.55)',
+  back: {
+    width: 40,
+    height: 40,
     borderRadius: radius.pill,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  blockBtnOn: { borderColor: colors.border, backgroundColor: colors.card },
-  blockBtnText: { fontSize: 12.5, fontWeight: '600', color: colors.signal },
-  blockBtnTextOn: { color: colors.inkMuted },
+  blockIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: 'rgba(200,65,78,0.5)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  // Top card — Instagram-style.
+  card: {
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.borderSoft,
+    borderRadius: 18,
+    padding: 16,
+  },
+  cardRow: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   avatar: {
-    width: 88,
-    height: 88,
+    width: 78,
+    height: 78,
     borderRadius: radius.pill,
     backgroundColor: colors.signalDeep,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
-    alignSelf: 'center',
-    marginTop: spacing.md,
   },
-  avatarImg: { width: 88, height: 88 },
-  avatarInitial: { color: colors.ink, fontSize: 34, fontWeight: '700' },
-  name: {
-    fontFamily: fonts.displayXl,
-    fontSize: 24,
-    color: colors.ink,
-    textAlign: 'center',
-    marginTop: 12,
+  avatarImg: { width: 78, height: 78 },
+  avatarInitial: { color: '#FFFFFF', fontSize: 30, fontWeight: '700' },
+  cardMain: { flex: 1, minWidth: 0 },
+  name: { fontFamily: fonts.displayXl, fontSize: 22, color: colors.ink },
+  handle: { fontSize: 13.5, color: colors.inkFaint, marginTop: 2 },
+
+  stats: {
+    flexDirection: 'row',
+    marginTop: 16,
+    paddingVertical: 10,
+    borderTopWidth: 1,
+    borderTopColor: colors.borderSoft,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderSoft,
   },
-  handle: { fontSize: 13, color: colors.inkFaint, textAlign: 'center', marginTop: 2 },
-  // Follow button sits centred just below the handle. Cream when you're
-  // not following (primary CTA); ember-tinted "Following" once you are,
-  // tapping again unfollows.
-  followBtn: {
-    alignSelf: 'center',
+  stat: { flex: 1, alignItems: 'center' },
+  statN: { fontSize: 17, fontWeight: '700', color: colors.ink },
+  statL: { fontSize: 11.5, color: colors.inkMuted, marginTop: 2 },
+
+  bio: {
+    fontSize: 14,
+    color: colors.inkMuted,
+    lineHeight: 20,
     marginTop: 14,
-    paddingHorizontal: 26,
-    paddingVertical: 11,
-    borderRadius: radius.pill,
+  },
+
+  ctaRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 14,
+  },
+  followBtn: {
+    flex: 1,
+    height: 42,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 1,
   },
   followBtnOff: {
@@ -292,14 +375,18 @@ const styles = StyleSheet.create({
   followBtnText: { fontSize: 14, fontWeight: '700' },
   followBtnTextOff: { color: '#15100E' },
   followBtnTextOn: { color: colors.signal },
-  bio: {
-    fontSize: 14,
-    color: colors.inkMuted,
-    lineHeight: 21,
-    textAlign: 'center',
-    marginTop: 12,
-    paddingHorizontal: 20,
+
+  shareBtn: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
+    backgroundColor: colors.cardHi,
+    borderWidth: 1,
+    borderColor: colors.borderSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
+
   section: {
     fontFamily: fonts.display,
     fontSize: 16,
