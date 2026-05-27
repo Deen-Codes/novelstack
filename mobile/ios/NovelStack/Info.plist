@@ -61,9 +61,7 @@
       <true/>
     </dict>
     <key>NSCameraUsageDescription</key>
-    <string>Allow $(PRODUCT_NAME) to access your camera</string>
-    <key>NSMicrophoneUsageDescription</key>
-    <string>Allow $(PRODUCT_NAME) to access your microphone</string>
+    <string>NovelStack uses the camera so you can take a photo to use as your story cover.</string>
     <key>NSPhotoLibraryUsageDescription</key>
     <string>NovelStack needs access to your photos so you can choose a cover image for your story.</string>
     <key>NSUserActivityTypes</key>
