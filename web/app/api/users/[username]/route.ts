@@ -21,8 +21,10 @@ export async function GET(
   const [blockedByMe, followRow] = viewer
     ? await Promise.all([
         hasBlocked(viewer.id, author.id),
+        // `follows` has a composite primary key (followerId, authorId) and
+        // no `id` column, so select `followerId` just as a presence probe.
         db
-          .select({ id: follows.id })
+          .select({ followerId: follows.followerId })
           .from(follows)
           .where(
             and(eq(follows.followerId, viewer.id), eq(follows.authorId, author.id)),
