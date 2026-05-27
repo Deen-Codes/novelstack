@@ -50,7 +50,9 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "NovelStack needs access to your photos so you can choose a cover image for your story."
+          "photosPermission": "NovelStack needs access to your photos so you can choose a cover image for your story.",
+          "cameraPermission": "NovelStack uses the camera so you can take a photo to use as your story cover.",
+          "microphonePermission": false
         }
       ],
       [

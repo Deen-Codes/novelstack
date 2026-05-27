@@ -67,7 +67,10 @@ export default function Reader() {
     const user = await getCurrentUser();
     if (!user) return;
     try {
-      await apiSend('/api/reads', 'POST', { chapterId: ch.id, progressPct: 100, completed: true });
+      // Register that the chapter was opened — keeps the feed's genre affinity
+      // fresh and puts the story in "Continue reading". The Finish button at
+      // the end of a book is what flips `completed: true`.
+      await apiSend('/api/reads', 'POST', { chapterId: ch.id, progressPct: 1, completed: false });
     } catch {
       // Best-effort.
     }
