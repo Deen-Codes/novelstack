@@ -17,6 +17,8 @@ import { GENRES, genreLabel } from '@/lib/genres';
 import { Cover } from '@/components/Cover';
 import { AmbientGlow } from '@/components/AmbientGlow';
 import { SignInPitch } from '@/components/SignInPitch';
+import { TopBar } from '@/components/TopBar';
+import { Typewriter } from '@/components/Typewriter';
 import type { Shelf, Story } from '@/lib/types';
 
 export default function Write() {
@@ -111,17 +113,22 @@ export default function Write() {
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <AmbientGlow />
+      <TopBar page="write" />
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-        <Text style={styles.h1}>Write</Text>
-        <Text style={styles.sub}>Your stories, drafts and chapters — all in one place.</Text>
-
         {!creating ? (
           <Pressable style={styles.newCard} onPress={() => setCreating(true)}>
             <View style={styles.newIcon}>
               <Ionicons name="add" size={24} color={colors.signal} />
             </View>
             <View style={styles.newText}>
-              <Text style={styles.newTitle}>Start a new story</Text>
+              {/* Typewriter draws the eye to the primary action — "Start a
+                  new story." types itself out and lands with a blinking
+                  caret each time the screen comes into focus. */}
+              <Typewriter
+                text="Start a new story."
+                style={styles.newTitle}
+                caretColor={colors.signal}
+              />
               <Text style={styles.newSub}>Set the basics, then write and publish chapters.</Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color={colors.inkFaint} />

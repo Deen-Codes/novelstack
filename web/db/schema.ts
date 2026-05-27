@@ -252,6 +252,27 @@ export const bookmarks = pgTable(
   (t) => [primaryKey({ columns: [t.readerId, t.storyId] })],
 );
 
+// Star reviews on stories. One per reader per story (upsert on POST). Rating
+// is constrained to 1..5 at the API layer; rating + body together drive both
+// the average shown by the cover and the Reviews tab listing.
+export const reviews = pgTable(
+  'reviews',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    storyId: uuid('story_id')
+      .notNull()
+      .references(() => stories.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    rating: integer('rating').notNull(),
+    body: text('body').notNull().default(''),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex('reviews_story_user_idx').on(t.storyId, t.userId)],
+);
+
 export const comments = pgTable('comments', {
   id: uuid('id').primaryKey().defaultRandom(),
   userId: uuid('user_id')

@@ -28,17 +28,17 @@ export function GET(req: NextRequest) {
 <meta name="robots" content="noindex" />
 <title>Opening NovelStack…</title>
 <style>
-  body{margin:0;background:#EDE4D0;font-family:-apple-system,Helvetica,Arial,sans-serif;
-    min-height:100vh;display:flex;align-items:center;justify-content:center;}
-  .card{background:#FBF7EA;border:1px solid #E2D7BD;border-radius:16px;
+  body{margin:0;background:#14110F;font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Helvetica,Arial,sans-serif;
+    min-height:100vh;display:flex;align-items:center;justify-content:center;color:#F2E9DA;}
+  .card{background:#1B1714;border:1px solid #2A231F;border-radius:18px;
     max-width:380px;width:88%;padding:36px 32px;text-align:center;}
-  .logo{font-family:Georgia,serif;font-size:22px;color:#2A2418;}
-  .dot{color:#E54B2A;}
-  h1{font-family:Georgia,serif;font-weight:normal;font-size:22px;color:#2A2418;margin:18px 0 6px;}
-  p{font-size:14px;line-height:1.6;color:#6B5E48;margin:0 0 22px;}
-  a.btn{display:block;background:#E54B2A;color:#FBF7EA;text-decoration:none;
-    font-size:15px;font-weight:bold;padding:14px 0;border-radius:24px;}
-  .hint{font-size:12px;color:#A89A7E;margin:18px 0 0;}
+  .logo{font-size:22px;font-weight:700;letter-spacing:-0.01em;color:#F2E9DA;}
+  .dot{color:#C8414E;}
+  h1{font-weight:600;letter-spacing:-0.01em;font-size:22px;color:#F2E9DA;margin:18px 0 6px;}
+  p{font-size:14px;line-height:1.6;color:#A59886;margin:0 0 22px;}
+  a.btn{display:block;background:#C8414E;color:#FFFFFF;text-decoration:none;
+    font-size:15px;font-weight:700;padding:14px 0;border-radius:999px;}
+  .hint{font-size:12px;color:#8A7E6E;margin:18px 0 0;}
 </style>
 </head>
 <body>

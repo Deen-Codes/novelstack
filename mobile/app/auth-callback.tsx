@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { View, Text, ActivityIndicator, Pressable, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
-import { apiSend, setSessionToken } from '@/lib/api';
+import { apiGet, apiSend, setSessionToken } from '@/lib/api';
 import { markAuthChanged } from '@/lib/auth';
 import { registerForPush } from '@/lib/push';
 import type { User } from '@/lib/types';
@@ -93,6 +93,25 @@ export default function AuthCallback() {
         }
 
         await setSessionToken(result.token);
+
+        // Diagnostic: prove the JWT round-trips before navigating. If
+        // /api/auth/session can't see the new session, something is wrong
+        // (AUTH_SECRET mismatch, header drop, etc.) — surface that here
+        // rather than landing on a silently-signed-out home screen.
+        try {
+          const check = await apiGet<{ user: User | null }>('/api/auth/session');
+          if (!check.user) {
+            throw new Error('Signed in, but the server immediately rejected the session.');
+          }
+        } catch (e) {
+          const msg = e instanceof Error ? e.message : '';
+          throw new Error(
+            msg.includes('Signed in')
+              ? msg
+              : `Signed in, but couldn't verify the session: ${msg}`,
+          );
+        }
+
         markAuthChanged();
         // Ask for push permission now that they're signed in.
         void registerForPush();

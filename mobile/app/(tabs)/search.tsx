@@ -45,18 +45,32 @@ export default function Search() {
   }, []);
 
   // Open the keyboard as soon as Search is entered, so you can type right
-  // away — the recommended list stays visible above it.
+  // away — the recommended list stays visible above it. Also replays the
+  // stagger every focus so the staircase fade-in plays each time you arrive
+  // on Search, not just the first mount with fresh data.
   useFocusEffect(
     useCallback(() => {
       loadRecommended();
       const t = setTimeout(() => inputRef.current?.focus(), 350);
+      // Reset opacities and replay the stagger.
+      if (rowAnims.length > 0) {
+        rowAnims.forEach((v) => v.setValue(0));
+        Animated.stagger(
+          55,
+          rowAnims.map((v) =>
+            Animated.timing(v, { toValue: 1, duration: 280, useNativeDriver: true }),
+          ),
+        ).start();
+      }
       return () => clearTimeout(t);
-    }, [loadRecommended]),
+    }, [loadRecommended, rowAnims]),
   );
 
-  // Stagger the recommended rows in — quick, so they're all settled fast.
+  // Also play it the first time recList populates (focus may have fired
+  // before the API returned).
   useEffect(() => {
     if (rowAnims.length === 0) return;
+    rowAnims.forEach((v) => v.setValue(0));
     Animated.stagger(
       55,
       rowAnims.map((v) =>

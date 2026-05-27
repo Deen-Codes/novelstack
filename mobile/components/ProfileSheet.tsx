@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import {
   Modal,
   Animated,
+  ScrollView,
   View,
   Text,
   Image,
@@ -13,15 +14,21 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { colors, spacing, radius } from '@/theme/tokens';
+import { colors, spacing, radius, fonts } from '@/theme/tokens';
 import { getCurrentUser, signOut, subscribeAuthChange } from '@/lib/auth';
 import { apiGet } from '@/lib/api';
+import { Cover } from './Cover';
 import { SignInPitch } from './SignInPitch';
-import type { User, Shelf } from '@/lib/types';
+import type { User, Shelf, Story } from '@/lib/types';
 
-// The profile bottom sheet — opened from the TopBar avatar. The backdrop
-// fades in while only the sheet panel slides up (RN's Modal "slide" would
-// slide the whole black overlay as one block, which looks bad).
+// The profile bottom sheet — opened from the TopBar avatar. Shows the
+// signed-in user's public profile preview (avatar, name, bio, following
+// count, stories grid) so they see themselves the way other readers do,
+// with an inline Edit pill jumping to the full settings screen. Earnings,
+// blocked users, sign-out and account deletion live at the bottom.
+//
+// The backdrop fades in while only the sheet panel slides up — RN's Modal
+// "slide" would slide the whole black overlay as one block, which looks bad.
 export function ProfileSheet({
   visible,
   onClose,
@@ -30,7 +37,8 @@ export function ProfileSheet({
   onClose: () => void;
 }) {
   const [user, setUser] = useState<User | null>(null);
-  const [stats, setStats] = useState({ following: 0, stories: 0, reads: 0 });
+  const [following, setFollowing] = useState(0);
+  const [stories, setStories] = useState<Story[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Animation: 0 = closed, 1 = open. `mounted` keeps the Modal alive through
@@ -71,11 +79,8 @@ export function ProfileSheet({
         try {
           const shelf = await apiGet<Shelf>('/api/me/shelf');
           if (!cancelled) {
-            setStats({
-              following: shelf.following.length,
-              stories: shelf.writing.length,
-              reads: shelf.writing.reduce((sum, s) => sum + (s.totalReads ?? 0), 0),
-            });
+            setFollowing(shelf.following.length);
+            setStories(shelf.writing);
           }
         } catch {
           // Stats are best-effort.
@@ -107,14 +112,15 @@ export function ProfileSheet({
     router.replace('/(tabs)');
   }
 
-  function compactReads(n: number): string {
-    return n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n);
-  }
-
   const translateY = anim.interpolate({
     inputRange: [0, 1],
     outputRange: [sheetH, 0],
   });
+
+  // Limit the grid preview to 6 (two rows). "View all" jumps to Write where
+  // the full list lives, so we don't blow out the sheet's height.
+  const previewStories = stories.slice(0, 6);
+  const hasMoreStories = stories.length > previewStories.length;
 
   return (
     <Modal visible={mounted} transparent animationType="none" onRequestClose={onClose}>
@@ -137,7 +143,11 @@ export function ProfileSheet({
               sub="Follow writers, save stories, and pick up where you left off — no password needed."
             />
           ) : (
-            <>
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.scroll}
+            >
+              {/* Header — avatar + name + handle + inline Edit pill */}
               <View style={styles.head}>
                 <View style={styles.avatar}>
                   {user.avatarUrl ? (
@@ -148,27 +158,44 @@ export function ProfileSheet({
                     </Text>
                   )}
                 </View>
-                <View>
-                  <Text style={styles.name}>{user.displayName}</Text>
-                  <Text style={styles.handle}>@{user.username}</Text>
+                <View style={styles.headMain}>
+                  <Text style={styles.name} numberOfLines={1}>
+                    {user.displayName}
+                  </Text>
+                  <Text style={styles.handle} numberOfLines={1}>
+                    @{user.username}
+                  </Text>
                 </View>
-              </View>
-
-              <View style={styles.stats}>
-                <Pressable style={styles.stat} onPress={() => go('/following')}>
-                  <Text style={styles.statN}>{stats.following}</Text>
-                  <Text style={styles.statL}>Following</Text>
-                </Pressable>
-                <Pressable style={styles.stat} onPress={() => go('/write')}>
-                  <Text style={styles.statN}>{stats.stories}</Text>
-                  <Text style={styles.statL}>Stories</Text>
-                </Pressable>
-                <Pressable style={styles.stat} onPress={() => go('/library')}>
-                  <Text style={styles.statN}>{compactReads(stats.reads)}</Text>
-                  <Text style={styles.statL}>Reads</Text>
+                <Pressable
+                  style={styles.editPill}
+                  onPress={() => go('/profile')}
+                  hitSlop={6}
+                >
+                  <Ionicons name="pencil" size={13} color={colors.ink} />
+                  <Text style={styles.editPillText}>Edit</Text>
                 </Pressable>
               </View>
 
+              {/* Bio — only if set */}
+              {!!user.bio && <Text style={styles.bio}>{user.bio}</Text>}
+
+              {/* Single-line stat row — following + stories. No follower count,
+                  deliberately: NovelStack doesn't surface a chase metric. */}
+              <Pressable style={styles.statRow} onPress={() => go('/following')}>
+                <Text style={styles.statText}>
+                  <Text style={styles.statN}>{following}</Text>
+                  <Text style={styles.statL}> following</Text>
+                </Text>
+                <Text style={styles.statDot}>·</Text>
+                <Text style={styles.statText}>
+                  <Text style={styles.statN}>{stories.length}</Text>
+                  <Text style={styles.statL}>
+                    {stories.length === 1 ? ' story' : ' stories'}
+                  </Text>
+                </Text>
+              </Pressable>
+
+              {/* NovelStack+ upsell */}
               <Pressable style={styles.plus} onPress={() => go('/plus')}>
                 <View style={styles.plusIcon}>
                   <Ionicons name="sparkles" size={20} color="#FFFFFF" />
@@ -182,20 +209,94 @@ export function ProfileSheet({
                 </View>
               </Pressable>
 
-              <View style={styles.menu}>
-                <Pressable style={styles.mrow} onPress={() => go('/profile')}>
-                  <View style={styles.mico}>
-                    <Ionicons name="person-outline" size={17} color={colors.inkMuted} />
+              {/* Stories grid — Instagram-style 3 columns. Empty state pitches
+                  the writer to publish their first. */}
+              {previewStories.length > 0 ? (
+                <>
+                  <Text style={styles.sectionLabel}>Stories</Text>
+                  <View style={styles.grid}>
+                    {previewStories.map((s) => (
+                      <Pressable
+                        key={s.id}
+                        style={styles.gridItem}
+                        onPress={() => go(`/story/${s.slug}`)}
+                      >
+                        <Cover
+                          coverUrl={s.coverUrl}
+                          coverColor={s.coverColor}
+                          title={s.title}
+                          mature={s.isMature}
+                          style={styles.gridCover}
+                        />
+                      </Pressable>
+                    ))}
                   </View>
-                  <Text style={styles.mlabel}>Edit profile</Text>
+                  {hasMoreStories && (
+                    <Pressable style={styles.viewAll} onPress={() => go('/write')}>
+                      <Text style={styles.viewAllText}>
+                        View all {stories.length} stories
+                      </Text>
+                      <Ionicons
+                        name="chevron-forward"
+                        size={14}
+                        color={colors.signal}
+                      />
+                    </Pressable>
+                  )}
+                </>
+              ) : (
+                <Pressable style={styles.startWriting} onPress={() => go('/write')}>
+                  <Ionicons
+                    name="create-outline"
+                    size={20}
+                    color={colors.signal}
+                  />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.startWritingTitle}>Start writing</Text>
+                    <Text style={styles.startWritingSub}>
+                      Publish your first story — readers can save, tip and follow.
+                    </Text>
+                  </View>
                   <Ionicons name="chevron-forward" size={16} color={colors.inkFaint} />
+                </Pressable>
+              )}
+
+              {/* Account essentials — earnings, blocked users — live at the
+                  bottom of the sheet, below the public-facing preview. */}
+              <View style={styles.menu}>
+                <Pressable style={styles.mrow} onPress={() => go('/earnings')}>
+                  <View style={styles.mico}>
+                    <Ionicons
+                      name="cash-outline"
+                      size={17}
+                      color={colors.inkMuted}
+                    />
+                  </View>
+                  <Text style={styles.mlabel}>Earnings &amp; payouts</Text>
+                  <Ionicons
+                    name="chevron-forward"
+                    size={16}
+                    color={colors.inkFaint}
+                  />
+                </Pressable>
+                <View style={styles.divider} />
+                <Pressable style={styles.mrow} onPress={() => go('/blocked')}>
+                  <View style={styles.mico}>
+                    <Ionicons name="ban-outline" size={17} color={colors.inkMuted} />
+                  </View>
+                  <Text style={styles.mlabel}>Blocked users</Text>
+                  <Ionicons
+                    name="chevron-forward"
+                    size={16}
+                    color={colors.inkFaint}
+                  />
                 </Pressable>
               </View>
 
               <Pressable style={styles.signOut} onPress={handleSignOut}>
                 <Text style={styles.signOutText}>Sign out</Text>
               </Pressable>
-            </>
+            </ScrollView>
           )}
         </Animated.View>
         </KeyboardAvoidingView>
@@ -214,9 +315,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.borderSoft,
     paddingHorizontal: 16,
-    paddingBottom: 36,
     paddingTop: 10,
+    // Cap the sheet at ~85% of typical screen height so the ScrollView is
+    // the bit that scrolls, not the sheet itself.
+    maxHeight: '88%',
   },
+  scroll: { paddingBottom: 36 },
   grab: {
     width: 38,
     height: 4,
@@ -225,19 +329,12 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     marginBottom: spacing.md,
   },
-  signedOut: {
-    fontSize: 14,
-    color: colors.inkMuted,
-    textAlign: 'center',
-    lineHeight: 21,
-    marginBottom: spacing.lg,
-  },
+
   head: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
     paddingHorizontal: 6,
-    marginBottom: spacing.md,
   },
   avatar: {
     width: 62,
@@ -250,27 +347,87 @@ const styles = StyleSheet.create({
   },
   avatarImg: { width: 62, height: 62 },
   avatarText: { fontSize: 25, fontWeight: '600', color: '#FFFFFF' },
-  name: { fontSize: 21, fontWeight: '500', color: colors.ink },
+  headMain: { flex: 1, minWidth: 0 },
+  name: { fontFamily: fonts.display, fontSize: 20, color: colors.ink },
   handle: { fontSize: 13, color: colors.inkFaint, marginTop: 2 },
+  editPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.pill,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+  },
+  editPillText: { fontSize: 12.5, fontWeight: '600', color: colors.ink },
 
-  stats: { flexDirection: 'row', gap: 8, marginBottom: spacing.md },
-  stat: {
-    flex: 1,
+  bio: {
+    fontSize: 14,
+    color: colors.inkMuted,
+    lineHeight: 20,
+    marginTop: spacing.md,
+    paddingHorizontal: 6,
+  },
+
+  statRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: spacing.md,
+    marginBottom: spacing.md,
+    paddingHorizontal: 6,
+  },
+  statText: { fontSize: 13.5 },
+  statN: { color: colors.ink, fontWeight: '700' },
+  statL: { color: colors.inkMuted },
+  statDot: { color: colors.inkFaint, fontSize: 13.5 },
+
+  sectionLabel: {
+    fontSize: 11,
+    color: colors.inkFaint,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+    fontWeight: '700',
+    marginTop: spacing.md,
+    marginBottom: 8,
+    paddingHorizontal: 6,
+  },
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    paddingHorizontal: 6,
+  },
+  // Three columns inside the sheet. Sheet has 22px horizontal padding total
+  // (16 + 6) on each side; the remaining ~290–340pt is split into 3 cells
+  // with 6pt gaps. Using % keeps it responsive across phone widths.
+  gridItem: { width: '32.5%' },
+  gridCover: { width: '100%', aspectRatio: 3 / 4, borderRadius: 8 },
+  viewAll: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    paddingVertical: 12,
+    marginTop: 4,
+  },
+  viewAllText: { fontSize: 13, color: colors.signal, fontWeight: '600' },
+
+  startWriting: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
     backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.borderSoft,
-    borderRadius: 13,
-    paddingVertical: 11,
-    alignItems: 'center',
+    borderRadius: 14,
+    padding: 14,
+    marginTop: spacing.sm,
   },
-  statN: { fontSize: 18, fontWeight: '500', color: colors.ink },
-  statL: {
-    fontSize: 10,
-    color: colors.inkFaint,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginTop: 2,
-  },
+  startWritingTitle: { fontSize: 14.5, fontWeight: '600', color: colors.ink },
+  startWritingSub: { fontSize: 12, color: colors.inkMuted, marginTop: 2 },
 
   plus: {
     flexDirection: 'row',
@@ -307,7 +464,7 @@ const styles = StyleSheet.create({
     borderColor: colors.borderSoft,
     borderRadius: 16,
     overflow: 'hidden',
-    marginBottom: spacing.md,
+    marginTop: spacing.lg,
   },
   mrow: { flexDirection: 'row', alignItems: 'center', gap: 13, padding: 13 },
   divider: { height: 1, backgroundColor: '#2A231F' },
@@ -322,6 +479,7 @@ const styles = StyleSheet.create({
   mlabel: { flex: 1, fontSize: 14.5, color: colors.ink },
 
   signOut: {
+    marginTop: spacing.md,
     borderWidth: 1,
     borderColor: colors.borderSoft,
     borderRadius: 14,
@@ -329,12 +487,4 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   signOutText: { fontSize: 13.5, color: colors.inkMuted, fontWeight: '500' },
-
-  primaryBtn: {
-    backgroundColor: colors.signal,
-    paddingVertical: 13,
-    paddingHorizontal: 40,
-    borderRadius: radius.pill,
-  },
-  primaryBtnText: { color: '#FFFFFF', fontSize: 14, fontWeight: '600' },
 });

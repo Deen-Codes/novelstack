@@ -13,9 +13,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Speech from 'expo-speech';
-import { BannerAd, BannerAdSize } from 'react-native-google-mobile-ads';
 import { colors, paperMode, spacing, radius, fonts } from '@/theme/tokens';
-import { BANNER_UNIT } from '@/lib/ads';
+import { AdBanner } from '@/components/AdBanner';
 import { apiGet, apiGetCached, apiSend } from '@/lib/api';
 import { getCurrentUser } from '@/lib/auth';
 import { MarkdownText } from '@/components/MarkdownText';
@@ -342,11 +341,11 @@ export default function Reader() {
       </ScrollView>
 
       {/* Ad banner — anchored above the nav buttons, hidden for NovelStack+
-          members. It's a layout sibling, so the chapter still scrolls fully. */}
+          members. AdBanner hides itself entirely if AdMob can't fill,
+          so the reader sees the chapter close to the nav buttons instead
+          of an awkward "ad did not load" stripe. */}
       {chapter.showAds && (
-        <View style={[styles.adBar, { borderTopColor: theme.border }]}>
-          <BannerAd unitId={BANNER_UNIT} size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER} />
-        </View>
+        <AdBanner style={{ borderTopWidth: 1, borderTopColor: theme.border }} />
       )}
 
       {/* Footer: big prev / next buttons */}

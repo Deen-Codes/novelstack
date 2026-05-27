@@ -17,14 +17,13 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import {
   RichText,
-  Toolbar,
   useEditorBridge,
   useEditorContent,
   TenTapStartKit,
   CoreBridge,
-  DEFAULT_TOOLBAR_ITEMS,
 } from '@10play/tentap-editor';
 import { colors, spacing, radius, fonts } from '@/theme/tokens';
+import { DarkEditorToolbar } from '@/components/DarkEditorToolbar';
 import { apiGet, apiSend, apiUpload } from '@/lib/api';
 import { mdToHtml, htmlToMd } from '@/lib/chapterFormat';
 import type { Chapter, ChapterDetail } from '@/lib/types';
@@ -75,36 +74,10 @@ const EDITOR_CSS = `
   }
 `;
 
-// Dark toolbar theme so the formatting bar matches the app instead of the
-// library's white default. Icons are template images, so tintColor recolours
-// them; the active button picks up the ember accent.
-const TOOLBAR_THEME = {
-  toolbarBody: {
-    backgroundColor: colors.paperSoft,
-    borderTopWidth: 1,
-    borderTopColor: colors.borderSoft,
-  },
-  icon: { tintColor: colors.inkMuted },
-  iconActive: { tintColor: '#15100E' },
-  iconDisabled: { tintColor: colors.inkFaint },
-  iconWrapperActive: { backgroundColor: colors.signal, borderRadius: 6 },
-};
-
-// A focused formatting toolbar — bold, italic, headings, underline,
-// strikethrough, the two lists, and undo/redo. Link, code block, task list,
-// quote and indent are deliberately left out (indices into the library's
-// DEFAULT_TOOLBAR_ITEMS, which is stable for the pinned version).
-const TOOLBAR_ITEMS = [
-  DEFAULT_TOOLBAR_ITEMS[0], // bold
-  DEFAULT_TOOLBAR_ITEMS[1], // italic
-  DEFAULT_TOOLBAR_ITEMS[4], // headings (opens H1–H3 picker)
-  DEFAULT_TOOLBAR_ITEMS[6], // underline
-  DEFAULT_TOOLBAR_ITEMS[7], // strikethrough
-  DEFAULT_TOOLBAR_ITEMS[9], // numbered list
-  DEFAULT_TOOLBAR_ITEMS[10], // bulleted list
-  DEFAULT_TOOLBAR_ITEMS[13], // undo
-  DEFAULT_TOOLBAR_ITEMS[14], // redo
-];
+// The formatting toolbar lives in components/DarkEditorToolbar — a focused
+// minimal bar (bold / italic / heading / bullet / undo / redo) themed to
+// match the app, instead of 10tap's default white bar that fought the dark
+// canvas.
 
 // Loaded chapter, handed from the loader screen to the editor body.
 type Loaded = {
@@ -169,7 +142,7 @@ export default function ChapterEditor() {
       <SafeAreaView style={styles.safe} edges={['top']}>
         <View style={styles.topBar}>
           <Pressable onPress={() => router.back()} hitSlop={10} style={styles.topBtn}>
-            <Text style={styles.topBtnText}>Cancel</Text>
+            <Text style={styles.topBtnText}>Exit</Text>
           </Pressable>
         </View>
         <Text style={styles.errorText}>{error}</Text>
@@ -206,7 +179,6 @@ function EditorBody({ data }: { data: Loaded }) {
     initialContent: data.html,
     bridgeExtensions: [...TenTapStartKit, CoreBridge.configureCSS(EDITOR_CSS)],
     theme: {
-      toolbar: TOOLBAR_THEME,
       webview: { backgroundColor: colors.paper },
       webviewContainer: { backgroundColor: colors.paper },
     },
@@ -383,7 +355,7 @@ function EditorBody({ data }: { data: Loaded }) {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.toolbarWrap}
       >
-        <Toolbar editor={editor} items={TOOLBAR_ITEMS} />
+        <DarkEditorToolbar editor={editor} />
       </KeyboardAvoidingView>
 
       {/* Publish / save review sheet */}

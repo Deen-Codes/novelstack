@@ -18,7 +18,10 @@ import { getCurrentUser } from '@/lib/auth';
 import { Cover } from '@/components/Cover';
 import type { AuthorProfile, User } from '@/lib/types';
 
-type ProfileResponse = AuthorProfile & { blockedByMe?: boolean };
+type ProfileResponse = AuthorProfile & {
+  blockedByMe?: boolean;
+  followedByMe?: boolean;
+};
 
 // Writer's public profile screen. Shows their bio + stories, plus the
 // follow/block actions a signed-in reader can take. Reached from anywhere
@@ -31,12 +34,15 @@ export default function WriterProfile() {
   const [notFound, setNotFound] = useState(false);
   const [busy, setBusy] = useState(false);
   const [blocked, setBlocked] = useState(false);
+  const [following, setFollowing] = useState(false);
+  const [followBusy, setFollowBusy] = useState(false);
 
   const load = useCallback(async () => {
     try {
       const data = await apiGet<ProfileResponse>(`/api/users/${username}`);
       setProfile(data);
       setBlocked(!!data.blockedByMe);
+      setFollowing(!!data.followedByMe);
     } catch {
       setNotFound(true);
     }
@@ -68,6 +74,21 @@ export default function WriterProfile() {
         { text: 'Block', style: 'destructive', onPress: doToggleBlock },
       ],
     );
+  }
+
+  async function toggleFollow() {
+    if (!profile || followBusy) return;
+    setFollowBusy(true);
+    // Optimistic — flip immediately, revert on failure. The API is the same
+    // single endpoint that toggles in either direction server-side.
+    const next = !following;
+    setFollowing(next);
+    try {
+      await apiSend('/api/follows', 'POST', { authorId: profile.id });
+    } catch {
+      setFollowing(!next);
+    }
+    setFollowBusy(false);
   }
 
   async function doToggleBlock() {
@@ -151,6 +172,27 @@ export default function WriterProfile() {
 
         <Text style={styles.name}>{profile.displayName}</Text>
         <Text style={styles.handle}>@{profile.username}</Text>
+        {!isOwn && me && (
+          <Pressable
+            style={[
+              styles.followBtn,
+              following ? styles.followBtnOn : styles.followBtnOff,
+              followBusy && { opacity: 0.6 },
+            ]}
+            onPress={toggleFollow}
+            disabled={followBusy}
+            hitSlop={6}
+          >
+            <Text
+              style={[
+                styles.followBtnText,
+                following ? styles.followBtnTextOn : styles.followBtnTextOff,
+              ]}
+            >
+              {following ? 'Following' : 'Follow'}
+            </Text>
+          </Pressable>
+        )}
         {!!profile.bio && <Text style={styles.bio}>{profile.bio}</Text>}
 
         <Text style={styles.section}>Stories</Text>
@@ -228,6 +270,28 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   handle: { fontSize: 13, color: colors.inkFaint, textAlign: 'center', marginTop: 2 },
+  // Follow button sits centred just below the handle. Cream when you're
+  // not following (primary CTA); ember-tinted "Following" once you are,
+  // tapping again unfollows.
+  followBtn: {
+    alignSelf: 'center',
+    marginTop: 14,
+    paddingHorizontal: 26,
+    paddingVertical: 11,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+  },
+  followBtnOff: {
+    backgroundColor: '#F4ECDF',
+    borderColor: '#F4ECDF',
+  },
+  followBtnOn: {
+    backgroundColor: 'rgba(200,65,78,0.15)',
+    borderColor: colors.signal,
+  },
+  followBtnText: { fontSize: 14, fontWeight: '700' },
+  followBtnTextOff: { color: '#15100E' },
+  followBtnTextOn: { color: colors.signal },
   bio: {
     fontSize: 14,
     color: colors.inkMuted,

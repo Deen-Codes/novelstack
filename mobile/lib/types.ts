@@ -164,6 +164,27 @@ export type Earnings = {
   };
 };
 
+// GET /api/stories/:slug/reviews
+export type Review = {
+  id: string;
+  rating: number;
+  body: string;
+  createdAt: string;
+  updatedAt: string;
+  user: {
+    id: string;
+    username: string;
+    displayName: string;
+    avatarUrl: string | null;
+  } | null;
+};
+
+export type ReviewsResponse = {
+  reviews: Review[];
+  summary: { count: number; avg: number | null };
+  myReview: Review | null;
+};
+
 export type Comment = {
   id: string;
   userId: string;

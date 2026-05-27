@@ -12,10 +12,12 @@ import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, radius, fonts } from '@/theme/tokens';
 import { apiGetCached, apiSend, getSessionToken } from '@/lib/api';
+import { getCurrentUser } from '@/lib/auth';
 import { TopBar } from '@/components/TopBar';
 import { Cover } from '@/components/Cover';
 import { SignInPitch } from '@/components/SignInPitch';
 import { AmbientGlow } from '@/components/AmbientGlow';
+import { StaggerIn } from '@/components/StaggerIn';
 import type { Shelf, Story } from '@/lib/types';
 
 // A saved book counts as finished once every published chapter is read.
@@ -34,6 +36,15 @@ export default function Library() {
   const load = useCallback(async () => {
     const token = await getSessionToken();
     if (!token) {
+      setSignedIn(false);
+      setLoading(false);
+      return;
+    }
+    // Verify the stored token is actually valid — a rejected token (server
+    // signed out, AUTH_SECRET rotated, JWT expired) should fall back to the
+    // SignInPitch instead of pretending we're signed in with empty data.
+    const user = await getCurrentUser();
+    if (!user) {
       setSignedIn(false);
       setLoading(false);
       return;
@@ -67,13 +78,13 @@ export default function Library() {
     setPendingId(null);
   }
 
-  function bookCell(s: Story, withProgress: boolean) {
+  function bookCell(s: Story, withProgress: boolean, index: number) {
     const p = s.progress;
     const total = p?.total ?? 0;
     const done = p?.completed ?? 0;
     const pct = total > 0 ? Math.max(3, Math.round((done / total) * 100)) : 0;
     return (
-      <View key={s.id} style={styles.gridItem}>
+      <StaggerIn key={s.id} index={index} style={styles.gridItem}>
         <Pressable onPress={() => router.push(`/story/${s.slug}`)}>
           <Cover
             coverUrl={s.coverUrl}
@@ -108,7 +119,7 @@ export default function Library() {
         <Text style={styles.gridTitle} numberOfLines={2}>
           {s.title}
         </Text>
-      </View>
+      </StaggerIn>
     );
   }
 
@@ -186,8 +197,8 @@ export default function Library() {
               </Text>
             ) : (
               <View style={styles.grid}>
-                {(tab === 'reading' ? reading : finished).map((s) =>
-                  bookCell(s, tab === 'reading'),
+                {(tab === 'reading' ? reading : finished).map((s, i) =>
+                  bookCell(s, tab === 'reading', i),
                 )}
               </View>
             )}

@@ -15,10 +15,13 @@ import { router, useFocusEffect } from 'expo-router';
 import { colors, spacing, radius, fonts } from '@/theme/tokens';
 import { apiGetCached, apiSend, getSessionToken } from '@/lib/api';
 import { getCurrentUser } from '@/lib/auth';
+import { genreLabel } from '@/lib/genres';
 import { Cover } from '@/components/Cover';
 import { TopBar } from '@/components/TopBar';
 import { SignInPitch } from '@/components/SignInPitch';
 import { AmbientGlow } from '@/components/AmbientGlow';
+import { Typewriter } from '@/components/Typewriter';
+import { StaggerIn } from '@/components/StaggerIn';
 import { ago } from '@/lib/time';
 import type { Shelf, FeedStory, User, CommunityPost } from '@/lib/types';
 
@@ -29,29 +32,54 @@ const SITE = 'https://novelstack.app';
 export default function Community() {
   const [me, setMe] = useState<User | null>(null);
   const [following, setFollowing] = useState<User[]>([]);
+  const [savedStories, setSavedStories] = useState<Story[]>([]);
   const [feed, setFeed] = useState<FeedStory[]>([]);
   const [posts, setPosts] = useState<CommunityPost[]>([]);
   const [signedIn, setSignedIn] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [pendingId, setPendingId] = useState<string | null>(null);
+  // Suggested-writer ids the user has followed within this session — keeps
+  // the discovery ghost cards from sticking around after the user has
+  // already acted on them, without a refetch.
+  const [justFollowed, setJustFollowed] = useState<Set<string>>(new Set());
 
   const load = useCallback(async () => {
     const token = await getSessionToken();
+    if (!token) {
+      // Not signed in — show the SignInPitch and skip authed fetches.
+      setSignedIn(false);
+      setMe(null);
+      setFollowing([]);
+      setSavedStories([]);
+      setPosts([]);
+      setFeed([]);
+      setLoading(false);
+      return;
+    }
     // Fetch everything the screen needs in one parallel batch rather than a
-    // four-request waterfall.
-    const [shelf, user, updates, stories] = await Promise.all([
-      token
-        ? apiGetCached<Shelf>('/api/me/shelf').catch(() => null)
-        : Promise.resolve(null),
-      token ? getCurrentUser().catch(() => null) : Promise.resolve(null),
-      token
-        ? apiGetCached<CommunityPost[]>('/api/community').catch(() => [])
-        : Promise.resolve([]),
+    // four-request waterfall. `getCurrentUser` doubles as a session-validity
+    // check — if it returns null the stored token was expired/rejected and we
+    // fall back to the SignInPitch instead of showing an empty signed-in UI.
+    const [user, shelf, updates, stories] = await Promise.all([
+      getCurrentUser().catch(() => null),
+      apiGetCached<Shelf>('/api/me/shelf').catch(() => null),
+      apiGetCached<CommunityPost[]>('/api/community').catch(() => []),
       apiGetCached<FeedStory[]>('/api/feed').catch(() => []),
     ]);
-    setSignedIn(!!token);
+    if (!user) {
+      // Token was present but no longer valid — treat as signed out.
+      setSignedIn(false);
+      setMe(null);
+      setFollowing([]);
+      setSavedStories([]);
+      setPosts([]);
+      setFeed([]);
+      setLoading(false);
+      return;
+    }
+    setSignedIn(true);
     setMe(user);
     setFollowing(shelf?.following ?? []);
+    setSavedStories(shelf?.saved ?? []);
     setPosts(updates);
     setFeed(stories);
     setLoading(false);
@@ -63,28 +91,23 @@ export default function Community() {
     }, [load]),
   );
 
-  async function follow(w: User) {
-    if (pendingId) return;
-    setPendingId(w.id);
+  // Inline follow from a ghost discovery card. Optimistic — the card is
+  // hidden immediately, reverts if the request fails.
+  async function followInline(authorId: string) {
+    setJustFollowed((s) => {
+      const next = new Set(s);
+      next.add(authorId);
+      return next;
+    });
     try {
-      await apiSend('/api/follows', 'POST', { authorId: w.id });
-      setFollowing((list) => [...list, w]);
+      await apiSend('/api/follows', 'POST', { authorId });
     } catch {
-      // Leave unchanged.
+      setJustFollowed((s) => {
+        const next = new Set(s);
+        next.delete(authorId);
+        return next;
+      });
     }
-    setPendingId(null);
-  }
-
-  async function unfollow(w: User) {
-    if (pendingId) return;
-    setPendingId(w.id);
-    try {
-      await apiSend('/api/follows', 'POST', { authorId: w.id });
-      setFollowing((list) => list.filter((x) => x.id !== w.id));
-    } catch {
-      // Leave unchanged.
-    }
-    setPendingId(null);
   }
 
   // Optimistic like toggle on a feed card.
@@ -156,6 +179,65 @@ export default function Community() {
     ...suggested.map((w) => ({ user: w, isFollowing: false })),
   ].slice(0, 16);
 
+  // Rank writers worth surfacing in the empty-feed "Writers to follow"
+  // section. Score combines straight popularity (reads + followers) with
+  // a 2× boost for writers whose stories sit in genres the reader has
+  // already saved — so suggestions feel personally relevant when the user
+  // has reading history, and degrade to "trending" when they don't.
+  const myGenres = new Set(savedStories.map((s) => s.genre));
+  type WriterPick = {
+    user: User;
+    topStory: FeedStory;
+    score: number;
+    affinity: boolean;
+  };
+  const writerMap = new Map<string, WriterPick>();
+  for (const s of feed) {
+    const a = s.author;
+    if (!a || followedIds.has(a.id) || a.id === me?.id) continue;
+    const reach = (s.totalReads ?? 0) + (s.totalFollowers ?? 0) * 10;
+    const aff = myGenres.has(s.genre);
+    const bumped = aff ? reach * 2 : reach;
+    const prev = writerMap.get(a.id);
+    if (!prev) {
+      writerMap.set(a.id, { user: a, topStory: s, score: bumped, affinity: aff });
+    } else {
+      prev.score += bumped;
+      prev.affinity = prev.affinity || aff;
+      const prevReach =
+        (prev.topStory.totalReads ?? 0) + (prev.topStory.totalFollowers ?? 0) * 10;
+      if (reach > prevReach) prev.topStory = s;
+    }
+  }
+  const suggestedWriters = Array.from(writerMap.values())
+    .sort((a, b) => {
+      if (a.affinity !== b.affinity) return a.affinity ? -1 : 1;
+      return b.score - a.score;
+    })
+    .slice(0, 6);
+
+  // While the reader follows fewer than 5 writers, mix "ghost" discovery
+  // cards into the feed. They look like normal posts (avatar, name, body,
+  // book card) but the body is the story's own description and an honest
+  // "Suggested" badge sits in place of the usual "Update" pill — so the
+  // feed never feels empty while the reader is still figuring out who they
+  // care about. Once they've committed (5+ follows) discovery steps back.
+  const FOLLOW_THRESHOLD = 5;
+  const ghostItems =
+    following.length < FOLLOW_THRESHOLD
+      ? suggestedWriters
+          .filter((s) => !justFollowed.has(s.user.id))
+          .slice(0, 5)
+          .map((s) => ({ kind: 'ghost' as const, key: `g-${s.user.id}`, pick: s }))
+      : [];
+  type FeedItem =
+    | { kind: 'post'; key: string; post: CommunityPost }
+    | { kind: 'ghost'; key: string; pick: typeof suggestedWriters[number] };
+  const feedItems: FeedItem[] = [
+    ...posts.map((p) => ({ kind: 'post' as const, key: `p-${p.id}`, post: p })),
+    ...ghostItems,
+  ];
+
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <AmbientGlow />
@@ -178,8 +260,13 @@ export default function Community() {
                   showsHorizontalScrollIndicator={false}
                   contentContainerStyle={styles.rail}
                 >
-                  {writers.map(({ user: w, isFollowing }) => (
-                    <View key={w.id} style={styles.writer}>
+                  {writers.map(({ user: w, isFollowing }, idx) => (
+                    <StaggerIn key={w.id} index={idx} baseDelayMs={45}>
+                    <Pressable
+                      style={styles.writer}
+                      onPress={() => router.push(`/u/${w.username}`)}
+                      hitSlop={4}
+                    >
                       <View
                         style={[
                           styles.wAvatar,
@@ -194,26 +281,11 @@ export default function Community() {
                           </Text>
                         )}
                       </View>
-                      <Pressable
-                        style={[
-                          styles.badge,
-                          isFollowing ? styles.badgeFollowing : styles.badgeFollow,
-                          pendingId === w.id && { opacity: 0.5 },
-                        ]}
-                        onPress={() => (isFollowing ? unfollow(w) : follow(w))}
-                        disabled={pendingId === w.id}
-                        hitSlop={8}
-                      >
-                        <Ionicons
-                          name={isFollowing ? 'checkmark' : 'add'}
-                          size={12}
-                          color="#FFFFFF"
-                        />
-                      </Pressable>
                       <Text style={styles.wName} numberOfLines={1}>
                         {w.displayName}
                       </Text>
-                    </View>
+                    </Pressable>
+                    </StaggerIn>
                   ))}
                 </ScrollView>
               </>
@@ -229,108 +301,242 @@ export default function Community() {
                   </Text>
                 )}
               </View>
-              <Text style={styles.composerPh}>Share an update with your readers…</Text>
+              <View style={{ flex: 1 }}>
+                <Typewriter
+                  text="Share an update with your readers…"
+                  style={styles.composerPh}
+                  caretColor={colors.signal}
+                  speedMs={38}
+                  startDelayMs={400}
+                />
+              </View>
               <Ionicons name="create-outline" size={18} color={colors.signal} />
             </Pressable>
 
-            {posts.length === 0 ? (
+            {feedItems.length === 0 ? (
               <View style={styles.emptyFeed}>
                 <View style={styles.emptyIcon}>
                   <Ionicons name="chatbubbles-outline" size={24} color={colors.signal} />
                 </View>
-                <Text style={styles.emptyTitle}>No updates yet</Text>
+                <Text style={styles.emptyTitle}>Nothing here yet</Text>
                 <Text style={styles.emptyBody}>
-                  Follow writers to see their updates here — or share the first one yourself.
+                  Follow some writers and their updates land here.
                 </Text>
               </View>
             ) : (
               <View style={styles.feed}>
-                {posts.map((p) => (
-                  <Pressable
-                    key={p.id}
-                    style={styles.post}
-                    onPress={() => router.push(`/post/${p.id}`)}
-                  >
-                    <View style={styles.postHead}>
-                      <View style={styles.postAv}>
-                        {p.author?.avatarUrl ? (
-                          <Image
-                            source={{ uri: p.author.avatarUrl }}
-                            style={styles.postAvImg}
-                          />
-                        ) : (
-                          <Text style={styles.postAvText}>
-                            {(p.author?.displayName ?? '?').slice(0, 1).toUpperCase()}
-                          </Text>
-                        )}
-                      </View>
-                      <View style={styles.postWho}>
-                        <Text style={styles.postName} numberOfLines={1}>
-                          {p.author?.displayName ?? 'A writer'}
-                        </Text>
-                        <Text style={styles.postTime}>{ago(p.createdAt)}</Text>
-                      </View>
-                      <View style={styles.kind}>
-                        <Text style={styles.kindText}>Update</Text>
-                      </View>
-                    </View>
-
-                    <Text style={styles.postBody}>{p.body}</Text>
-
-                    {p.story && (
+                {feedItems.map((item, idx) =>
+                  item.kind === 'post' ? (
+                    <StaggerIn key={item.key} index={idx} baseDelayMs={75}>
                       <Pressable
-                        style={styles.bookCard}
-                        onPress={() => p.story && router.push(`/story/${p.story.slug}`)}
+                        style={styles.post}
+                        onPress={() => router.push(`/post/${item.post.id}`)}
                       >
-                        <Cover
-                          coverUrl={p.story.coverUrl}
-                          coverColor={p.story.coverColor}
-                          title={p.story.title}
-                          mature={p.story.isMature}
-                          style={styles.bookCover}
-                        />
-                        <View style={styles.bookInfo}>
-                          <Text style={styles.bookTitle} numberOfLines={2}>
-                            {p.story.title}
-                          </Text>
-                          <Text style={styles.bookRead}>Read story ›</Text>
+                        <View style={styles.postHead}>
+                          <Pressable
+                            style={styles.postAv}
+                            onPress={() =>
+                              item.post.author?.username &&
+                              router.push(`/u/${item.post.author.username}`)
+                            }
+                            hitSlop={4}
+                          >
+                            {item.post.author?.avatarUrl ? (
+                              <Image
+                                source={{ uri: item.post.author.avatarUrl }}
+                                style={styles.postAvImg}
+                              />
+                            ) : (
+                              <Text style={styles.postAvText}>
+                                {(item.post.author?.displayName ?? '?')
+                                  .slice(0, 1)
+                                  .toUpperCase()}
+                              </Text>
+                            )}
+                          </Pressable>
+                          <Pressable
+                            style={styles.postWho}
+                            onPress={() =>
+                              item.post.author?.username &&
+                              router.push(`/u/${item.post.author.username}`)
+                            }
+                          >
+                            <Text style={styles.postName} numberOfLines={1}>
+                              {item.post.author?.displayName ?? 'A writer'}
+                            </Text>
+                            <Text style={styles.postTime}>{ago(item.post.createdAt)}</Text>
+                          </Pressable>
+                          <View style={styles.kind}>
+                            <Text style={styles.kindText}>Update</Text>
+                          </View>
+                        </View>
+
+                        <Text style={styles.postBody}>{item.post.body}</Text>
+
+                        {item.post.story && (
+                          <Pressable
+                            style={styles.bookCard}
+                            onPress={() =>
+                              item.post.story &&
+                              router.push(`/story/${item.post.story.slug}`)
+                            }
+                          >
+                            <Cover
+                              coverUrl={item.post.story.coverUrl}
+                              coverColor={item.post.story.coverColor}
+                              title={item.post.story.title}
+                              mature={item.post.story.isMature}
+                              style={styles.bookCover}
+                            />
+                            <View style={styles.bookInfo}>
+                              <Text style={styles.bookTitle} numberOfLines={2}>
+                                {item.post.story.title}
+                              </Text>
+                              <Text style={styles.bookRead}>Read story ›</Text>
+                            </View>
+                          </Pressable>
+                        )}
+
+                        <View style={styles.actions}>
+                          <Pressable
+                            style={styles.action}
+                            onPress={() => toggleLike(item.post)}
+                            hitSlop={6}
+                          >
+                            <Ionicons
+                              name={item.post.likedByMe ? 'heart' : 'heart-outline'}
+                              size={18}
+                              color={item.post.likedByMe ? colors.signal : colors.inkMuted}
+                            />
+                            <Text style={styles.actionText}>{item.post.likeCount}</Text>
+                          </Pressable>
+                          <Pressable
+                            style={styles.action}
+                            onPress={() => router.push(`/post/${item.post.id}`)}
+                            hitSlop={6}
+                          >
+                            <Ionicons
+                              name="chatbubble-outline"
+                              size={17}
+                              color={colors.inkMuted}
+                            />
+                            <Text style={styles.actionText}>{item.post.commentCount}</Text>
+                          </Pressable>
+                          <View style={{ flex: 1 }} />
+                          <Pressable
+                            style={styles.action}
+                            onPress={() => sharePost(item.post)}
+                            hitSlop={6}
+                          >
+                            <Ionicons
+                              name="arrow-redo-outline"
+                              size={17}
+                              color={colors.signal}
+                            />
+                            <Text style={styles.shareText}>Share</Text>
+                          </Pressable>
                         </View>
                       </Pressable>
-                    )}
+                    </StaggerIn>
+                  ) : (
+                    // Ghost discovery card — styled like a post for visual
+                    // continuity, with a "Suggested" badge instead of "Update"
+                    // (honest) and a primary Follow CTA in the actions row.
+                    <StaggerIn key={item.key} index={idx} baseDelayMs={75}>
+                      <View style={styles.post}>
+                        <View style={styles.postHead}>
+                          <Pressable
+                            style={styles.postAv}
+                            onPress={() => router.push(`/u/${item.pick.user.username}`)}
+                            hitSlop={4}
+                          >
+                            {item.pick.user.avatarUrl ? (
+                              <Image
+                                source={{ uri: item.pick.user.avatarUrl }}
+                                style={styles.postAvImg}
+                              />
+                            ) : (
+                              <Text style={styles.postAvText}>
+                                {(item.pick.user.displayName ?? '?')
+                                  .slice(0, 1)
+                                  .toUpperCase()}
+                              </Text>
+                            )}
+                          </Pressable>
+                          <Pressable
+                            style={styles.postWho}
+                            onPress={() => router.push(`/u/${item.pick.user.username}`)}
+                          >
+                            <Text style={styles.postName} numberOfLines={1}>
+                              {item.pick.user.displayName}
+                            </Text>
+                            <Text style={styles.postTime}>
+                              {item.pick.affinity
+                                ? `Popular in ${genreLabel(item.pick.topStory.genre)}`
+                                : 'Trending now'}
+                            </Text>
+                          </Pressable>
+                          <View style={styles.kindSuggested}>
+                            <Text style={styles.kindSuggestedText}>Suggested</Text>
+                          </View>
+                        </View>
 
-                    <View style={styles.actions}>
-                      <Pressable
-                        style={styles.action}
-                        onPress={() => toggleLike(p)}
-                        hitSlop={6}
-                      >
-                        <Ionicons
-                          name={p.likedByMe ? 'heart' : 'heart-outline'}
-                          size={18}
-                          color={p.likedByMe ? colors.signal : colors.inkMuted}
-                        />
-                        <Text style={styles.actionText}>{p.likeCount}</Text>
-                      </Pressable>
-                      <Pressable
-                        style={styles.action}
-                        onPress={() => router.push(`/post/${p.id}`)}
-                        hitSlop={6}
-                      >
-                        <Ionicons name="chatbubble-outline" size={17} color={colors.inkMuted} />
-                        <Text style={styles.actionText}>{p.commentCount}</Text>
-                      </Pressable>
-                      <View style={{ flex: 1 }} />
-                      <Pressable
-                        style={styles.action}
-                        onPress={() => sharePost(p)}
-                        hitSlop={6}
-                      >
-                        <Ionicons name="arrow-redo-outline" size={17} color={colors.signal} />
-                        <Text style={styles.shareText}>Share</Text>
-                      </Pressable>
-                    </View>
-                  </Pressable>
-                ))}
+                        {!!item.pick.topStory.description && (
+                          <Text style={styles.postBody} numberOfLines={3}>
+                            {item.pick.topStory.description}
+                          </Text>
+                        )}
+
+                        <Pressable
+                          style={styles.bookCard}
+                          onPress={() =>
+                            router.push(`/story/${item.pick.topStory.slug}`)
+                          }
+                        >
+                          <Cover
+                            coverUrl={item.pick.topStory.coverUrl}
+                            coverColor={item.pick.topStory.coverColor}
+                            title={item.pick.topStory.title}
+                            mature={item.pick.topStory.isMature}
+                            style={styles.bookCover}
+                          />
+                          <View style={styles.bookInfo}>
+                            <Text style={styles.bookTitle} numberOfLines={2}>
+                              {item.pick.topStory.title}
+                            </Text>
+                            <Text style={styles.bookRead}>Read story ›</Text>
+                          </View>
+                        </Pressable>
+
+                        <View style={styles.actions}>
+                          <Pressable
+                            style={styles.followInlineBtn}
+                            onPress={() => followInline(item.pick.user.id)}
+                            hitSlop={6}
+                          >
+                            <Ionicons name="add" size={15} color="#15100E" />
+                            <Text style={styles.followInlineText}>
+                              Follow {item.pick.user.displayName.split(' ')[0]}
+                            </Text>
+                          </Pressable>
+                          <View style={{ flex: 1 }} />
+                          <Pressable
+                            style={styles.action}
+                            onPress={() => router.push(`/u/${item.pick.user.username}`)}
+                            hitSlop={6}
+                          >
+                            <Ionicons
+                              name="person-outline"
+                              size={15}
+                              color={colors.inkMuted}
+                            />
+                            <Text style={styles.actionText}>View profile</Text>
+                          </Pressable>
+                        </View>
+                      </View>
+                    </StaggerIn>
+                  ),
+                )}
               </View>
             )}
           </>
@@ -502,4 +708,66 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     marginTop: 6,
   },
+
+  // Suggested-writers list shown in the empty-feed state.
+  suggestList: {
+    paddingHorizontal: 16,
+    marginTop: spacing.sm,
+    gap: 8,
+  },
+  suggestRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.borderSoft,
+    borderRadius: 14,
+    padding: 12,
+  },
+  suggestAv: {
+    width: 44,
+    height: 44,
+    borderRadius: radius.pill,
+    backgroundColor: colors.signalDeep,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  suggestAvImg: { width: 44, height: 44 },
+  suggestAvText: { color: '#FFFFFF', fontSize: 17, fontWeight: '600' },
+  suggestName: { fontSize: 14.5, fontWeight: '600', color: colors.ink },
+  suggestReason: { fontSize: 12.5, color: colors.inkMuted, marginTop: 2 },
+
+  // "Suggested" badge — visually distinct from the "Update" pill, slightly
+  // calmer (cream-tint, not coral) so it reads as a recommendation, not a
+  // brand-new post from someone you follow.
+  kindSuggested: {
+    backgroundColor: 'rgba(244,236,223,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(244,236,223,0.25)',
+    borderRadius: 7,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  kindSuggestedText: {
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+    color: colors.ink,
+  },
+
+  // Primary Follow CTA inside a ghost discovery card — cream pill matching
+  // the rest of the app's primary buttons.
+  followInlineBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: '#F4ECDF',
+    borderRadius: radius.pill,
+    paddingHorizontal: 13,
+    paddingVertical: 7,
+  },
+  followInlineText: { fontSize: 13, fontWeight: '700', color: '#15100E' },
 });

@@ -22,7 +22,15 @@ import { Cover } from '@/components/Cover';
 import { DobField } from '@/components/DobField';
 import { BottomSheet } from '@/components/BottomSheet';
 import { purchaseTip, TIP_TIERS, type TipTier } from '@/lib/iap';
-import type { StoryDetail, Shelf, User, Story, HomeExtras } from '@/lib/types';
+import type {
+  StoryDetail,
+  Shelf,
+  User,
+  Story,
+  HomeExtras,
+  Review,
+  ReviewsResponse,
+} from '@/lib/types';
 
 const SITE = 'https://novelstack.app';
 
@@ -41,6 +49,46 @@ function hexA(hex: string, a: number): string {
   const g = parseInt(h.slice(2, 4), 16) || 33;
   const b = parseInt(h.slice(4, 6), 16) || 80;
   return `rgba(${r},${g},${b},${a})`;
+}
+
+// Read-only star display — five icons, half-stars rounded down, used for
+// both the cover-side average and each review row.
+function Stars({ value, size = 14 }: { value: number; size?: number }) {
+  return (
+    <View style={{ flexDirection: 'row', gap: 2 }}>
+      {[1, 2, 3, 4, 5].map((n) => (
+        <Ionicons
+          key={n}
+          name={value >= n ? 'star' : value >= n - 0.5 ? 'star-half' : 'star-outline'}
+          size={size}
+          color={colors.signal}
+        />
+      ))}
+    </View>
+  );
+}
+
+// Interactive 1-to-5 star selector for the review form.
+function StarSelector({
+  value,
+  onChange,
+}: {
+  value: number;
+  onChange: (n: number) => void;
+}) {
+  return (
+    <View style={{ flexDirection: 'row', gap: 6, marginVertical: 8 }}>
+      {[1, 2, 3, 4, 5].map((n) => (
+        <Pressable key={n} onPress={() => onChange(n)} hitSlop={6}>
+          <Ionicons
+            name={value >= n ? 'star' : 'star-outline'}
+            size={28}
+            color={colors.signal}
+          />
+        </Pressable>
+      ))}
+    </View>
+  );
 }
 
 const REPORT_REASONS = [
@@ -64,8 +112,19 @@ export default function StoryScreen() {
   const [bookmarked, setBookmarked] = useState(false);
   const [following, setFollowing] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [tab, setTab] = useState<'chapters' | 'more'>('chapters');
+  const [tab, setTab] = useState<'chapters' | 'reviews' | 'more'>('chapters');
   const [moreLikeThis, setMoreLikeThis] = useState<Story[]>([]);
+  // Lazy reviews — loaded the first time the Reviews tab is opened, then kept
+  // in memory until the screen unmounts.
+  const [reviewData, setReviewData] = useState<ReviewsResponse | null>(null);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
+  const [reviewSummary, setReviewSummary] = useState<{ count: number; avg: number | null }>({
+    count: 0,
+    avg: null,
+  });
+  const [draftRating, setDraftRating] = useState(0);
+  const [draftBody, setDraftBody] = useState('');
+  const [reviewBusy, setReviewBusy] = useState(false);
   const [continueId, setContinueId] = useState<string | null>(null);
   const [continueNum, setContinueNum] = useState<number | null>(null);
 
@@ -97,6 +156,10 @@ export default function StoryScreen() {
       return;
     }
     setStory(s);
+    // Kick off the reviews summary fetch alongside everything else — cheap
+    // round-trip; lets the cover-side stars render without waiting on the
+    // user to open the Reviews tab.
+    loadReviews(s.slug);
 
     const me = await getCurrentUser();
     setUser(me ?? null);
@@ -133,7 +196,7 @@ export default function StoryScreen() {
         .catch(() => setMoreLikeThis([])),
     );
     await Promise.allSettled(tasks);
-  }, [id]);
+  }, [id, loadReviews]);
 
   useFocusEffect(
     useCallback(() => {
@@ -142,6 +205,47 @@ export default function StoryScreen() {
       load();
     }, [load]),
   );
+
+  // Fetch reviews payload and seed the summary used by the cover-side stars.
+  // Called from load() once the story is known, and again after submitReview
+  // so the freshly-posted rating shows up immediately.
+  const loadReviews = useCallback(async (story_slug: string) => {
+    try {
+      const data = await apiGetCached<ReviewsResponse>(
+        `/api/stories/${story_slug}/reviews`,
+      );
+      setReviewData(data);
+      setReviewSummary(data.summary);
+      if (data.myReview) {
+        setDraftRating(data.myReview.rating);
+        setDraftBody(data.myReview.body);
+      }
+    } catch {
+      // Best-effort — Reviews tab will just show empty.
+    }
+  }, []);
+
+  async function submitReview() {
+    if (!story || reviewBusy) return;
+    if (draftRating < 1) return;
+    if (requireSignIn()) return;
+    setReviewBusy(true);
+    try {
+      await apiSend(`/api/stories/${story.slug}/reviews`, 'POST', {
+        rating: draftRating,
+        body: draftBody.trim(),
+      });
+      // Refetch so the summary + list both update with the new review.
+      const fresh = await apiGetCached<ReviewsResponse>(
+        `/api/stories/${story.slug}/reviews`,
+      );
+      setReviewData(fresh);
+      setReviewSummary(fresh.summary);
+    } catch {
+      // Leave the form filled so the user can retry.
+    }
+    setReviewBusy(false);
+  }
 
   function requireSignIn(): boolean {
     if (!userId) {
@@ -321,8 +425,28 @@ export default function StoryScreen() {
             </View>
           )}
         </View>
+        {/* Star rating — only shown when the story has at least one review.
+            Tapping jumps straight to the Reviews tab. */}
+        {reviewSummary.count > 0 && reviewSummary.avg != null && (
+          <Pressable
+            style={styles.ratingRow}
+            onPress={() => setTab('reviews')}
+            hitSlop={4}
+          >
+            <Stars value={reviewSummary.avg} size={15} />
+            <Text style={styles.ratingNum}>{reviewSummary.avg.toFixed(1)}</Text>
+            <Text style={styles.ratingCount}>
+              · {reviewSummary.count} review{reviewSummary.count === 1 ? '' : 's'}
+            </Text>
+          </Pressable>
+        )}
 
-        <View style={styles.authorRow}>
+        <Pressable
+          style={styles.authorRow}
+          onPress={() =>
+            story.author?.username && router.push(`/u/${story.author.username}`)
+          }
+        >
           <View style={styles.authorAv}>
             <Text style={styles.authorAvText}>
               {(story.author?.displayName ?? '?').slice(0, 1).toUpperCase()}
@@ -342,7 +466,7 @@ export default function StoryScreen() {
               </Text>
             </Pressable>
           )}
-        </View>
+        </Pressable>
 
         {gated ? (
           <View style={styles.gate}>
@@ -494,6 +618,9 @@ export default function StoryScreen() {
               <Pressable onPress={() => setTab('chapters')}>
                 <Text style={[styles.tab, tab === 'chapters' && styles.tabOn]}>Chapters</Text>
               </Pressable>
+              <Pressable onPress={() => setTab('reviews')}>
+                <Text style={[styles.tab, tab === 'reviews' && styles.tabOn]}>Reviews</Text>
+              </Pressable>
               <Pressable onPress={() => setTab('more')}>
                 <Text style={[styles.tab, tab === 'more' && styles.tabOn]}>More like this</Text>
               </Pressable>
@@ -525,6 +652,68 @@ export default function StoryScreen() {
                   );
                 })
               )
+            ) : tab === 'reviews' ? (
+              <View>
+                {/* Composer — every signed-in reader who isn't the author can
+                    leave one review per story. POSTing again updates theirs. */}
+                {userId && userId !== story.authorId && (
+                  <View style={styles.reviewForm}>
+                    <Text style={styles.reviewFormLabel}>
+                      {reviewData?.myReview ? 'Update your review' : 'Leave a review'}
+                    </Text>
+                    <StarSelector value={draftRating} onChange={setDraftRating} />
+                    <TextInput
+                      value={draftBody}
+                      onChangeText={setDraftBody}
+                      placeholder="A line or two (optional)"
+                      placeholderTextColor={colors.inkFaint}
+                      multiline
+                      style={[styles.input, { height: 76, textAlignVertical: 'top' }]}
+                    />
+                    <Pressable
+                      style={[
+                        styles.reviewBtn,
+                        (draftRating < 1 || reviewBusy) && { opacity: 0.5 },
+                      ]}
+                      onPress={submitReview}
+                      disabled={draftRating < 1 || reviewBusy}
+                    >
+                      <Text style={styles.reviewBtnText}>
+                        {reviewBusy
+                          ? 'Saving…'
+                          : reviewData?.myReview
+                            ? 'Update review'
+                            : 'Post review'}
+                      </Text>
+                    </Pressable>
+                  </View>
+                )}
+                {reviewData == null ? (
+                  <ActivityIndicator color={colors.signal} style={{ marginTop: 20 }} />
+                ) : reviewData.reviews.length === 0 ? (
+                  <Text style={styles.emptyNote}>
+                    No reviews yet — be the first to share what you thought.
+                  </Text>
+                ) : (
+                  reviewData.reviews.map((r) => (
+                    <View key={r.id} style={styles.reviewRow}>
+                      <View style={styles.reviewHead}>
+                        <Pressable
+                          onPress={() =>
+                            r.user?.username && router.push(`/u/${r.user.username}`)
+                          }
+                        >
+                          <Text style={styles.reviewName}>
+                            {r.user?.displayName ?? 'A reader'}
+                          </Text>
+                        </Pressable>
+                        <Stars value={r.rating} size={13} />
+                      </View>
+                      {!!r.body && <Text style={styles.reviewBody}>{r.body}</Text>}
+                    </View>
+                  ))
+                )}
+              </View>
             ) : moreLikeThis.length === 0 ? (
               <Text style={styles.emptyNote}>Nothing similar yet.</Text>
             ) : (
@@ -765,6 +954,54 @@ const styles = StyleSheet.create({
   tabOn: { color: colors.ink, borderBottomWidth: 2, borderBottomColor: colors.signal },
 
   emptyNote: { fontSize: 14, color: colors.inkMuted, marginTop: spacing.lg },
+
+  // Cover-side rating summary — appears only when there's at least one review.
+  ratingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    marginTop: 6,
+  },
+  ratingNum: { fontSize: 13.5, color: colors.ink, fontWeight: '700' },
+  ratingCount: { fontSize: 13, color: colors.inkMuted },
+
+  // Reviews tab — form + rows.
+  reviewForm: {
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.borderSoft,
+    borderRadius: 14,
+    padding: 14,
+    marginTop: spacing.md,
+  },
+  reviewFormLabel: { fontSize: 13, color: colors.inkMuted, fontWeight: '600' },
+  reviewBtn: {
+    marginTop: 8,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: '#F4ECDF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  reviewBtnText: { fontSize: 14, fontWeight: '700', color: '#15100E' },
+  reviewRow: {
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderSoft,
+  },
+  reviewHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  reviewName: { fontSize: 14, fontWeight: '600', color: colors.ink },
+  reviewBody: {
+    fontSize: 14,
+    color: colors.inkMuted,
+    lineHeight: 20,
+    marginTop: 6,
+  },
+
 
   chapterRow: {
     flexDirection: 'row',
