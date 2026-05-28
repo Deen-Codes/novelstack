@@ -1,4 +1,4 @@
-package com.novelstack
+package app.novelstack
 
 import android.os.Build
 import android.os.Bundle

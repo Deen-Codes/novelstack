@@ -1,4 +1,4 @@
-package com.novelstack
+package app.novelstack
 
 import android.app.Application
 import android.content.res.Configuration
