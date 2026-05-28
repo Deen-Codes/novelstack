@@ -240,15 +240,17 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   tab: {
-    paddingVertical: 8,
+    paddingVertical: 9,
     paddingHorizontal: 18,
-    borderRadius: radius.pill,
+    borderRadius: 11,
     borderWidth: 1,
     borderColor: colors.border,
   },
-  tabOn: { backgroundColor: colors.signal, borderColor: colors.signal },
+  // Selected segment paints cream like the home Read button so all the
+  // primary selections share one button language.
+  tabOn: { backgroundColor: '#F4ECDF', borderColor: '#F4ECDF' },
   tabText: { fontSize: 13, fontWeight: '700', color: colors.inkFaint },
-  tabTextOn: { color: '#FFFFFF' },
+  tabTextOn: { color: '#15100E' },
   tabEmpty: { fontSize: 13, color: colors.inkMuted, lineHeight: 19 },
 
   emptyWrap: { alignItems: 'center', paddingHorizontal: 16 },

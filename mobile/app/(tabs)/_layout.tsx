@@ -6,18 +6,24 @@ import { colors } from '@/theme/tokens';
 
 // Tab bar icon that fades + lifts in once on app open, with a per-position
 // delay so the five icons wave into place in sequence. After the entrance
-// it behaves like a normal icon — colour just follows the active tint.
+// the icon also scales up when its tab is selected and eases back down
+// when deselected — adds a beat of life to nav switching.
 function WaveIcon({
   name,
   color,
   order,
+  focused,
 }: {
   name: React.ComponentProps<typeof Ionicons>['name'];
   color: string;
   order: number;
+  focused: boolean;
 }) {
   const opacity = useRef(new Animated.Value(0)).current;
   const lift = useRef(new Animated.Value(10)).current;
+  // 1 = inactive resting size, 1.18 = focused bump. Spring gives it a touch
+  // of bounce on selection and the same physics rides it back down.
+  const scale = useRef(new Animated.Value(focused ? 1.18 : 1)).current;
 
   useEffect(() => {
     Animated.parallel([
@@ -36,8 +42,20 @@ function WaveIcon({
     ]).start();
   }, [opacity, lift, order]);
 
+  useEffect(() => {
+    Animated.spring(scale, {
+      toValue: focused ? 1.18 : 1,
+      useNativeDriver: true,
+      stiffness: 260,
+      damping: 18,
+      mass: 0.6,
+    }).start();
+  }, [focused, scale]);
+
   return (
-    <Animated.View style={{ opacity, transform: [{ translateY: lift }] }}>
+    <Animated.View
+      style={{ opacity, transform: [{ translateY: lift }, { scale }] }}
+    >
       <Ionicons name={name} size={26} color={color} />
     </Animated.View>
   );
@@ -69,8 +87,8 @@ export default function TabLayout() {
         name="library"
         options={{
           title: 'Library',
-          tabBarIcon: ({ color }) => (
-            <WaveIcon name="library-outline" color={color} order={0} />
+          tabBarIcon: ({ color, focused }) => (
+            <WaveIcon name="library-outline" color={color} order={0} focused={focused} />
           ),
         }}
       />
@@ -78,8 +96,8 @@ export default function TabLayout() {
         name="search"
         options={{
           title: 'Search',
-          tabBarIcon: ({ color }) => (
-            <WaveIcon name="search-outline" color={color} order={1} />
+          tabBarIcon: ({ color, focused }) => (
+            <WaveIcon name="search-outline" color={color} order={1} focused={focused} />
           ),
         }}
       />
@@ -87,8 +105,8 @@ export default function TabLayout() {
         name="index"
         options={{
           title: 'Home',
-          tabBarIcon: ({ color }) => (
-            <WaveIcon name="home-outline" color={color} order={2} />
+          tabBarIcon: ({ color, focused }) => (
+            <WaveIcon name="home-outline" color={color} order={2} focused={focused} />
           ),
         }}
       />
@@ -96,8 +114,8 @@ export default function TabLayout() {
         name="community"
         options={{
           title: 'Community',
-          tabBarIcon: ({ color }) => (
-            <WaveIcon name="people-outline" color={color} order={3} />
+          tabBarIcon: ({ color, focused }) => (
+            <WaveIcon name="people-outline" color={color} order={3} focused={focused} />
           ),
         }}
       />
@@ -105,8 +123,8 @@ export default function TabLayout() {
         name="write"
         options={{
           title: 'Write',
-          tabBarIcon: ({ color }) => (
-            <WaveIcon name="pencil-outline" color={color} order={4} />
+          tabBarIcon: ({ color, focused }) => (
+            <WaveIcon name="pencil-outline" color={color} order={4} focused={focused} />
           ),
         }}
       />

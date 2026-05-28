@@ -179,7 +179,10 @@ function EditorBody({ data }: { data: Loaded }) {
   // The rich-text editor — created once with the chapter's content already
   // converted to HTML, themed to the app via baked-in CSS.
   const editor = useEditorBridge({
-    autofocus: false,
+    // Existing chapters pop the keyboard straight into the body so writers
+    // can keep going. New chapters leave the editor unfocused because the
+    // title input grabs autoFocus instead.
+    autofocus: !isNew,
     avoidIosKeyboard: true,
     initialContent: data.html,
     bridgeExtensions: [...TenTapStartKit, CoreBridge.configureCSS(EDITOR_CSS)],
@@ -345,6 +348,10 @@ function EditorBody({ data }: { data: Loaded }) {
         placeholder="Chapter title"
         placeholderTextColor={colors.inkFaint}
         style={styles.titleInput}
+        // Brand-new chapter → the title needs naming first, so keyboard
+        // opens on title. Existing chapters jump straight to the body via
+        // the editor's autoFocus (see useEditorBridge above).
+        autoFocus={isNew}
       />
 
       {!!status && <Text style={styles.status}>{status}</Text>}

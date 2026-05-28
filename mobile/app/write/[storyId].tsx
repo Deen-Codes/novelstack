@@ -417,7 +417,8 @@ export default function StoryWriter() {
         })}
       </View>
 
-      {/* The hamburger / X FAB itself — bigger + higher than before. */}
+      {/* The hamburger / X FAB itself — cream background with the icon in
+          ink so it matches the home Read/Save button family. */}
       <Pressable
         style={[styles.fab, { bottom: fabBottom }]}
         onPress={() => setMenuOpen((o) => !o)}
@@ -438,7 +439,7 @@ export default function StoryWriter() {
           <Ionicons
             name={menuOpen ? 'close' : 'menu'}
             size={28}
-            color="#FFFFFF"
+            color="#15100E"
           />
         </Animated.View>
       </Pressable>
@@ -738,21 +739,23 @@ function StatusSection({
     <View>
       <View style={styles.switchRow}>
         <View style={{ flex: 1 }}>
-          <Text style={styles.switchLabel}>Offline</Text>
+          <Text style={styles.switchLabel}>{offline ? 'Offline' : 'Live'}</Text>
           <Text style={styles.switchHint}>
             {offline
               ? 'Only you can see this story. Flick the switch to make it live.'
-              : 'Live — readers can find and read it. Flick on to hide it again.'}
+              : 'Readers can find and read it. Flick the switch to take it offline.'}
           </Text>
         </View>
-        <Switch
-          value={offline}
-          onValueChange={(on) => onChangeStatus(on ? 'draft' : 'ongoing')}
-          disabled={busy}
-          trackColor={{ false: colors.borderSoft, true: colors.signalDeep }}
-          thumbColor={offline ? colors.signal : '#F4ECDF'}
-          ios_backgroundColor={colors.borderSoft}
-        />
+        <View style={styles.switchPad}>
+          <Switch
+            value={offline}
+            onValueChange={(on) => onChangeStatus(on ? 'draft' : 'ongoing')}
+            disabled={busy}
+            trackColor={{ false: colors.borderSoft, true: colors.signalDeep }}
+            thumbColor={offline ? colors.signal : '#F4ECDF'}
+            ios_backgroundColor={colors.borderSoft}
+          />
+        </View>
       </View>
 
       {!offline && (
@@ -832,7 +835,7 @@ function FloatingItem({
         <Ionicons
           name={icon}
           size={19}
-          color={active ? '#FFFFFF' : colors.ink}
+          color={active ? '#15100E' : colors.ink}
         />
       </Pressable>
     </Animated.View>
@@ -916,36 +919,40 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
 
-  // Primary action button — cream pill.
+  // Primary action button — cream rounded-square like the home Read button.
   primaryBtn: {
     backgroundColor: '#F4ECDF',
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: radius.pill,
+    height: 52,
+    paddingHorizontal: 26,
+    borderRadius: 13,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   primaryBtnWide: {
     flexDirection: 'row',
     gap: 6,
     backgroundColor: '#F4ECDF',
-    paddingVertical: 14,
-    borderRadius: radius.md,
+    height: 52,
+    borderRadius: 13,
     alignItems: 'center',
     justifyContent: 'center',
   },
   primaryBtnText: { color: '#15100E', fontSize: 15, fontWeight: '700' },
 
-  // Secondary action — outline pill, used for "Go to chapters" under the cover.
+  // Secondary action — same rounded-square family but ghosted, used for
+  // "Go to chapters" under the cover.
   secondaryBtn: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 8,
     marginTop: spacing.xl,
-    paddingVertical: 10,
-    paddingHorizontal: 18,
-    borderRadius: radius.pill,
+    height: 48,
+    paddingHorizontal: 22,
+    borderRadius: 13,
     borderWidth: 1,
     borderColor: colors.borderSoft,
+    backgroundColor: 'rgba(255,255,255,0.04)',
   },
   secondaryBtnText: { fontSize: 14, color: colors.ink, fontWeight: '600' },
 
@@ -1072,6 +1079,9 @@ const styles = StyleSheet.create({
   },
   switchLabel: { fontSize: 15, fontWeight: '700', color: colors.ink },
   switchHint: { fontSize: 12, color: colors.inkMuted, marginTop: 4, lineHeight: 17 },
+  // Pulls the iOS switch away from the card edge so it doesn't crowd the
+  // border — the native control already has its own bleed.
+  switchPad: { paddingLeft: 4, paddingRight: 2 },
   segment: {
     flexDirection: 'row',
     backgroundColor: colors.paper,
@@ -1093,14 +1103,16 @@ const styles = StyleSheet.create({
 
   statusMsg: { fontSize: 12, color: colors.signal, textAlign: 'right', marginTop: spacing.md },
 
-  // FAB + fly-out items — bigger + higher than before for thumb reach.
+  // FAB + fly-out items — cream rounded-square family. The FAB is a
+  // pleasingly chunky rounded-square (not a circle) to read as part of the
+  // same button language as Read/Continue.
   fab: {
     position: 'absolute',
     right: 20,
     width: 64,
     height: 64,
-    borderRadius: 32,
-    backgroundColor: colors.signal,
+    borderRadius: 18,
+    backgroundColor: '#F4ECDF',
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
@@ -1122,11 +1134,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.borderSoft,
-    borderRadius: 28,
-    paddingLeft: 20,
-    paddingRight: 18,
-    height: 52,
-    minWidth: 152,
+    borderRadius: 14,
+    paddingLeft: 18,
+    paddingRight: 16,
+    height: 50,
+    minWidth: 158,
     justifyContent: 'space-between',
     shadowColor: '#000',
     shadowOpacity: 0.18,
@@ -1134,7 +1146,8 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 3 },
     elevation: 3,
   },
-  fabItemActive: { backgroundColor: colors.signal, borderColor: colors.signal },
+  // Selected fly-out button paints cream like the primary buttons.
+  fabItemActive: { backgroundColor: '#F4ECDF', borderColor: '#F4ECDF' },
   fabItemLabel: { fontSize: 15, fontWeight: '600', color: colors.ink },
-  fabItemLabelActive: { color: '#FFFFFF' },
+  fabItemLabelActive: { color: '#15100E', fontWeight: '700' },
 });
