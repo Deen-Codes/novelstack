@@ -26,6 +26,14 @@
           "protonmail",
           "fastmail",
           "readdle-spark",
+          "airmail",
+          "message",
+          "googlegmail",
+          "ms-outlook",
+          "ymail",
+          "protonmail",
+          "fastmail",
+          "readdle-spark",
           "airmail"
         ]
       }
@@ -38,7 +46,7 @@
         "backgroundColor": "#14110F"
       },
       "permissions": [
-        "android.permission.RECORD_AUDIO",
+        "com.google.android.gms.permission.AD_ID",
         "com.google.android.gms.permission.AD_ID"
       ]
     },
@@ -87,6 +95,10 @@
       "eas": {
         "projectId": "7eee7704-58a1-477f-82ae-d11d21bc220f"
       }
+    },
+    "runtimeVersion": "1.0.0",
+    "updates": {
+      "url": "https://u.expo.dev/7eee7704-58a1-477f-82ae-d11d21bc220f"
     }
   }
 }

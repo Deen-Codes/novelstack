@@ -620,6 +620,51 @@ export async function updateChapter(
   return row;
 }
 
+// Re-numbers a story's chapters to match the given id order. Verifies that
+// every id belongs to the story (and that the story belongs to the author)
+// before doing any writes — partial reorders are rejected so the on-disk
+// numbering can never drift out of sync with what the client saw.
+export async function reorderChapters(
+  authorId: string,
+  storyId: string,
+  orderedIds: string[],
+): Promise<boolean> {
+  const story = await db.query.stories.findFirst({
+    where: and(eq(stories.id, storyId), eq(stories.authorId, authorId)),
+  });
+  if (!story) throw new Error('Story not found or not yours.');
+
+  const rows = await db
+    .select({ id: chapters.id })
+    .from(chapters)
+    .where(eq(chapters.storyId, storyId));
+  const known = new Set(rows.map((r) => r.id));
+  if (rows.length !== orderedIds.length) {
+    throw new Error('Chapter list is out of date — refresh and try again.');
+  }
+  for (const id of orderedIds) {
+    if (!known.has(id)) throw new Error('Unknown chapter in reorder.');
+  }
+
+  // Two passes so we never collide on the (story_id, number) index even
+  // though it isn't unique — keeps the numbers clean on commit.
+  await db.transaction(async (tx) => {
+    for (let i = 0; i < orderedIds.length; i++) {
+      await tx
+        .update(chapters)
+        .set({ number: -(i + 1), updatedAt: new Date() })
+        .where(eq(chapters.id, orderedIds[i]));
+    }
+    for (let i = 0; i < orderedIds.length; i++) {
+      await tx
+        .update(chapters)
+        .set({ number: i + 1, updatedAt: new Date() })
+        .where(eq(chapters.id, orderedIds[i]));
+    }
+  });
+  return true;
+}
+
 // Deletes a chapter the author owns, then closes the gap so the remaining
 // chapter numbers stay contiguous (1, 2, 3 …). Body, reads, comments and
 // ad-unlocks for the chapter cascade away with the row.

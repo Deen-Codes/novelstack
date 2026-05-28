@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
   ScrollView,
@@ -16,18 +16,26 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { colors, spacing, radius, fonts } from '@/theme/tokens';
 import { apiGet, apiSend, apiUpload } from '@/lib/api';
-import { genreLabel } from '@/lib/genres';
+import { GENRES, genreLabel } from '@/lib/genres';
 import { Cover } from '@/components/Cover';
-import { BottomSheet } from '@/components/BottomSheet';
 import type { Shelf, Story, Chapter, StoryDetail } from '@/lib/types';
 
-type Section = 'cover' | 'status' | 'access';
+type Section = 'cover' | 'chapters' | 'details' | 'status' | 'access';
 
-const SECTION_LABELS: Record<Section, { label: string; icon: React.ComponentProps<typeof Ionicons>['name'] }> = {
+const SECTION_LABELS: Record<
+  Section,
+  { label: string; icon: React.ComponentProps<typeof Ionicons>['name'] }
+> = {
   cover: { label: 'Cover', icon: 'image-outline' },
+  chapters: { label: 'Chapters', icon: 'list-outline' },
+  details: { label: 'Details', icon: 'create-outline' },
   status: { label: 'Status', icon: 'pulse-outline' },
   access: { label: 'Access', icon: 'lock-open-outline' },
 };
+
+// Order in the fly-out (top of stack first). Cover is the most-used so it
+// sits closest to the thumb when the menu opens.
+const SECTION_ORDER: Section[] = ['cover', 'chapters', 'details', 'status', 'access'];
 
 export default function StoryWriter() {
   const { storyId } = useLocalSearchParams<{ storyId: string }>();
@@ -55,43 +63,19 @@ export default function StoryWriter() {
     }).start();
   }, [menuOpen, menuAnim]);
 
-  // Edit-details bottom sheet — title + description editor.
-  const [detailsOpen, setDetailsOpen] = useState(false);
+  // Details editor (now lives inline on the Details page rather than a
+  // bottom sheet — drafts are seeded from the story once it loads.
   const [draftTitle, setDraftTitle] = useState('');
   const [draftDesc, setDraftDesc] = useState('');
+  const [draftGenre, setDraftGenre] = useState('');
+  const [genreQuery, setGenreQuery] = useState('');
+  const [showGenrePicker, setShowGenrePicker] = useState(false);
   const [detailsBusy, setDetailsBusy] = useState(false);
   const [detailsError, setDetailsError] = useState('');
+  const [detailsSaved, setDetailsSaved] = useState(false);
 
-  function openDetails() {
-    if (!story) return;
-    setDraftTitle(story.title);
-    setDraftDesc(story.description ?? '');
-    setDetailsError('');
-    setDetailsOpen(true);
-  }
-
-  async function saveDetails() {
-    if (!story || detailsBusy) return;
-    const title = draftTitle.trim();
-    if (!title) {
-      setDetailsError('A title is required.');
-      return;
-    }
-    setDetailsBusy(true);
-    setDetailsError('');
-    try {
-      const updated = await apiSend<Story>(
-        `/api/me/stories/${storyId}`,
-        'PATCH',
-        { title, description: draftDesc.trim() },
-      );
-      setStory(updated);
-      setDetailsOpen(false);
-    } catch (e) {
-      setDetailsError(e instanceof Error ? e.message : 'Could not save.');
-    }
-    setDetailsBusy(false);
-  }
+  // Chapter reorder state — local first, server PATCH on commit.
+  const [reorderBusy, setReorderBusy] = useState(false);
 
   function selectSection(s: Section) {
     setTab(s);
@@ -113,6 +97,11 @@ export default function StoryWriter() {
       return;
     }
     setStory(mine);
+    // Seed the Details drafts so the inputs match the story without an
+    // extra "edit" tap.
+    setDraftTitle(mine.title);
+    setDraftDesc(mine.description ?? '');
+    setDraftGenre(mine.genre);
 
     // Chapters come from the public story-by-slug endpoint.
     try {
@@ -235,6 +224,63 @@ export default function StoryWriter() {
     setBusy(false);
   }
 
+  // Moves a chapter up or down in the order, then persists the new order.
+  async function moveChapter(index: number, direction: -1 | 1) {
+    if (reorderBusy) return;
+    const target = index + direction;
+    if (target < 0 || target >= chapters.length) return;
+
+    // Optimistic local swap + renumber for the on-screen card.
+    const next = chapters.slice();
+    const [moved] = next.splice(index, 1);
+    next.splice(target, 0, moved);
+    const renumbered = next.map((c, i) => ({ ...c, number: i + 1 }));
+    setChapters(renumbered);
+
+    setReorderBusy(true);
+    try {
+      await apiSend(`/api/me/stories/${storyId}/chapters/reorder`, 'POST', {
+        ids: renumbered.map((c) => c.id),
+      });
+    } catch {
+      // Rollback on failure by re-fetching the truth.
+      await load();
+    }
+    setReorderBusy(false);
+  }
+
+  // Saves the editable Details fields (title, description, genre) to the
+  // story. Mature toggle saves immediately via toggleMature() instead.
+  async function saveDetails() {
+    if (!story || detailsBusy) return;
+    const title = draftTitle.trim();
+    if (!title) {
+      setDetailsError('A title is required.');
+      return;
+    }
+    setDetailsBusy(true);
+    setDetailsError('');
+    setDetailsSaved(false);
+    try {
+      const updated = await apiSend<Story>(
+        `/api/me/stories/${storyId}`,
+        'PATCH',
+        {
+          title,
+          description: draftDesc.trim(),
+          genre: draftGenre,
+        },
+      );
+      setStory(updated);
+      setDetailsSaved(true);
+      // Fade the "saved" toast back out after a beat.
+      setTimeout(() => setDetailsSaved(false), 1800);
+    } catch (e) {
+      setDetailsError(e instanceof Error ? e.message : 'Could not save.');
+    }
+    setDetailsBusy(false);
+  }
+
   // Permanently deletes the story (chapters cascade). Confirmed first.
   async function deleteStoryNow() {
     try {
@@ -255,6 +301,15 @@ export default function StoryWriter() {
       ],
     );
   }
+
+  const detailsDirty = useMemo(() => {
+    if (!story) return false;
+    return (
+      draftTitle.trim() !== story.title ||
+      draftDesc.trim() !== (story.description ?? '') ||
+      draftGenre !== story.genre
+    );
+  }, [story, draftTitle, draftDesc, draftGenre]);
 
   if (loading) {
     return (
@@ -285,179 +340,87 @@ export default function StoryWriter() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-        <Pressable onPress={() => router.back()}>
+      <View style={styles.topBar}>
+        <Pressable onPress={() => router.back()} hitSlop={16} style={styles.backWrap}>
           <Text style={styles.back}>‹ Write</Text>
         </Pressable>
-        <Text style={styles.h1}>{story.title}</Text>
-        <Text style={styles.sub}>
-          {genreLabel(story.genre)} · {story.status === 'draft' ? 'Offline draft' : story.status}
+        <Text style={styles.topTitle} numberOfLines={1}>
+          {story.title}
         </Text>
+        <View style={{ width: 60 }} />
+      </View>
 
-        {/* Section label replaces the old tab strip — section is chosen via
-            the bottom-right hamburger FAB below. */}
-        <Text style={styles.sectionLabel}>{SECTION_LABELS[tab].label}</Text>
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        keyboardShouldPersistTaps="handled"
+      >
+        {/* Big page title — same look across all five sections. */}
+        <Text style={styles.pageTitle}>{SECTION_LABELS[tab].label}</Text>
 
         {tab === 'cover' && (
-          <View style={styles.coverCard}>
-            <Cover
-              coverUrl={story.coverUrl}
-              coverColor={story.coverColor}
-              title={story.title}
-              style={styles.coverThumb}
-            />
-            <View style={{ flex: 1 }}>
-              <Text style={styles.coverLabel}>Cover image</Text>
-              <Text style={styles.coverHint}>JPEG, PNG or WebP · up to 5 MB</Text>
-              <Pressable
-                style={[styles.coverBtn, coverBusy && { opacity: 0.6 }]}
-                onPress={pickCover}
-                disabled={coverBusy}
-              >
-                <Text style={styles.coverBtnText}>
-                  {coverBusy ? 'Uploading…' : story.coverUrl ? 'Replace cover' : 'Upload cover'}
-                </Text>
-              </Pressable>
-              {!!coverError && <Text style={styles.coverError}>{coverError}</Text>}
-            </View>
-          </View>
+          <CoverSection
+            story={story}
+            busy={coverBusy}
+            error={coverError}
+            onPick={pickCover}
+          />
+        )}
+
+        {tab === 'chapters' && (
+          <ChaptersSection
+            chapters={chapters}
+            freeCount={freeCount}
+            reorderBusy={reorderBusy}
+            busy={busy}
+            onOpen={openEditor}
+            onNew={openNew}
+            onMove={moveChapter}
+            onMoveDivider={(n) => setFreeChapters(n)}
+          />
+        )}
+
+        {tab === 'details' && (
+          <DetailsSection
+            draftTitle={draftTitle}
+            setDraftTitle={setDraftTitle}
+            draftDesc={draftDesc}
+            setDraftDesc={setDraftDesc}
+            draftGenre={draftGenre}
+            setDraftGenre={setDraftGenre}
+            genreQuery={genreQuery}
+            setGenreQuery={setGenreQuery}
+            showGenrePicker={showGenrePicker}
+            setShowGenrePicker={setShowGenrePicker}
+            isMature={story.isMature}
+            onToggleMature={toggleMature}
+            dirty={detailsDirty}
+            busy={detailsBusy}
+            saved={detailsSaved}
+            error={detailsError}
+            onSave={saveDetails}
+            onDelete={confirmDelete}
+          />
         )}
 
         {tab === 'status' && (
-          <>
-            <Pressable style={styles.matureRow} onPress={toggleMature}>
-              <View style={[styles.checkbox, story.isMature && styles.checkboxOn]}>
-                {story.isMature && <Text style={styles.checkMark}>✓</Text>}
-              </View>
-              <Text style={styles.freeText}>
-                Mature (18+) — readers confirm their age first
-              </Text>
-            </Pressable>
-
-            {story.status === 'draft' ? (
-              <Pressable
-                style={[styles.addBtn, busy && { opacity: 0.6 }]}
-                onPress={() => changeStatus('ongoing')}
-                disabled={busy}
-              >
-                <Text style={styles.addBtnText}>Make story live</Text>
-              </Pressable>
-            ) : (
-              <View style={styles.settingCard}>
-                <Text style={styles.cardLabel}>Story status</Text>
-                <View style={styles.segment}>
-                  <Pressable
-                    style={[styles.segBtn, story.status === 'ongoing' && styles.segOn]}
-                    onPress={() => changeStatus('ongoing')}
-                    disabled={busy}
-                  >
-                    <Text
-                      style={[styles.segText, story.status === 'ongoing' && styles.segTextOn]}
-                    >
-                      Ongoing
-                    </Text>
-                  </Pressable>
-                  <Pressable
-                    style={[styles.segBtn, story.status === 'complete' && styles.segOn]}
-                    onPress={() => changeStatus('complete')}
-                    disabled={busy}
-                  >
-                    <Text
-                      style={[styles.segText, story.status === 'complete' && styles.segTextOn]}
-                    >
-                      Complete
-                    </Text>
-                  </Pressable>
-                </View>
-                <Text style={styles.cardHint}>
-                  {story.status === 'complete'
-                    ? 'Readers see this as a finished book.'
-                    : 'Readers know more chapters are still coming.'}
-                </Text>
-                <Pressable
-                  style={[styles.offlineBtn, busy && { opacity: 0.5 }]}
-                  onPress={() => changeStatus('draft')}
-                  disabled={busy}
-                >
-                  <Text style={styles.offlineBtnText}>Take offline — back to draft</Text>
-                </Pressable>
-                <Text style={styles.cardHint}>
-                  An offline story is hidden from readers until you make it live again.
-                </Text>
-              </View>
-            )}
-          </>
+          <StatusSection
+            story={story}
+            busy={busy}
+            onMature={toggleMature}
+            onChangeStatus={changeStatus}
+          />
         )}
 
-        {tab === 'access' &&
-          (chapters.length > 0 ? (
-            <View style={styles.settingCard}>
-              <Text style={styles.cardLabel}>Reader access</Text>
-              <View style={styles.stepper}>
-                <Pressable
-                  style={[styles.stepBtn, busy && { opacity: 0.5 }]}
-                  onPress={() => setFreeChapters(Math.max(0, freeCount - 1))}
-                  disabled={busy || freeCount === 0}
-                >
-                  <Text style={styles.stepBtnText}>−</Text>
-                </Pressable>
-                <Text style={styles.stepValue}>{freeCount}</Text>
-                <Pressable
-                  style={[styles.stepBtn, busy && { opacity: 0.5 }]}
-                  onPress={() => setFreeChapters(Math.min(chapters.length, freeCount + 1))}
-                  disabled={busy || freeCount >= chapters.length}
-                >
-                  <Text style={styles.stepBtnText}>+</Text>
-                </Pressable>
-                <Text style={styles.stepLabel}>
-                  free chapter{freeCount === 1 ? '' : 's'}
-                </Text>
-              </View>
-              <Text style={styles.cardHint}>
-                {freeCount >= chapters.length
-                  ? 'Every chapter is free to read.'
-                  : `Chapter ${freeCount + 1} onward is gated behind an ad or NovelStack+.`}
-              </Text>
-            </View>
-          ) : (
-            <View style={styles.settingCard}>
-              <Text style={styles.cardLabel}>Reader access</Text>
-              <Text style={styles.cardHint}>
-                Add chapters first — then choose how many are free to read before the ad gate.
-              </Text>
-            </View>
-          ))}
-
-        <Pressable style={[styles.addBtn, busy && { opacity: 0.6 }]} onPress={openNew} disabled={busy}>
-          <Text style={styles.addBtnText}>+ New chapter</Text>
-        </Pressable>
-
-        {chapters.length === 0 && (
-          <Text style={styles.empty}>No chapters yet. Add your first one above.</Text>
+        {tab === 'access' && (
+          <AccessSection
+            chapters={chapters}
+            freeCount={freeCount}
+            busy={busy}
+            onChange={setFreeChapters}
+          />
         )}
-
-        {chapters.map((ch) => (
-          <Pressable key={ch.id} style={styles.card} onPress={() => openEditor(ch)}>
-            <View style={styles.cardHead}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.cardTitle}>
-                  {ch.number}. {ch.title}
-                </Text>
-                <Text style={styles.cardMeta}>
-                  {ch.publishedAt ? 'Published' : 'Draft'} · {ch.isFree ? 'Free' : 'Locked'}
-                  {ch.wordCount ? ` · ${ch.wordCount.toLocaleString()} words` : ''}
-                </Text>
-              </View>
-              <Text style={styles.chevron}>›</Text>
-            </View>
-          </Pressable>
-        ))}
 
         {!!status && <Text style={styles.status}>{status}</Text>}
-
-        <Pressable style={styles.deleteBtn} onPress={confirmDelete}>
-          <Text style={styles.deleteBtnText}>Delete story</Text>
-        </Pressable>
       </ScrollView>
 
       {/* Tap-anywhere-to-close backdrop when the FAB menu is open. Sits
@@ -469,22 +432,22 @@ export default function StoryWriter() {
         />
       )}
 
-      {/* Floating action buttons — fly out above the FAB, in order:
-          Cover, Status, Access, Edit details. */}
+      {/* Fly-out stack — five action buttons rise from the FAB. */}
       <View
-        pointerEvents="box-none"
+        pointerEvents={menuOpen ? 'box-none' : 'none'}
         style={[
           styles.fabStack,
           { bottom: Math.max(insets.bottom, 8) + 80 },
         ]}
       >
-        {(['cover', 'status', 'access'] as Section[]).map((s, i) => {
-          const reverseIdx = 3 - i; // farthest from FAB first
+        {SECTION_ORDER.map((s, i) => {
+          // Farthest-from-FAB item moves first so the rise reads as a stack.
+          const order = SECTION_ORDER.length - 1 - i;
           return (
             <FloatingItem
               key={s}
               anim={menuAnim}
-              order={reverseIdx}
+              order={order}
               icon={SECTION_LABELS[s].icon}
               label={SECTION_LABELS[s].label}
               active={tab === s}
@@ -492,16 +455,6 @@ export default function StoryWriter() {
             />
           );
         })}
-        <FloatingItem
-          anim={menuAnim}
-          order={0}
-          icon="create-outline"
-          label="Edit details"
-          onPress={() => {
-            setMenuOpen(false);
-            openDetails();
-          }}
-        />
       </View>
 
       {/* The hamburger / X FAB itself. */}
@@ -529,46 +482,493 @@ export default function StoryWriter() {
           />
         </Animated.View>
       </Pressable>
-
-      <BottomSheet visible={detailsOpen} onClose={() => setDetailsOpen(false)}>
-        <Text style={styles.sheetTitle}>Edit details</Text>
-        <Text style={styles.sheetSub}>
-          Change the title or blurb. Genre and maturity stay where they are.
-        </Text>
-        <Text style={styles.detailsLabel}>Title</Text>
-        <TextInput
-          value={draftTitle}
-          onChangeText={setDraftTitle}
-          placeholder="Story title"
-          placeholderTextColor={colors.inkFaint}
-          style={styles.detailsInput}
-        />
-        <Text style={styles.detailsLabel}>Description</Text>
-        <TextInput
-          value={draftDesc}
-          onChangeText={setDraftDesc}
-          placeholder="A short blurb readers will see on the cover."
-          placeholderTextColor={colors.inkFaint}
-          multiline
-          style={[styles.detailsInput, { height: 110, textAlignVertical: 'top' }]}
-        />
-        {!!detailsError && <Text style={styles.detailsError}>{detailsError}</Text>}
-        <Pressable
-          style={[styles.detailsBtn, detailsBusy && { opacity: 0.6 }]}
-          onPress={saveDetails}
-          disabled={detailsBusy}
-        >
-          <Text style={styles.detailsBtnText}>
-            {detailsBusy ? 'Saving…' : 'Save changes'}
-          </Text>
-        </Pressable>
-      </BottomSheet>
     </SafeAreaView>
   );
 }
 
-// Single fly-out action button — sits stacked above the FAB, anim 0..1
-// drives both the opacity and the rise-from-FAB translation.
+// ---------- Section: Cover --------------------------------------------------
+// A full-page preview with the upload button beneath. The cover image gets
+// the spotlight here — no other competing content on the page.
+function CoverSection({
+  story,
+  busy,
+  error,
+  onPick,
+}: {
+  story: Story;
+  busy: boolean;
+  error: string;
+  onPick: () => void;
+}) {
+  return (
+    <View style={{ alignItems: 'center' }}>
+      <Cover
+        coverUrl={story.coverUrl}
+        coverColor={story.coverColor}
+        title={story.title}
+        style={styles.coverHero}
+      />
+      <Pressable
+        style={[styles.primaryBtn, busy && { opacity: 0.6 }]}
+        onPress={onPick}
+        disabled={busy}
+      >
+        <Text style={styles.primaryBtnText}>
+          {busy ? 'Uploading…' : story.coverUrl ? 'Replace cover' : 'Upload cover'}
+        </Text>
+      </Pressable>
+      <Text style={styles.helperCentered}>JPEG, PNG or WebP · up to 5 MB</Text>
+      {!!error && <Text style={styles.errorCentered}>{error}</Text>}
+    </View>
+  );
+}
+
+// ---------- Section: Chapters ----------------------------------------------
+// Ordered list with up/down reorder buttons and a single divider line that
+// splits free chapters from the paid/ad-gated ones beneath it.
+function ChaptersSection({
+  chapters,
+  freeCount,
+  reorderBusy,
+  busy,
+  onOpen,
+  onNew,
+  onMove,
+  onMoveDivider,
+}: {
+  chapters: Chapter[];
+  freeCount: number;
+  reorderBusy: boolean;
+  busy: boolean;
+  onOpen: (c: Chapter) => void;
+  onNew: () => void;
+  onMove: (i: number, dir: -1 | 1) => void;
+  onMoveDivider: (n: number) => void;
+}) {
+  return (
+    <View>
+      <Pressable style={styles.primaryBtnWide} onPress={onNew}>
+        <Ionicons name="add" size={18} color="#15100E" />
+        <Text style={styles.primaryBtnText}>New chapter</Text>
+      </Pressable>
+
+      {chapters.length === 0 && (
+        <Text style={styles.empty}>No chapters yet — start with one above.</Text>
+      )}
+
+      {chapters.map((ch, i) => (
+        <View key={ch.id}>
+          <Pressable style={styles.chapterCard} onPress={() => onOpen(ch)}>
+            <View style={styles.chapterReorder}>
+              <Pressable
+                hitSlop={8}
+                disabled={i === 0 || reorderBusy}
+                onPress={() => onMove(i, -1)}
+                style={[styles.reorderBtn, (i === 0 || reorderBusy) && styles.reorderBtnOff]}
+              >
+                <Ionicons name="chevron-up" size={14} color={colors.ink} />
+              </Pressable>
+              <Pressable
+                hitSlop={8}
+                disabled={i === chapters.length - 1 || reorderBusy}
+                onPress={() => onMove(i, 1)}
+                style={[
+                  styles.reorderBtn,
+                  (i === chapters.length - 1 || reorderBusy) && styles.reorderBtnOff,
+                ]}
+              >
+                <Ionicons name="chevron-down" size={14} color={colors.ink} />
+              </Pressable>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.chapterTitle}>
+                {ch.number}. {ch.title}
+              </Text>
+              <Text style={styles.chapterMeta}>
+                {ch.publishedAt ? 'Published' : 'Draft'}
+                {ch.wordCount ? ` · ${ch.wordCount.toLocaleString()} words` : ''}
+              </Text>
+            </View>
+            <View style={[styles.accessBadge, ch.isFree ? styles.freeBadge : styles.paidBadge]}>
+              <Ionicons
+                name={ch.isFree ? 'eye-outline' : 'lock-closed'}
+                size={11}
+                color={ch.isFree ? '#5E8E5A' : '#C8414E'}
+              />
+              <Text style={[styles.accessBadgeText, { color: ch.isFree ? '#5E8E5A' : '#C8414E' }]}>
+                {ch.isFree ? 'Free' : 'Paid'}
+              </Text>
+            </View>
+          </Pressable>
+
+          {/* Divider drops between free and paid — drag (well, tap) it to
+              change the cutoff. Only renders inside the chapter run, never
+              before the first or after the last chapter. */}
+          {i + 1 === freeCount && i + 1 < chapters.length && (
+            <DividerRow
+              busy={busy}
+              freeCount={freeCount}
+              total={chapters.length}
+              onMoveDivider={onMoveDivider}
+            />
+          )}
+        </View>
+      ))}
+
+      {/* If nothing's gated yet, show the divider as a hint at the top */}
+      {chapters.length > 0 && freeCount === 0 && (
+        <DividerRow
+          busy={busy}
+          freeCount={freeCount}
+          total={chapters.length}
+          onMoveDivider={onMoveDivider}
+          placement="all-paid"
+        />
+      )}
+
+      {/* All chapters free → hint at the bottom. */}
+      {chapters.length > 0 && freeCount === chapters.length && (
+        <DividerRow
+          busy={busy}
+          freeCount={freeCount}
+          total={chapters.length}
+          onMoveDivider={onMoveDivider}
+          placement="all-free"
+        />
+      )}
+    </View>
+  );
+}
+
+function DividerRow({
+  busy,
+  freeCount,
+  total,
+  onMoveDivider,
+  placement,
+}: {
+  busy: boolean;
+  freeCount: number;
+  total: number;
+  onMoveDivider: (n: number) => void;
+  placement?: 'all-free' | 'all-paid';
+}) {
+  const upDisabled = busy || freeCount === 0;
+  const downDisabled = busy || freeCount === total;
+  return (
+    <View style={styles.dividerRow}>
+      <View style={styles.dividerLine} />
+      <View style={styles.dividerChip}>
+        <Pressable
+          hitSlop={6}
+          disabled={upDisabled}
+          onPress={() => onMoveDivider(Math.max(0, freeCount - 1))}
+          style={[styles.dividerStep, upDisabled && { opacity: 0.4 }]}
+        >
+          <Ionicons name="chevron-up" size={13} color={colors.ink} />
+        </Pressable>
+        <Text style={styles.dividerText}>
+          {placement === 'all-free'
+            ? 'All chapters free'
+            : placement === 'all-paid'
+              ? 'Every chapter ad-gated'
+              : 'Paid / ad-gated below'}
+        </Text>
+        <Pressable
+          hitSlop={6}
+          disabled={downDisabled}
+          onPress={() => onMoveDivider(Math.min(total, freeCount + 1))}
+          style={[styles.dividerStep, downDisabled && { opacity: 0.4 }]}
+        >
+          <Ionicons name="chevron-down" size={13} color={colors.ink} />
+        </Pressable>
+      </View>
+      <View style={styles.dividerLine} />
+    </View>
+  );
+}
+
+// ---------- Section: Details ------------------------------------------------
+// Inline editable form for the title, blurb, genre + 18+ flag. Delete-story
+// lives at the bottom here — it's the one screen where the destructive
+// action belongs.
+function DetailsSection({
+  draftTitle,
+  setDraftTitle,
+  draftDesc,
+  setDraftDesc,
+  draftGenre,
+  setDraftGenre,
+  genreQuery,
+  setGenreQuery,
+  showGenrePicker,
+  setShowGenrePicker,
+  isMature,
+  onToggleMature,
+  dirty,
+  busy,
+  saved,
+  error,
+  onSave,
+  onDelete,
+}: {
+  draftTitle: string;
+  setDraftTitle: (s: string) => void;
+  draftDesc: string;
+  setDraftDesc: (s: string) => void;
+  draftGenre: string;
+  setDraftGenre: (s: string) => void;
+  genreQuery: string;
+  setGenreQuery: (s: string) => void;
+  showGenrePicker: boolean;
+  setShowGenrePicker: (b: boolean) => void;
+  isMature: boolean;
+  onToggleMature: () => void;
+  dirty: boolean;
+  busy: boolean;
+  saved: boolean;
+  error: string;
+  onSave: () => void;
+  onDelete: () => void;
+}) {
+  const filtered = useMemo(() => {
+    const q = genreQuery.trim().toLowerCase();
+    return GENRES.filter((g) => g.label.toLowerCase().includes(q)).slice(0, 12);
+  }, [genreQuery]);
+
+  return (
+    <View>
+      <Text style={styles.fieldLabel}>Title</Text>
+      <TextInput
+        value={draftTitle}
+        onChangeText={setDraftTitle}
+        placeholder="Story title"
+        placeholderTextColor={colors.inkFaint}
+        style={styles.input}
+      />
+
+      <Text style={styles.fieldLabel}>Description</Text>
+      <TextInput
+        value={draftDesc}
+        onChangeText={setDraftDesc}
+        placeholder="A short blurb readers will see on the cover."
+        placeholderTextColor={colors.inkFaint}
+        multiline
+        style={[styles.input, { height: 130, textAlignVertical: 'top' }]}
+      />
+
+      <Text style={styles.fieldLabel}>Genre</Text>
+      <Pressable
+        style={styles.genreField}
+        onPress={() => setShowGenrePicker(!showGenrePicker)}
+      >
+        <Text style={styles.genreFieldText}>{genreLabel(draftGenre)}</Text>
+        <Ionicons
+          name={showGenrePicker ? 'chevron-up' : 'chevron-down'}
+          size={16}
+          color={colors.inkMuted}
+        />
+      </Pressable>
+      {showGenrePicker && (
+        <View style={styles.genrePicker}>
+          <TextInput
+            value={genreQuery}
+            onChangeText={setGenreQuery}
+            placeholder="Search genres…"
+            placeholderTextColor={colors.inkFaint}
+            style={[styles.input, { marginBottom: 10 }]}
+          />
+          <View style={styles.chips}>
+            {filtered.map((g) => {
+              const on = draftGenre === g.value;
+              return (
+                <Pressable
+                  key={g.value}
+                  style={[styles.chip, on && styles.chipOn]}
+                  onPress={() => {
+                    setDraftGenre(g.value);
+                    setGenreQuery('');
+                    setShowGenrePicker(false);
+                  }}
+                >
+                  <Text style={[styles.chipText, on && styles.chipTextOn]}>
+                    {g.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+      )}
+
+      <Pressable style={styles.matureRow} onPress={onToggleMature}>
+        <View style={[styles.checkbox, isMature && styles.checkboxOn]}>
+          {isMature && <Text style={styles.checkMark}>✓</Text>}
+        </View>
+        <Text style={styles.matureText}>
+          Mature (18+) — readers confirm their age first
+        </Text>
+      </Pressable>
+
+      {!!error && <Text style={styles.fieldError}>{error}</Text>}
+
+      <Pressable
+        style={[
+          styles.primaryBtnWide,
+          (!dirty || busy) && { opacity: 0.45 },
+          { marginTop: spacing.lg },
+        ]}
+        onPress={onSave}
+        disabled={!dirty || busy}
+      >
+        <Text style={styles.primaryBtnText}>
+          {busy ? 'Saving…' : saved ? 'Saved' : 'Save changes'}
+        </Text>
+      </Pressable>
+
+      <View style={styles.dangerZone}>
+        <Text style={styles.dangerLabel}>Danger zone</Text>
+        <Pressable style={styles.deleteBtn} onPress={onDelete}>
+          <Ionicons name="trash-outline" size={15} color="#D9656F" />
+          <Text style={styles.deleteBtnText}>Delete story</Text>
+        </Pressable>
+        <Text style={styles.dangerHint}>
+          Removes the story and every chapter for good. This can&apos;t be undone.
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+// ---------- Section: Status -------------------------------------------------
+// Just the publish state controls. Mature toggle moved to Details — this
+// page is purely about live / ongoing / complete / offline.
+function StatusSection({
+  story,
+  busy,
+  onMature: _onMature,
+  onChangeStatus,
+}: {
+  story: Story;
+  busy: boolean;
+  onMature: () => void;
+  onChangeStatus: (next: 'draft' | 'ongoing' | 'complete') => void;
+}) {
+  if (story.status === 'draft') {
+    return (
+      <View>
+        <Text style={styles.helper}>
+          Your story is an offline draft — only you can see it. Make it live to
+          share it with readers.
+        </Text>
+        <Pressable
+          style={[styles.primaryBtnWide, busy && { opacity: 0.6 }, { marginTop: spacing.lg }]}
+          onPress={() => onChangeStatus('ongoing')}
+          disabled={busy}
+        >
+          <Text style={styles.primaryBtnText}>Make story live</Text>
+        </Pressable>
+      </View>
+    );
+  }
+  return (
+    <View>
+      <Text style={styles.fieldLabel}>Story status</Text>
+      <View style={styles.segment}>
+        <Pressable
+          style={[styles.segBtn, story.status === 'ongoing' && styles.segOn]}
+          onPress={() => onChangeStatus('ongoing')}
+          disabled={busy}
+        >
+          <Text style={[styles.segText, story.status === 'ongoing' && styles.segTextOn]}>
+            Ongoing
+          </Text>
+        </Pressable>
+        <Pressable
+          style={[styles.segBtn, story.status === 'complete' && styles.segOn]}
+          onPress={() => onChangeStatus('complete')}
+          disabled={busy}
+        >
+          <Text style={[styles.segText, story.status === 'complete' && styles.segTextOn]}>
+            Complete
+          </Text>
+        </Pressable>
+      </View>
+      <Text style={styles.helper}>
+        {story.status === 'complete'
+          ? 'Readers see this as a finished book.'
+          : 'Readers know more chapters are still coming.'}
+      </Text>
+
+      <Pressable
+        style={[styles.offlineBtn, busy && { opacity: 0.5 }]}
+        onPress={() => onChangeStatus('draft')}
+        disabled={busy}
+      >
+        <Text style={styles.offlineBtnText}>Take offline — back to draft</Text>
+      </Pressable>
+      <Text style={styles.helper}>
+        An offline story is hidden from readers until you make it live again.
+      </Text>
+    </View>
+  );
+}
+
+// ---------- Section: Access -------------------------------------------------
+// The free-chapter stepper. Mirrors the chapters-page divider so authors can
+// land here from either direction.
+function AccessSection({
+  chapters,
+  freeCount,
+  busy,
+  onChange,
+}: {
+  chapters: Chapter[];
+  freeCount: number;
+  busy: boolean;
+  onChange: (n: number) => void;
+}) {
+  if (chapters.length === 0) {
+    return (
+      <Text style={styles.helper}>
+        Add chapters first — then choose how many are free to read before the ad
+        gate.
+      </Text>
+    );
+  }
+  return (
+    <View>
+      <Text style={styles.fieldLabel}>Free chapters</Text>
+      <View style={styles.stepper}>
+        <Pressable
+          style={[styles.stepBtn, busy && { opacity: 0.5 }]}
+          onPress={() => onChange(Math.max(0, freeCount - 1))}
+          disabled={busy || freeCount === 0}
+        >
+          <Text style={styles.stepBtnText}>−</Text>
+        </Pressable>
+        <Text style={styles.stepValue}>{freeCount}</Text>
+        <Pressable
+          style={[styles.stepBtn, busy && { opacity: 0.5 }]}
+          onPress={() => onChange(Math.min(chapters.length, freeCount + 1))}
+          disabled={busy || freeCount >= chapters.length}
+        >
+          <Text style={styles.stepBtnText}>+</Text>
+        </Pressable>
+        <Text style={styles.stepLabel}>
+          of {chapters.length} chapter{chapters.length === 1 ? '' : 's'}
+        </Text>
+      </View>
+      <Text style={styles.helper}>
+        {freeCount >= chapters.length
+          ? 'Every chapter is free to read.'
+          : `Chapter ${freeCount + 1} onward is gated behind an ad or NovelStack+.`}
+      </Text>
+    </View>
+  );
+}
+
+// ---------- Floating action button items -----------------------------------
 function FloatingItem({
   anim,
   order,
@@ -584,8 +984,8 @@ function FloatingItem({
   active?: boolean;
   onPress: () => void;
 }) {
-  // Stagger each button rising 64pt further than the one before it.
-  const distance = 64 * (order + 1);
+  // Stagger each button rising 56pt further than the one before it.
+  const distance = 56 * (order + 1);
   const translateY = anim.interpolate({
     inputRange: [0, 1],
     outputRange: [distance, 0],
@@ -620,81 +1020,310 @@ function FloatingItem({
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.paper },
-  scroll: { padding: spacing.lg, paddingBottom: spacing.xl * 3 },
-  // Larger hit target — the small "‹ Write" link was a pain to tap.
-  backWrap: { paddingVertical: 8, paddingRight: 16, marginBottom: 4, alignSelf: 'flex-start' },
-  back: { fontSize: 16, fontWeight: '500', color: colors.ink },
-  tabs: {
+  scroll: { padding: spacing.lg, paddingBottom: spacing.xl * 4 },
+
+  // Compact top bar — slim back link + the story title centered, so the
+  // page title beneath can own the visual weight.
+  topBar: {
     flexDirection: 'row',
-    gap: 4,
-    marginTop: spacing.lg,
-    backgroundColor: colors.card,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.lg,
+    paddingTop: 4,
+    paddingBottom: 4,
+  },
+  topTitle: {
+    flex: 1,
+    textAlign: 'center',
+    fontSize: 13,
+    color: colors.inkFaint,
+  },
+
+  // Larger hit target — the small "‹ Write" link was a pain to tap.
+  backWrap: { paddingVertical: 8, paddingRight: 16, alignSelf: 'flex-start' },
+  back: { fontSize: 16, fontWeight: '500', color: colors.ink },
+
+  // Section heading — display font + large, owns the top of the page.
+  pageTitle: {
+    fontFamily: fonts.displayXl,
+    fontSize: 30,
+    color: colors.ink,
+    letterSpacing: -0.6,
+    marginBottom: spacing.lg,
+  },
+
+  empty: { fontSize: 13, color: colors.inkMuted, marginTop: spacing.lg },
+  helper: { fontSize: 13, color: colors.inkMuted, marginTop: spacing.md, lineHeight: 19 },
+  helperCentered: {
+    fontSize: 12,
+    color: colors.inkFaint,
+    marginTop: 10,
+    textAlign: 'center',
+  },
+  errorCentered: { fontSize: 13, color: colors.signal, marginTop: 8, textAlign: 'center' },
+
+  // Field labels reused across Details + Status + Access.
+  fieldLabel: {
+    fontSize: 11,
+    color: colors.inkFaint,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+    fontWeight: '700',
+    marginTop: spacing.md,
+    marginBottom: 8,
+  },
+  fieldError: { fontSize: 13, color: colors.signal, marginTop: 10 },
+
+  // Generic input look — paper bg, ember focus is left to the OS default.
+  input: {
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: radius.md,
-    padding: 4,
+    paddingHorizontal: 13,
+    paddingVertical: 11,
+    fontSize: 15,
+    backgroundColor: colors.paper,
+    color: colors.ink,
   },
-  tab: {
-    flex: 1,
-    paddingVertical: 9,
-    borderRadius: radius.sm,
+
+  // Cover section — full-bleed preview, primary action sits beneath.
+  coverHero: {
+    width: '78%',
+    aspectRatio: 3 / 4,
+    borderRadius: radius.lg,
+    overflow: 'hidden',
+    marginBottom: spacing.lg,
+  },
+
+  // Primary action button — cream pill.
+  primaryBtn: {
+    backgroundColor: '#F4ECDF',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: radius.pill,
     alignItems: 'center',
   },
-  tabOn: { backgroundColor: colors.signal },
-  tabText: { fontSize: 13, fontWeight: '700', color: colors.inkMuted },
-  tabTextOn: { color: '#FFFFFF' },
-  h1: { fontFamily: fonts.displayXl, fontSize: 26, color: colors.ink, letterSpacing: -0.5 },
-  sub: { fontSize: 13, color: colors.inkFaint, marginTop: 4, textTransform: 'capitalize' },
-  empty: { fontSize: 13, color: colors.inkMuted, marginTop: spacing.md },
-  coverCard: {
+  primaryBtnWide: {
     flexDirection: 'row',
-    gap: spacing.md,
-    marginTop: spacing.lg,
+    gap: 6,
+    backgroundColor: '#F4ECDF',
+    paddingVertical: 14,
+    borderRadius: radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  primaryBtnText: { color: '#15100E', fontSize: 15, fontWeight: '700' },
+
+  // Chapter row + reorder controls.
+  chapterCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
     backgroundColor: colors.white,
     borderWidth: 1,
     borderColor: colors.borderSoft,
     borderRadius: radius.lg,
     padding: spacing.md,
+    marginTop: spacing.md,
   },
-  coverThumb: {
-    width: 64,
-    aspectRatio: 3 / 4,
-    borderRadius: radius.md,
-    overflow: 'hidden',
-  },
-  coverLabel: { fontSize: 14, fontWeight: '500', color: colors.ink },
-  coverHint: { fontSize: 12, color: colors.inkFaint, marginTop: 2, marginBottom: 8 },
-  coverBtn: {
-    alignSelf: 'flex-start',
+  chapterReorder: { gap: 4 },
+  reorderBtn: {
+    width: 28,
+    height: 22,
+    borderRadius: 6,
+    backgroundColor: colors.paperSoft,
     borderWidth: 1,
     borderColor: colors.borderSoft,
-    borderRadius: radius.pill,
-    paddingHorizontal: 14,
-    paddingVertical: 7,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  coverBtnText: { fontSize: 13, fontWeight: '500', color: colors.ink },
-  coverError: { fontSize: 12, color: '#C0392B', marginTop: 6 },
-  deleteBtn: {
+  reorderBtnOff: { opacity: 0.35 },
+  chapterTitle: { fontSize: 15, fontWeight: '500', color: colors.ink },
+  chapterMeta: { fontSize: 12, color: colors.inkFaint, marginTop: 3 },
+  accessBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+  },
+  freeBadge: { backgroundColor: 'rgba(140, 175, 130, 0.12)', borderColor: 'rgba(140, 175, 130, 0.4)' },
+  paidBadge: { backgroundColor: 'rgba(200, 65, 78, 0.10)', borderColor: 'rgba(200, 65, 78, 0.35)' },
+  accessBadgeText: { fontSize: 11, fontWeight: '700' },
+
+  // Divider between free and paid chapters.
+  dividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: spacing.md,
+    marginBottom: 2,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: colors.borderSoft,
+  },
+  dividerChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: radius.pill,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.borderSoft,
+  },
+  dividerStep: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.paperSoft,
+  },
+  dividerText: { fontSize: 11, fontWeight: '700', color: colors.inkMuted, letterSpacing: 0.4 },
+
+  // Details — genre picker.
+  genreField: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    paddingHorizontal: 13,
+    paddingVertical: 12,
+    backgroundColor: colors.paper,
+  },
+  genreFieldText: { fontSize: 15, color: colors.ink },
+  genrePicker: {
+    marginTop: spacing.sm,
+    padding: spacing.md,
+    borderRadius: radius.md,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.borderSoft,
+  },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  chip: {
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: radius.pill,
+    backgroundColor: colors.paperSoft,
+    borderWidth: 1,
+    borderColor: colors.borderSoft,
+  },
+  chipOn: { backgroundColor: colors.signal, borderColor: colors.signal },
+  chipText: { fontSize: 13, color: colors.ink, fontWeight: '500' },
+  chipTextOn: { color: '#FFFFFF', fontWeight: '700' },
+
+  // 18+ row — shared between Details and (legacy) Status if it ever returns.
+  matureRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: spacing.lg,
+  },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: colors.borderSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkboxOn: { backgroundColor: colors.signal, borderColor: colors.signal },
+  checkMark: { color: colors.paper, fontSize: 12, fontWeight: '700' },
+  matureText: { fontSize: 13, color: colors.inkMuted, flex: 1, lineHeight: 19 },
+
+  // Danger zone — sits at the bottom of Details only.
+  dangerZone: {
     marginTop: spacing.xl,
+    paddingTop: spacing.lg,
+    borderTopWidth: 1,
+    borderTopColor: colors.borderSoft,
+  },
+  dangerLabel: {
+    fontSize: 11,
+    color: '#D9656F',
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+    fontWeight: '700',
+    marginBottom: 10,
+  },
+  deleteBtn: {
+    flexDirection: 'row',
+    gap: 8,
     paddingVertical: 13,
     borderRadius: radius.pill,
     borderWidth: 1,
     borderColor: '#5A2A2E',
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  deleteBtnText: { fontSize: 14, color: '#D9656F', fontWeight: '500' },
+  deleteBtnText: { fontSize: 14, color: '#D9656F', fontWeight: '600' },
+  dangerHint: { fontSize: 12, color: colors.inkFaint, marginTop: 10, lineHeight: 17 },
 
-  // Section heading replaces the old tab strip — what you're editing now,
-  // chosen via the FAB menu.
-  sectionLabel: {
-    fontFamily: fonts.display,
-    fontSize: 17,
-    color: colors.ink,
+  // Status segment.
+  segment: {
+    flexDirection: 'row',
+    backgroundColor: colors.paper,
+    borderWidth: 1,
+    borderColor: colors.borderSoft,
+    borderRadius: radius.md,
+    padding: 3,
+    gap: 3,
+  },
+  segBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: radius.sm,
+    alignItems: 'center',
+  },
+  segOn: { backgroundColor: colors.signal },
+  segText: { fontSize: 13, fontWeight: '600', color: colors.inkMuted },
+  segTextOn: { color: '#FFFFFF' },
+  offlineBtn: {
+    alignSelf: 'flex-start',
     marginTop: spacing.lg,
-    marginBottom: spacing.md,
+    paddingVertical: 9,
+    paddingHorizontal: 16,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
+  offlineBtnText: { fontSize: 12.5, color: colors.inkMuted, fontWeight: '600' },
 
-  // Floating action button (hamburger) — bottom-right where the thumb lives.
+  // Access stepper.
+  stepper: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  stepBtn: {
+    width: 42,
+    height: 42,
+    borderRadius: radius.md,
+    backgroundColor: colors.paper,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stepBtnText: { fontSize: 22, color: colors.ink, fontWeight: '600' },
+  stepValue: {
+    fontFamily: fonts.displayXl,
+    fontSize: 26,
+    color: colors.ink,
+    minWidth: 28,
+    textAlign: 'center',
+  },
+  stepLabel: { fontSize: 13, color: colors.inkMuted },
+
+  status: { fontSize: 12, color: colors.signal, textAlign: 'right', marginTop: spacing.md },
+
+  // FAB + fly-out items.
   fab: {
     position: 'absolute',
     right: 18,
@@ -704,15 +1333,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.signal,
     alignItems: 'center',
     justifyContent: 'center',
-    // Lift the button off the page so the menu visually pops.
     shadowColor: '#000',
     shadowOpacity: 0.3,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 4 },
     elevation: 6,
   },
-
-  // Stack of fly-out action buttons — sit just above the FAB.
   fabStack: {
     position: 'absolute',
     right: 18,
@@ -734,161 +1360,4 @@ const styles = StyleSheet.create({
   fabItemActive: { backgroundColor: colors.signal, borderColor: colors.signal },
   fabItemLabel: { fontSize: 14, fontWeight: '600', color: colors.ink },
   fabItemLabelActive: { color: '#FFFFFF' },
-
-  // Edit-details bottom sheet inputs.
-  sheetTitle: {
-    fontFamily: fonts.display,
-    fontSize: 18,
-    color: colors.ink,
-  },
-  sheetSub: { fontSize: 13, color: colors.inkMuted, marginTop: 4, lineHeight: 19 },
-  detailsLabel: {
-    fontSize: 11,
-    color: colors.inkFaint,
-    textTransform: 'uppercase',
-    letterSpacing: 0.6,
-    fontWeight: '700',
-    marginTop: spacing.md,
-    marginBottom: 6,
-  },
-  detailsInput: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.md,
-    paddingHorizontal: 13,
-    paddingVertical: 11,
-    fontSize: 15,
-    backgroundColor: colors.paper,
-    color: colors.ink,
-  },
-  detailsError: { fontSize: 13, color: colors.signal, marginTop: 8 },
-  detailsBtn: {
-    marginTop: spacing.md,
-    height: 48,
-    borderRadius: 13,
-    backgroundColor: '#F4ECDF',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  detailsBtnText: { fontSize: 15, fontWeight: '700', color: '#15100E' },
-  addBtn: {
-    backgroundColor: '#F4ECDF',
-    paddingVertical: 15,
-    borderRadius: radius.md,
-    alignItems: 'center',
-    marginTop: spacing.lg,
-  },
-  addBtnText: { color: '#15100E', fontSize: 15, fontWeight: '700' },
-  offlineBtn: {
-    alignSelf: 'flex-start',
-    marginTop: spacing.md,
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderRadius: radius.pill,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  offlineBtnText: { fontSize: 12.5, color: colors.inkMuted, fontWeight: '600' },
-  card: {
-    backgroundColor: colors.white,
-    borderWidth: 1,
-    borderColor: colors.borderSoft,
-    borderRadius: radius.lg,
-    marginTop: spacing.md,
-    overflow: 'hidden',
-  },
-  cardHead: { flexDirection: 'row', alignItems: 'center', padding: spacing.md },
-  cardTitle: { fontSize: 15, fontWeight: '500', color: colors.ink },
-  cardMeta: { fontSize: 12, color: colors.inkFaint, marginTop: 3 },
-  chevron: { fontSize: 18, color: colors.inkFaint },
-  editor: {
-    padding: spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: colors.borderSoft,
-    gap: spacing.md,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: colors.borderSoft,
-    borderRadius: radius.md,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 15,
-    backgroundColor: colors.paperSoft,
-    color: colors.ink,
-  },
-  bodyInput: { height: 220, textAlignVertical: 'top', fontSize: 16, lineHeight: 24 },
-  freeRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  matureRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: spacing.lg },
-  checkbox: {
-    width: 20,
-    height: 20,
-    borderRadius: 5,
-    borderWidth: 1,
-    borderColor: colors.borderSoft,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  checkboxOn: { backgroundColor: colors.signal, borderColor: colors.signal },
-  checkMark: { color: colors.paper, fontSize: 12, fontWeight: '700' },
-  freeText: { fontSize: 13, color: colors.inkMuted, flex: 1 },
-  editorBtns: { flexDirection: 'row', gap: spacing.sm, alignItems: 'center' },
-  ghostBtn: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: radius.pill,
-    borderWidth: 1,
-    borderColor: colors.borderSoft,
-  },
-  ghostBtnText: { color: colors.inkMuted, fontSize: 14, fontWeight: '500' },
-  status: { fontSize: 12, color: colors.signal, textAlign: 'right' },
-
-  settingCard: {
-    marginTop: spacing.lg,
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.lg,
-    padding: spacing.md,
-  },
-  cardLabel: { fontSize: 14, fontWeight: '600', color: colors.ink, marginBottom: 10 },
-  cardHint: { fontSize: 12, color: colors.inkFaint, marginTop: 10, lineHeight: 17 },
-  segment: {
-    flexDirection: 'row',
-    backgroundColor: colors.paper,
-    borderWidth: 1,
-    borderColor: colors.borderSoft,
-    borderRadius: radius.md,
-    padding: 3,
-    gap: 3,
-  },
-  segBtn: {
-    flex: 1,
-    paddingVertical: 9,
-    borderRadius: radius.sm,
-    alignItems: 'center',
-  },
-  segOn: { backgroundColor: colors.signal },
-  segText: { fontSize: 13, fontWeight: '600', color: colors.inkMuted },
-  segTextOn: { color: '#FFFFFF' },
-  stepper: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  stepBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: radius.md,
-    backgroundColor: colors.paper,
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  stepBtnText: { fontSize: 20, color: colors.ink, fontWeight: '600' },
-  stepValue: {
-    fontFamily: fonts.displayXl,
-    fontSize: 22,
-    color: colors.ink,
-    minWidth: 26,
-    textAlign: 'center',
-  },
-  stepLabel: { fontSize: 13, color: colors.inkMuted },
 });
