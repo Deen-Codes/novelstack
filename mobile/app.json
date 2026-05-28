@@ -26,14 +26,6 @@
           "protonmail",
           "fastmail",
           "readdle-spark",
-          "airmail",
-          "message",
-          "googlegmail",
-          "ms-outlook",
-          "ymail",
-          "protonmail",
-          "fastmail",
-          "readdle-spark",
           "airmail"
         ]
       }
@@ -46,7 +38,6 @@
         "backgroundColor": "#14110F"
       },
       "permissions": [
-        "com.google.android.gms.permission.AD_ID",
         "com.google.android.gms.permission.AD_ID"
       ]
     },

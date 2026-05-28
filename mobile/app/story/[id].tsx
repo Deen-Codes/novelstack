@@ -4,7 +4,6 @@ import {
   View,
   Text,
   TextInput,
-  Image,
   Pressable,
   ActivityIndicator,
   Share,

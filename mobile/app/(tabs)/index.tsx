@@ -17,7 +17,8 @@ import { router, useFocusEffect } from 'expo-router';
 import { colors, spacing, radius, fonts } from '@/theme/tokens';
 import { apiGetCached, apiSend } from '@/lib/api';
 import { Cover } from '@/components/Cover';
-import { TopBar, useTopBarOffset } from '@/components/TopBar';
+import { TopBar } from '@/components/TopBar';
+import { useTabScroll } from '@/lib/useTabScroll';
 import type { FeedStory, HomeExtras, Shelf } from '@/lib/types';
 
 // hex → rgba, used to derive the ambient glow from a book's cover colour.
@@ -40,18 +41,9 @@ export default function Home() {
   const fade = useRef(new Animated.Value(0)).current; // entrance
   const heroFade = useRef(new Animated.Value(1)).current; // spotlight cross-fade
   const drift = useRef(new Animated.Value(0)).current; // ambient drift loop
-  const scrollY = useRef(new Animated.Value(0)).current; // drives the top bar shrink
-  const scrollRef = useRef<ScrollView>(null);
-  const topPad = useTopBarOffset();
-
-  // Always land back at the top of the page on tab focus, so tapping the
-  // Home icon never strands the reader mid-scroll.
-  useFocusEffect(
-    useCallback(() => {
-      scrollRef.current?.scrollTo?.({ y: 0, animated: false });
-      scrollY.setValue(0);
-    }, [scrollY]),
-  );
+  // Shared tab-scroll plumbing: scrollY for the TopBar shrink, scroll-to-top
+  // on focus, and the matching topPad so content lands below the bar.
+  const { scrollRef, scrollY, topPad, onScroll } = useTabScroll();
 
   const load = useCallback(async () => {
     const [f, e, sh] = await Promise.allSettled([
@@ -178,10 +170,7 @@ export default function Home() {
         contentContainerStyle={[styles.scroll, { paddingTop: topPad }]}
         showsVerticalScrollIndicator={false}
         scrollEventThrottle={16}
-        onScroll={Animated.event(
-          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          { useNativeDriver: false },
-        )}
+        onScroll={onScroll}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}

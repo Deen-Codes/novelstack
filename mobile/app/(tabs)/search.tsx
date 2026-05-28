@@ -15,7 +15,8 @@ import { router, useFocusEffect } from 'expo-router';
 import { colors, spacing, fonts } from '@/theme/tokens';
 import { apiGet, apiGetCached } from '@/lib/api';
 import { Cover } from '@/components/Cover';
-import { TopBar, useTopBarOffset } from '@/components/TopBar';
+import { TopBar } from '@/components/TopBar';
+import { useTabScroll } from '@/lib/useTabScroll';
 import { AmbientGlow } from '@/components/AmbientGlow';
 import type { Story } from '@/lib/types';
 
@@ -107,17 +108,7 @@ export default function Search() {
   }, [q]);
 
   const hasQuery = q.trim().length > 0;
-  const scrollY = useRef(new Animated.Value(0)).current;
-  const scrollRef = useRef<ScrollView>(null);
-  const topPad = useTopBarOffset();
-
-  // Land back at the top whenever Search is re-focused from the tab bar.
-  useFocusEffect(
-    useCallback(() => {
-      scrollRef.current?.scrollTo?.({ y: 0, animated: false });
-      scrollY.setValue(0);
-    }, [scrollY]),
-  );
+  const { scrollRef, scrollY, topPad, onScroll } = useTabScroll();
 
   return (
     <SafeAreaView style={styles.safe} edges={[]}>
@@ -128,10 +119,7 @@ export default function Search() {
         keyboardShouldPersistTaps="never"
         keyboardDismissMode="on-drag"
         scrollEventThrottle={16}
-        onScroll={Animated.event(
-          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          { useNativeDriver: false },
-        )}
+        onScroll={onScroll}
       >
         <View style={styles.field}>
           <Ionicons name="search" size={18} color={colors.inkFaint} />

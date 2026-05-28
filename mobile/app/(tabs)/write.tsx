@@ -7,6 +7,8 @@ import {
   TextInput,
   Pressable,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
   StyleSheet,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -18,7 +20,8 @@ import { GENRES, genreLabel } from '@/lib/genres';
 import { Cover } from '@/components/Cover';
 import { AmbientGlow } from '@/components/AmbientGlow';
 import { SignInPitch } from '@/components/SignInPitch';
-import { TopBar, useTopBarOffset } from '@/components/TopBar';
+import { TopBar } from '@/components/TopBar';
+import { useTabScroll } from '@/lib/useTabScroll';
 import { Typewriter } from '@/components/Typewriter';
 import type { Shelf, Story } from '@/lib/types';
 
@@ -110,17 +113,178 @@ export default function Write() {
     setBusy(false);
   }
 
-  const scrollY = useRef(new Animated.Value(0)).current;
-  const scrollRef = useRef<ScrollView>(null);
-  const topPad = useTopBarOffset();
+  const { scrollRef, scrollY, topPad, onScroll } = useTabScroll();
 
-  // Land back at the top whenever Write is re-focused from the tab bar.
-  useFocusEffect(
-    useCallback(() => {
-      scrollRef.current?.scrollTo?.({ y: 0, animated: false });
-      scrollY.setValue(0);
-    }, [scrollY]),
-  );
+  // Wizard innards — shared by the centred wizard layout. Just the form,
+  // not the framing card; the card lives in the layout that calls this.
+  function renderWizard() {
+    return (
+      <>
+        <View style={styles.wizardHead}>
+          <Text style={styles.wizardStep}>Step {step} of 3</Text>
+          <Pressable hitSlop={8} onPress={resetWizard}>
+            <Ionicons name="close" size={20} color={colors.inkMuted} />
+          </Pressable>
+        </View>
+        <View style={styles.stepDots}>
+          {[1, 2, 3].map((n) => (
+            <View
+              key={n}
+              style={[
+                styles.dot,
+                n === step && styles.dotOn,
+                n < step && styles.dotPast,
+              ]}
+            />
+          ))}
+        </View>
+
+        {step === 1 && (
+          <>
+            <Text style={styles.wizardQ}>What&apos;s your story called?</Text>
+            <Text style={styles.wizardSub}>
+              Don&apos;t overthink it — you can rename it later.
+            </Text>
+            <TextInput
+              value={title}
+              onChangeText={setTitle}
+              placeholder="A title…"
+              placeholderTextColor={colors.inkFaint}
+              style={styles.wizardInput}
+              autoFocus
+              returnKeyType="next"
+              onSubmitEditing={() => title.trim() && setStep(2)}
+            />
+          </>
+        )}
+
+        {step === 2 && (
+          <>
+            <Text style={styles.wizardQ}>Pick a genre.</Text>
+            <Text style={styles.wizardSub}>
+              This shapes who finds {title.trim() ? `“${title.trim()}”` : 'your story'}.
+            </Text>
+            {genre ? (
+              <Pressable
+                style={styles.genrePicked}
+                onPress={() => {
+                  setGenre('');
+                  setGenreQuery('');
+                }}
+              >
+                <Text style={styles.genrePickedText}>{genreLabel(genre)}</Text>
+                <Ionicons name="close-circle" size={17} color={colors.signal} />
+              </Pressable>
+            ) : (
+              <>
+                <TextInput
+                  value={genreQuery}
+                  onChangeText={setGenreQuery}
+                  placeholder="Search genres…"
+                  placeholderTextColor={colors.inkFaint}
+                  style={styles.wizardInput}
+                  autoCorrect={false}
+                  autoFocus
+                />
+                <View style={styles.chips}>
+                  {GENRES.filter((g) =>
+                    g.label.toLowerCase().includes(genreQuery.trim().toLowerCase()),
+                  )
+                    .slice(0, 10)
+                    .map((g) => (
+                      <Pressable
+                        key={g.value}
+                        style={styles.chip}
+                        onPress={() => {
+                          setGenre(g.value);
+                          setGenreQuery('');
+                          setError('');
+                        }}
+                      >
+                        <Text style={styles.chipText}>{g.label}</Text>
+                      </Pressable>
+                    ))}
+                </View>
+              </>
+            )}
+          </>
+        )}
+
+        {step === 3 && (
+          <>
+            <Text style={styles.wizardQ}>What&apos;s it about?</Text>
+            <Text style={styles.wizardSub}>
+              One or two lines that hook a reader. You can edit this later.
+            </Text>
+            <TextInput
+              value={desc}
+              onChangeText={setDesc}
+              placeholder="A pitch in a few sentences…"
+              placeholderTextColor={colors.inkFaint}
+              multiline
+              style={[styles.wizardInput, { height: 110, textAlignVertical: 'top' }]}
+              autoFocus
+            />
+            <Pressable style={styles.matureRow} onPress={() => setMature((m) => !m)}>
+              <View style={[styles.checkbox, mature && styles.checkboxOn]}>
+                {mature && <Ionicons name="checkmark" size={13} color="#FFFFFF" />}
+              </View>
+              <Text style={styles.matureText}>
+                Mature (18+) — adult content. Readers confirm their age first.
+              </Text>
+            </Pressable>
+          </>
+        )}
+
+        {!!error && (
+          <View style={styles.errorRow}>
+            <Ionicons name="alert-circle" size={15} color={colors.signal} />
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
+        )}
+
+        <View style={styles.formBtns}>
+          <Pressable
+            style={styles.ghostBtn}
+            onPress={() => {
+              if (step === 1) {
+                resetWizard();
+              } else {
+                setStep((s) => (s - 1) as 0 | 1 | 2 | 3);
+              }
+              setError('');
+            }}
+          >
+            <Text style={styles.ghostBtnText}>{step === 1 ? 'Cancel' : 'Back'}</Text>
+          </Pressable>
+          {step < 3 ? (
+            <Pressable
+              style={[
+                styles.createBtn,
+                ((step === 1 && !title.trim()) || (step === 2 && !genre)) && {
+                  opacity: 0.5,
+                },
+              ]}
+              onPress={() => setStep((s) => (s + 1) as 0 | 1 | 2 | 3)}
+              disabled={(step === 1 && !title.trim()) || (step === 2 && !genre)}
+            >
+              <Text style={styles.createBtnText}>Next</Text>
+            </Pressable>
+          ) : (
+            <Pressable
+              style={[styles.createBtn, busy && { opacity: 0.6 }]}
+              onPress={createStory}
+              disabled={busy}
+            >
+              <Text style={styles.createBtnText}>
+                {busy ? 'Creating…' : 'Create story'}
+              </Text>
+            </Pressable>
+          )}
+        </View>
+      </>
+    );
+  }
 
   if (loading) {
     return (
@@ -142,38 +306,17 @@ export default function Write() {
     );
   }
 
-  return (
-    <SafeAreaView style={styles.safe} edges={[]}>
-      <AmbientGlow />
-      <Animated.ScrollView
-        ref={scrollRef}
-        contentContainerStyle={[styles.scroll, { paddingTop: topPad }]}
-        keyboardShouldPersistTaps="handled"
-        scrollEventThrottle={16}
-        onScroll={Animated.event(
-          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          { useNativeDriver: false },
-        )}
-      >
-        {step === 0 ? (
-          <Pressable style={styles.newCard} onPress={() => setStep(1)}>
-            <View style={styles.newIcon}>
-              <Ionicons name="add" size={24} color={colors.signal} />
-            </View>
-            <View style={styles.newText}>
-              {/* Typewriter draws the eye to the primary action — "Start a
-                  new story." types itself out each time the screen comes
-                  into focus. */}
-              <Typewriter
-                text="Start a new story."
-                style={styles.newTitle}
-                caretColor={colors.signal}
-              />
-              <Text style={styles.newSub}>A few quick questions, then you're writing.</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={18} color={colors.inkFaint} />
-          </Pressable>
-        ) : (
+  // Wizard mode lifts the card out of the scroll and floats it in a
+  // keyboard-avoiding container so it sits centred between the top bar and
+  // the keyboard — much friendlier than a card flush against the top.
+  if (step > 0) {
+    return (
+      <SafeAreaView style={styles.safe} edges={[]}>
+        <AmbientGlow />
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={[styles.wizardWrap, { paddingTop: topPad }]}
+        >
           <Animated.View
             style={[
               styles.wizard,
@@ -183,214 +326,78 @@ export default function Write() {
               },
             ]}
           >
-            <View style={styles.wizardHead}>
-              <Text style={styles.wizardStep}>Step {step} of 3</Text>
-              <Pressable hitSlop={8} onPress={resetWizard}>
-                <Ionicons name="close" size={20} color={colors.inkMuted} />
-              </Pressable>
-            </View>
-            <View style={styles.stepDots}>
-              {[1, 2, 3].map((n) => (
-                <View
-                  key={n}
-                  style={[
-                    styles.dot,
-                    n === step && styles.dotOn,
-                    n < step && styles.dotPast,
-                  ]}
-                />
-              ))}
-            </View>
-
-            {step === 1 && (
-              <>
-                <Text style={styles.wizardQ}>What&apos;s your story called?</Text>
-                <Text style={styles.wizardSub}>
-                  Don&apos;t overthink it — you can rename it later.
-                </Text>
-                <TextInput
-                  value={title}
-                  onChangeText={setTitle}
-                  placeholder="A title…"
-                  placeholderTextColor={colors.inkFaint}
-                  style={styles.wizardInput}
-                  autoFocus
-                  returnKeyType="next"
-                  onSubmitEditing={() => title.trim() && setStep(2)}
-                />
-              </>
-            )}
-
-            {step === 2 && (
-              <>
-                <Text style={styles.wizardQ}>Pick a genre.</Text>
-                <Text style={styles.wizardSub}>
-                  This shapes who finds {title.trim() ? `“${title.trim()}”` : 'your story'}.
-                </Text>
-                {genre ? (
-                  <Pressable
-                    style={styles.genrePicked}
-                    onPress={() => {
-                      setGenre('');
-                      setGenreQuery('');
-                    }}
-                  >
-                    <Text style={styles.genrePickedText}>{genreLabel(genre)}</Text>
-                    <Ionicons name="close-circle" size={17} color={colors.signal} />
-                  </Pressable>
-                ) : (
-                  <>
-                    <TextInput
-                      value={genreQuery}
-                      onChangeText={setGenreQuery}
-                      placeholder="Search genres…"
-                      placeholderTextColor={colors.inkFaint}
-                      style={styles.wizardInput}
-                      autoCorrect={false}
-                      autoFocus
-                    />
-                    <View style={styles.chips}>
-                      {GENRES.filter((g) =>
-                        g.label
-                          .toLowerCase()
-                          .includes(genreQuery.trim().toLowerCase()),
-                      )
-                        .slice(0, 10)
-                        .map((g) => (
-                          <Pressable
-                            key={g.value}
-                            style={styles.chip}
-                            onPress={() => {
-                              setGenre(g.value);
-                              setGenreQuery('');
-                              setError('');
-                            }}
-                          >
-                            <Text style={styles.chipText}>{g.label}</Text>
-                          </Pressable>
-                        ))}
-                    </View>
-                  </>
-                )}
-              </>
-            )}
-
-            {step === 3 && (
-              <>
-                <Text style={styles.wizardQ}>What&apos;s it about?</Text>
-                <Text style={styles.wizardSub}>
-                  One or two lines that hook a reader. You can edit this later.
-                </Text>
-                <TextInput
-                  value={desc}
-                  onChangeText={setDesc}
-                  placeholder="A pitch in a few sentences…"
-                  placeholderTextColor={colors.inkFaint}
-                  multiline
-                  style={[styles.wizardInput, { height: 110, textAlignVertical: 'top' }]}
-                  autoFocus
-                />
-                <Pressable style={styles.matureRow} onPress={() => setMature((m) => !m)}>
-                  <View style={[styles.checkbox, mature && styles.checkboxOn]}>
-                    {mature && <Ionicons name="checkmark" size={13} color="#FFFFFF" />}
-                  </View>
-                  <Text style={styles.matureText}>
-                    Mature (18+) — adult content. Readers confirm their age first.
-                  </Text>
-                </Pressable>
-              </>
-            )}
-
-            {!!error && (
-              <View style={styles.errorRow}>
-                <Ionicons name="alert-circle" size={15} color={colors.signal} />
-                <Text style={styles.errorText}>{error}</Text>
-              </View>
-            )}
-
-            <View style={styles.formBtns}>
-              <Pressable
-                style={styles.ghostBtn}
-                onPress={() => {
-                  if (step === 1) {
-                    resetWizard();
-                  } else {
-                    setStep((s) => (s - 1) as 0 | 1 | 2 | 3);
-                  }
-                  setError('');
-                }}
-              >
-                <Text style={styles.ghostBtnText}>{step === 1 ? 'Cancel' : 'Back'}</Text>
-              </Pressable>
-              {step < 3 ? (
-                <Pressable
-                  style={[
-                    styles.createBtn,
-                    ((step === 1 && !title.trim()) || (step === 2 && !genre)) && {
-                      opacity: 0.5,
-                    },
-                  ]}
-                  onPress={() => setStep((s) => (s + 1) as 0 | 1 | 2 | 3)}
-                  disabled={(step === 1 && !title.trim()) || (step === 2 && !genre)}
-                >
-                  <Text style={styles.createBtnText}>Next</Text>
-                </Pressable>
-              ) : (
-                <Pressable
-                  style={[styles.createBtn, busy && { opacity: 0.6 }]}
-                  onPress={createStory}
-                  disabled={busy}
-                >
-                  <Text style={styles.createBtnText}>
-                    {busy ? 'Creating…' : 'Create story'}
-                  </Text>
-                </Pressable>
-              )}
-            </View>
+            {renderWizard()}
           </Animated.View>
-        )}
+        </KeyboardAvoidingView>
+        <TopBar page="write" scrollY={scrollY} />
+      </SafeAreaView>
+    );
+  }
 
-        {/* Hide the Your-stories list while the new-story wizard is open so
-            the wizard owns the whole screen — Cancel/Close drops back to
-            the full Write surface. */}
-        {step === 0 && (
-          <>
-            <Text style={styles.section}>Your stories</Text>
-            {stories.length === 0 ? (
-              <View style={styles.emptyCard}>
-                <Ionicons name="book-outline" size={22} color={colors.inkFaint} />
-                <Text style={styles.empty}>
-                  No stories yet. Tap “Start a new story” to begin your first.
+  return (
+    <SafeAreaView style={styles.safe} edges={[]}>
+      <AmbientGlow />
+      <Animated.ScrollView
+        ref={scrollRef}
+        contentContainerStyle={[styles.scroll, { paddingTop: topPad }]}
+        keyboardShouldPersistTaps="handled"
+        scrollEventThrottle={16}
+        onScroll={onScroll}
+      >
+        <Pressable style={styles.newCard} onPress={() => setStep(1)}>
+          <View style={styles.newIcon}>
+            <Ionicons name="add" size={24} color={colors.signal} />
+          </View>
+          <View style={styles.newText}>
+            {/* Typewriter draws the eye to the primary action — "Start a
+                new story." types itself out each time the screen comes
+                into focus. */}
+            <Typewriter
+              text="Start a new story."
+              style={styles.newTitle}
+              caretColor={colors.signal}
+            />
+            <Text style={styles.newSub}>A few quick questions, then you're writing.</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={colors.inkFaint} />
+        </Pressable>
+
+        {/* Your stories — wizard mode uses its own early-return layout,
+            so this only ever renders when the user isn't creating. */}
+        <Text style={styles.section}>Your stories</Text>
+        {stories.length === 0 ? (
+          <View style={styles.emptyCard}>
+            <Ionicons name="book-outline" size={22} color={colors.inkFaint} />
+            <Text style={styles.empty}>
+              No stories yet. Tap “Start a new story” to begin your first.
+            </Text>
+          </View>
+        ) : (
+          <View style={styles.storiesGrid}>
+            {stories.map((s) => (
+              <Pressable
+                key={s.id}
+                style={styles.storyGridItem}
+                onPress={() => router.push(`/write/${s.id}`)}
+              >
+                <Cover
+                  coverUrl={s.coverUrl}
+                  coverColor={s.coverColor}
+                  title={s.title}
+                  mature={s.isMature}
+                  style={styles.storyGridCover}
+                />
+                <Text style={styles.storyGridTitle} numberOfLines={2}>
+                  {s.title}
                 </Text>
-              </View>
-            ) : (
-              <View style={styles.storiesGrid}>
-                {stories.map((s) => (
-                  <Pressable
-                    key={s.id}
-                    style={styles.storyGridItem}
-                    onPress={() => router.push(`/write/${s.id}`)}
-                  >
-                    <Cover
-                      coverUrl={s.coverUrl}
-                      coverColor={s.coverColor}
-                      title={s.title}
-                      mature={s.isMature}
-                      style={styles.storyGridCover}
-                    />
-                    <Text style={styles.storyGridTitle} numberOfLines={2}>
-                      {s.title}
-                    </Text>
-                    {s.status === 'draft' && (
-                      <View style={styles.storyGridDraft}>
-                        <Text style={styles.storyGridDraftText}>Draft</Text>
-                      </View>
-                    )}
-                  </Pressable>
-                ))}
-              </View>
-            )}
-          </>
+                {s.status === 'draft' && (
+                  <View style={styles.storyGridDraft}>
+                    <Text style={styles.storyGridDraftText}>Draft</Text>
+                  </View>
+                )}
+              </Pressable>
+            ))}
+          </View>
         )}
       </Animated.ScrollView>
 
@@ -446,6 +453,16 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   formTitle: { fontFamily: fonts.display, fontSize: 17, color: colors.ink },
+
+  // Keyboard-avoiding wrap for the centred wizard layout. Pushes the card
+  // into the middle of the visible space between the top bar and the
+  // keyboard — comfortable thumb zone, not flush at the top of the page.
+  wizardWrap: {
+    flex: 1,
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+    paddingBottom: spacing.lg,
+  },
 
   // Three-step story-creation wizard — looks intentional and immersive,
   // not like a generic settings form.

@@ -1,5 +1,6 @@
-import { Image, View, StyleSheet, type ImageSourcePropType, type ViewStyle, type StyleProp } from 'react-native';
-import { colors, radius } from '@/theme/tokens';
+import { View, StyleSheet, type ImageSourcePropType, type ViewStyle, type StyleProp } from 'react-native';
+import { Image } from 'expo-image';
+import { colors } from '@/theme/tokens';
 
 // Pre-bundled defaults — the 8 literary AI avatars (Classic Reader, Night
 // Reader, Poet, Scholar, Minimalist, Vintage, Fantasy, Sci-Fi…). Metro
@@ -64,7 +65,11 @@ export function Avatar({
         style={{ width: size, height: size }}
         // `cover` so default avatars (which are 512×512 squares) and tall
         // user uploads both fill the circle without letterboxing.
-        resizeMode="cover"
+        contentFit="cover"
+        // expo-image disk-caches by default — avatars stay snappy on every
+        // tab switch, no re-fetch.
+        cachePolicy="memory-disk"
+        transition={120}
       />
     </View>
   );

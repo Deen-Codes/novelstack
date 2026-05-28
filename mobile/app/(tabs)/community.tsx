@@ -4,7 +4,6 @@ import {
   ScrollView,
   View,
   Text,
-  Image,
   Pressable,
   ActivityIndicator,
   Share,
@@ -18,7 +17,8 @@ import { apiGetCached, apiSend, getSessionToken } from '@/lib/api';
 import { getCurrentUser } from '@/lib/auth';
 import { genreLabel } from '@/lib/genres';
 import { Cover } from '@/components/Cover';
-import { TopBar, useTopBarOffset } from '@/components/TopBar';
+import { TopBar } from '@/components/TopBar';
+import { useTabScroll } from '@/lib/useTabScroll';
 import { SignInPitch } from '@/components/SignInPitch';
 import { AmbientGlow } from '@/components/AmbientGlow';
 import { StaggerIn } from '@/components/StaggerIn';
@@ -222,17 +222,7 @@ export default function Community() {
     ...ghostItems,
   ];
 
-  const scrollY = useRef(new Animated.Value(0)).current;
-  const scrollRef = useRef<ScrollView>(null);
-  const topPad = useTopBarOffset();
-
-  // Land back at the top whenever Community is re-focused from the tab bar.
-  useFocusEffect(
-    useCallback(() => {
-      scrollRef.current?.scrollTo?.({ y: 0, animated: false });
-      scrollY.setValue(0);
-    }, [scrollY]),
-  );
+  const { scrollRef, scrollY, topPad, onScroll } = useTabScroll();
 
   return (
     <SafeAreaView style={styles.safe} edges={[]}>
@@ -242,10 +232,7 @@ export default function Community() {
         contentContainerStyle={[styles.scroll, { paddingTop: topPad }]}
         showsVerticalScrollIndicator={false}
         scrollEventThrottle={16}
-        onScroll={Animated.event(
-          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          { useNativeDriver: false },
-        )}
+        onScroll={onScroll}
       >
         {loading ? (
           <ActivityIndicator color={colors.signal} style={{ marginTop: spacing.xl }} />

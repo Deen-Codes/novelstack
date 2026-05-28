@@ -3,7 +3,6 @@ import {
   ScrollView,
   View,
   Text,
-  Image,
   Pressable,
   ActivityIndicator,
   Alert,

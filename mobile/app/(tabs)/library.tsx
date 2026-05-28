@@ -14,7 +14,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, radius, fonts } from '@/theme/tokens';
 import { apiGetCached, apiSend, getSessionToken } from '@/lib/api';
 import { getCurrentUser } from '@/lib/auth';
-import { TopBar, useTopBarOffset } from '@/components/TopBar';
+import { TopBar } from '@/components/TopBar';
+import { useTabScroll } from '@/lib/useTabScroll';
 import { Cover } from '@/components/Cover';
 import { SignInPitch } from '@/components/SignInPitch';
 import { AmbientGlow } from '@/components/AmbientGlow';
@@ -124,18 +125,8 @@ export default function Library() {
     );
   }
 
-  const scrollY = useRef(new Animated.Value(0)).current;
-  const scrollRef = useRef<ScrollView>(null);
-  const topPad = useTopBarOffset();
+  const { scrollRef, scrollY, topPad, onScroll } = useTabScroll();
   const insets = useSafeAreaInsets();
-
-  // Land back at the top whenever Library is re-focused from the tab bar.
-  useFocusEffect(
-    useCallback(() => {
-      scrollRef.current?.scrollTo?.({ y: 0, animated: false });
-      scrollY.setValue(0);
-    }, [scrollY]),
-  );
 
   if (loading) {
     return (
@@ -175,10 +166,7 @@ export default function Library() {
           { paddingTop: topPad },
         ]}
         scrollEventThrottle={16}
-        onScroll={Animated.event(
-          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          { useNativeDriver: false },
-        )}
+        onScroll={onScroll}
       >
         {isEmpty ? (
           <View style={styles.emptyWrap}>
@@ -291,9 +279,9 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   floatPill: {
-    paddingVertical: 9,
-    paddingHorizontal: 16,
-    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 14,
   },
   floatPillOn: {
     backgroundColor: '#F4ECDF',
@@ -303,7 +291,9 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 5 },
     elevation: 6,
   },
-  floatPillText: { fontSize: 13, fontWeight: '600', color: colors.inkFaint },
+  // Subtitle-sized — reads clearly near the thumb without competing with
+  // the topbar title.
+  floatPillText: { fontSize: 16, fontWeight: '600', color: colors.inkFaint, letterSpacing: -0.2 },
   floatPillTextOn: { color: '#15100E', fontWeight: '700' },
 
   emptyWrap: { alignItems: 'center', paddingHorizontal: 16 },
