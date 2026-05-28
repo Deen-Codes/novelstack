@@ -11,24 +11,41 @@ import { ProfileSheet } from './ProfileSheet';
 import { Avatar } from './Avatar';
 import type { User } from '@/lib/types';
 
+// expo-blur is a native module — older TestFlight builds may not have the
+// native side compiled in yet. Require it lazily so we can fall back to a
+// translucent dark layer on any build without the native binary, instead
+// of crashing on render.
+let BlurViewMaybe: React.ComponentType<{
+  tint?: 'light' | 'dark' | 'default';
+  intensity?: number;
+  style?: object;
+}> | null = null;
+try {
+  BlurViewMaybe = require('expo-blur').BlurView;
+} catch {
+  BlurViewMaybe = null;
+}
+
 // The big resting size of the n.{page} mark. Sized so it comfortably fits
 // inside the top bar — nothing clips, nothing overflows the bottom edge.
-const TITLE_BIG = 34;
-// What it settles to as the user scrolls down — the previous default size,
-// keeping the bar tidy once you're deep in the page.
-const TITLE_SMALL = 24;
+const TITLE_BIG = 38;
+// What it settles to as the user scrolls down — slightly smaller than the
+// previous default, so the size change reads clearly.
+const TITLE_SMALL = 22;
 // How far the user has to scroll for the shrink to finish — keeps the
 // transition responsive without feeling jumpy.
 const SHRINK_RANGE = 70;
 // Height of the bar's content row (sits below the safe-area inset). Tall
-// enough for the big title to breathe and never touch the gradient fade.
-const BAR_CONTENT_HEIGHT = 60;
+// enough for the big 38pt title to breathe and never touch the gradient fade.
+const BAR_CONTENT_HEIGHT = 68;
 
 // Pages place their scrollable content under the absolute top bar — this
 // hook returns the right paddingTop so the first item lands cleanly below.
+// The extra 12pt gives a comfortable gap so the first row never visually
+// touches the bar (Apple's large-title nav has the same breathing room).
 export function useTopBarOffset() {
   const insets = useSafeAreaInsets();
-  return insets.top + BAR_CONTENT_HEIGHT;
+  return insets.top + BAR_CONTENT_HEIGHT + 12;
 }
 
 // Shared top bar for the tab screens: the `n.{page}` mark on the left (e.g.
@@ -56,12 +73,14 @@ export function TopBar({
     outputRange: [TITLE_BIG, TITLE_SMALL],
     extrapolate: 'clamp',
   });
-  // Backdrop opacity rises a hair as you scroll so the very top of the page
-  // keeps a clean transparent look at rest, then settles into a darker
-  // frosted-glass feel once content is sliding behind.
+  // With real expo-blur the backdrop is a frosted-glass blur — we still
+  // ramp its opacity so the title floats over a clean page at rest then
+  // becomes a defined header once you scroll. Without expo-blur compiled
+  // into the binary, the same opacity ramp drives a translucent dark
+  // overlay instead (close-enough fallback).
   const backdropOpacity = sy.interpolate({
-    inputRange: [0, SHRINK_RANGE],
-    outputRange: [0.55, 0.82],
+    inputRange: [0, 12, SHRINK_RANGE],
+    outputRange: [0.0, 0.6, 1.0],
     extrapolate: 'clamp',
   });
 
@@ -95,13 +114,30 @@ export function TopBar({
           { paddingTop: insets.top, height: insets.top + BAR_CONTENT_HEIGHT },
         ]}
       >
-        {/* Translucent backdrop — the closest we get to a real blur without
-            shipping expo-blur (which would force a native build). On the
-            dark paper background this reads as a frosted dark layer. */}
-        <Animated.View
-          pointerEvents="none"
-          style={[styles.backdrop, { opacity: backdropOpacity }]}
-        />
+        {/* Real Gaussian blur when expo-blur is in the binary; otherwise
+            fall back to a translucent dark layer. The opacity ramp is the
+            same in both — the bar fades up from clear at rest to a clean
+            header once you've scrolled a bit. */}
+        {BlurViewMaybe ? (
+          <Animated.View
+            pointerEvents="none"
+            style={[StyleSheet.absoluteFillObject, { opacity: backdropOpacity }]}
+          >
+            <BlurViewMaybe
+              tint="dark"
+              intensity={80}
+              style={StyleSheet.absoluteFillObject}
+            />
+            {/* Tint over the blur so the paper colour still shows through
+                — pure blur on dark content can read as washed-out. */}
+            <View style={styles.blurTint} />
+          </Animated.View>
+        ) : (
+          <Animated.View
+            pointerEvents="none"
+            style={[styles.backdrop, { opacity: backdropOpacity }]}
+          />
+        )}
         {/* A soft fade just under the bar so content peeks through the
             transition instead of meeting a hard edge. */}
         <LinearGradient
@@ -155,10 +191,16 @@ const styles = StyleSheet.create({
     right: 0,
     zIndex: 50,
   },
-  // Full-cover translucent dark layer.
+  // Full-cover translucent dark layer (used when expo-blur isn't compiled
+  // into the binary so the bar still reads as a header on scroll).
   backdrop: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: colors.paper,
+  },
+  // Sits on top of the BlurView so the blur picks up our paper tone.
+  blurTint: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(20, 17, 15, 0.35)',
   },
   // Sits just below the bar — fades the lower edge so it doesn't draw a
   // sharp line across the page.

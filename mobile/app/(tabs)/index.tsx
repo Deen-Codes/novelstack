@@ -41,7 +41,17 @@ export default function Home() {
   const heroFade = useRef(new Animated.Value(1)).current; // spotlight cross-fade
   const drift = useRef(new Animated.Value(0)).current; // ambient drift loop
   const scrollY = useRef(new Animated.Value(0)).current; // drives the top bar shrink
+  const scrollRef = useRef<ScrollView>(null);
   const topPad = useTopBarOffset();
+
+  // Always land back at the top of the page on tab focus, so tapping the
+  // Home icon never strands the reader mid-scroll.
+  useFocusEffect(
+    useCallback(() => {
+      scrollRef.current?.scrollTo?.({ y: 0, animated: false });
+      scrollY.setValue(0);
+    }, [scrollY]),
+  );
 
   const load = useCallback(async () => {
     const [f, e, sh] = await Promise.allSettled([
@@ -164,6 +174,7 @@ export default function Home() {
       )}
 
       <Animated.ScrollView
+        ref={scrollRef}
         contentContainerStyle={[styles.scroll, { paddingTop: topPad }]}
         showsVerticalScrollIndicator={false}
         scrollEventThrottle={16}

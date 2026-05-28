@@ -1,13 +1,14 @@
 import { useCallback, useRef, useState } from 'react';
 import {
   Animated,
+  ScrollView,
   View,
   Text,
   Pressable,
   ActivityIndicator,
   StyleSheet,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, radius, fonts } from '@/theme/tokens';
@@ -124,7 +125,17 @@ export default function Library() {
   }
 
   const scrollY = useRef(new Animated.Value(0)).current;
+  const scrollRef = useRef<ScrollView>(null);
   const topPad = useTopBarOffset();
+  const insets = useSafeAreaInsets();
+
+  // Land back at the top whenever Library is re-focused from the tab bar.
+  useFocusEffect(
+    useCallback(() => {
+      scrollRef.current?.scrollTo?.({ y: 0, animated: false });
+      scrollY.setValue(0);
+    }, [scrollY]),
+  );
 
   if (loading) {
     return (
@@ -158,6 +169,7 @@ export default function Library() {
     <SafeAreaView style={styles.safe} edges={[]}>
       <AmbientGlow />
       <Animated.ScrollView
+        ref={scrollRef}
         contentContainerStyle={[
           isEmpty ? styles.scrollEmpty : styles.scroll,
           { paddingTop: topPad },
@@ -185,24 +197,6 @@ export default function Library() {
           </View>
         ) : (
           <>
-            <View style={styles.tabs}>
-              <Pressable
-                style={[styles.tab, tab === 'reading' && styles.tabOn]}
-                onPress={() => setTab('reading')}
-              >
-                <Text style={[styles.tabText, tab === 'reading' && styles.tabTextOn]}>
-                  In progress
-                </Text>
-              </Pressable>
-              <Pressable
-                style={[styles.tab, tab === 'finished' && styles.tabOn]}
-                onPress={() => setTab('finished')}
-              >
-                <Text style={[styles.tabText, tab === 'finished' && styles.tabTextOn]}>
-                  Completed
-                </Text>
-              </Pressable>
-            </View>
             {(tab === 'reading' ? reading : finished).length === 0 ? (
               <Text style={styles.tabEmpty}>
                 {tab === 'reading'
@@ -219,6 +213,44 @@ export default function Library() {
           </>
         )}
       </Animated.ScrollView>
+
+      {/* Floating segmented control — selected pill on top with a cream
+          box, deselected sits beneath as plain grey text. Tapping the
+          deselected one promotes it to the top. */}
+      {!isEmpty && (
+        <View
+          style={[
+            styles.floatTabs,
+            { bottom: insets.bottom + 78 + 16, right: 16 },
+          ]}
+          pointerEvents="box-none"
+        >
+          {(tab === 'reading'
+            ? (['reading', 'finished'] as const)
+            : (['finished', 'reading'] as const)
+          ).map((t) => {
+            const selected = tab === t;
+            const label = t === 'reading' ? 'In progress' : 'Completed';
+            return (
+              <Pressable
+                key={t}
+                onPress={() => setTab(t)}
+                style={[styles.floatPill, selected && styles.floatPillOn]}
+                hitSlop={6}
+              >
+                <Text
+                  style={[
+                    styles.floatPillText,
+                    selected && styles.floatPillTextOn,
+                  ]}
+                >
+                  {label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      )}
 
       <TopBar page="library" scrollY={scrollY} />
     </SafeAreaView>
@@ -248,26 +280,31 @@ const styles = StyleSheet.create({
     marginTop: spacing.xl,
   },
 
-  // In progress / Completed switcher.
-  tabs: {
-    flexDirection: 'row',
-    gap: 8,
-    marginTop: spacing.xs,
-    marginBottom: spacing.lg,
+  tabEmpty: { fontSize: 13, color: colors.inkMuted, lineHeight: 19, marginTop: spacing.lg },
+
+  // Floating segmented control on bottom-right. Stacked vertically with the
+  // selected pill always on top (cream box, dark text), the deselected one
+  // sits beneath as plain grey text — taps on it swap positions.
+  floatTabs: {
+    position: 'absolute',
+    alignItems: 'flex-end',
+    gap: 6,
   },
-  tab: {
+  floatPill: {
     paddingVertical: 9,
-    paddingHorizontal: 18,
-    borderRadius: 11,
-    borderWidth: 1,
-    borderColor: colors.border,
+    paddingHorizontal: 16,
+    borderRadius: 12,
   },
-  // Selected segment paints cream like the home Read button so all the
-  // primary selections share one button language.
-  tabOn: { backgroundColor: '#F4ECDF', borderColor: '#F4ECDF' },
-  tabText: { fontSize: 13, fontWeight: '700', color: colors.inkFaint },
-  tabTextOn: { color: '#15100E' },
-  tabEmpty: { fontSize: 13, color: colors.inkMuted, lineHeight: 19 },
+  floatPillOn: {
+    backgroundColor: '#F4ECDF',
+    shadowColor: '#000',
+    shadowOpacity: 0.32,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 6,
+  },
+  floatPillText: { fontSize: 13, fontWeight: '600', color: colors.inkFaint },
+  floatPillTextOn: { color: '#15100E', fontWeight: '700' },
 
   emptyWrap: { alignItems: 'center', paddingHorizontal: 16 },
   emptyIcon: {

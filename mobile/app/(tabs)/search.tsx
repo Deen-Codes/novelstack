@@ -108,12 +108,22 @@ export default function Search() {
 
   const hasQuery = q.trim().length > 0;
   const scrollY = useRef(new Animated.Value(0)).current;
+  const scrollRef = useRef<ScrollView>(null);
   const topPad = useTopBarOffset();
+
+  // Land back at the top whenever Search is re-focused from the tab bar.
+  useFocusEffect(
+    useCallback(() => {
+      scrollRef.current?.scrollTo?.({ y: 0, animated: false });
+      scrollY.setValue(0);
+    }, [scrollY]),
+  );
 
   return (
     <SafeAreaView style={styles.safe} edges={[]}>
       <AmbientGlow />
       <Animated.ScrollView
+        ref={scrollRef}
         contentContainerStyle={[styles.scroll, { paddingTop: topPad }]}
         keyboardShouldPersistTaps="never"
         keyboardDismissMode="on-drag"

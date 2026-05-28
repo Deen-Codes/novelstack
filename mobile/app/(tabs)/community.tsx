@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from 'react';
 import {
   Animated,
+  ScrollView,
   View,
   Text,
   Image,
@@ -222,12 +223,22 @@ export default function Community() {
   ];
 
   const scrollY = useRef(new Animated.Value(0)).current;
+  const scrollRef = useRef<ScrollView>(null);
   const topPad = useTopBarOffset();
+
+  // Land back at the top whenever Community is re-focused from the tab bar.
+  useFocusEffect(
+    useCallback(() => {
+      scrollRef.current?.scrollTo?.({ y: 0, animated: false });
+      scrollY.setValue(0);
+    }, [scrollY]),
+  );
 
   return (
     <SafeAreaView style={styles.safe} edges={[]}>
       <AmbientGlow />
       <Animated.ScrollView
+        ref={scrollRef}
         contentContainerStyle={[styles.scroll, { paddingTop: topPad }]}
         showsVerticalScrollIndicator={false}
         scrollEventThrottle={16}

@@ -48,6 +48,14 @@
       <string>fastmail</string>
       <string>readdle-spark</string>
       <string>airmail</string>
+      <string>message</string>
+      <string>googlegmail</string>
+      <string>ms-outlook</string>
+      <string>ymail</string>
+      <string>protonmail</string>
+      <string>fastmail</string>
+      <string>readdle-spark</string>
+      <string>airmail</string>
     </array>
     <key>LSMinimumSystemVersion</key>
     <string>12.0</string>

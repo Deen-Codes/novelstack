@@ -111,7 +111,16 @@ export default function Write() {
   }
 
   const scrollY = useRef(new Animated.Value(0)).current;
+  const scrollRef = useRef<ScrollView>(null);
   const topPad = useTopBarOffset();
+
+  // Land back at the top whenever Write is re-focused from the tab bar.
+  useFocusEffect(
+    useCallback(() => {
+      scrollRef.current?.scrollTo?.({ y: 0, animated: false });
+      scrollY.setValue(0);
+    }, [scrollY]),
+  );
 
   if (loading) {
     return (
@@ -137,6 +146,7 @@ export default function Write() {
     <SafeAreaView style={styles.safe} edges={[]}>
       <AmbientGlow />
       <Animated.ScrollView
+        ref={scrollRef}
         contentContainerStyle={[styles.scroll, { paddingTop: topPad }]}
         keyboardShouldPersistTaps="handled"
         scrollEventThrottle={16}
@@ -340,40 +350,47 @@ export default function Write() {
           </Animated.View>
         )}
 
-        <Text style={styles.section}>Your stories</Text>
-        {stories.length === 0 ? (
-          <View style={styles.emptyCard}>
-            <Ionicons name="book-outline" size={22} color={colors.inkFaint} />
-            <Text style={styles.empty}>
-              No stories yet. Tap “Start a new story” to begin your first.
-            </Text>
-          </View>
-        ) : (
-          <View style={styles.storiesGrid}>
-            {stories.map((s) => (
-              <Pressable
-                key={s.id}
-                style={styles.storyGridItem}
-                onPress={() => router.push(`/write/${s.id}`)}
-              >
-                <Cover
-                  coverUrl={s.coverUrl}
-                  coverColor={s.coverColor}
-                  title={s.title}
-                  mature={s.isMature}
-                  style={styles.storyGridCover}
-                />
-                <Text style={styles.storyGridTitle} numberOfLines={2}>
-                  {s.title}
+        {/* Hide the Your-stories list while the new-story wizard is open so
+            the wizard owns the whole screen — Cancel/Close drops back to
+            the full Write surface. */}
+        {step === 0 && (
+          <>
+            <Text style={styles.section}>Your stories</Text>
+            {stories.length === 0 ? (
+              <View style={styles.emptyCard}>
+                <Ionicons name="book-outline" size={22} color={colors.inkFaint} />
+                <Text style={styles.empty}>
+                  No stories yet. Tap “Start a new story” to begin your first.
                 </Text>
-                {s.status === 'draft' && (
-                  <View style={styles.storyGridDraft}>
-                    <Text style={styles.storyGridDraftText}>Draft</Text>
-                  </View>
-                )}
-              </Pressable>
-            ))}
-          </View>
+              </View>
+            ) : (
+              <View style={styles.storiesGrid}>
+                {stories.map((s) => (
+                  <Pressable
+                    key={s.id}
+                    style={styles.storyGridItem}
+                    onPress={() => router.push(`/write/${s.id}`)}
+                  >
+                    <Cover
+                      coverUrl={s.coverUrl}
+                      coverColor={s.coverColor}
+                      title={s.title}
+                      mature={s.isMature}
+                      style={styles.storyGridCover}
+                    />
+                    <Text style={styles.storyGridTitle} numberOfLines={2}>
+                      {s.title}
+                    </Text>
+                    {s.status === 'draft' && (
+                      <View style={styles.storyGridDraft}>
+                        <Text style={styles.storyGridDraftText}>Draft</Text>
+                      </View>
+                    )}
+                  </Pressable>
+                ))}
+              </View>
+            )}
+          </>
         )}
       </Animated.ScrollView>
 
