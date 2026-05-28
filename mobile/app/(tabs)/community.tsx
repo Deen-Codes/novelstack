@@ -1,6 +1,6 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import {
-  ScrollView,
+  Animated,
   View,
   Text,
   Image,
@@ -17,13 +17,13 @@ import { apiGetCached, apiSend, getSessionToken } from '@/lib/api';
 import { getCurrentUser } from '@/lib/auth';
 import { genreLabel } from '@/lib/genres';
 import { Cover } from '@/components/Cover';
-import { TopBar } from '@/components/TopBar';
+import { TopBar, useTopBarOffset } from '@/components/TopBar';
 import { SignInPitch } from '@/components/SignInPitch';
 import { AmbientGlow } from '@/components/AmbientGlow';
 import { StaggerIn } from '@/components/StaggerIn';
 import { Avatar } from '@/components/Avatar';
 import { ago } from '@/lib/time';
-import type { Shelf, FeedStory, User, CommunityPost } from '@/lib/types';
+import type { Shelf, Story, FeedStory, User, CommunityPost } from '@/lib/types';
 
 const SITE = 'https://novelstack.app';
 
@@ -221,11 +221,21 @@ export default function Community() {
     ...ghostItems,
   ];
 
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const topPad = useTopBarOffset();
+
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
+    <SafeAreaView style={styles.safe} edges={[]}>
       <AmbientGlow />
-      <TopBar page="community" />
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+      <Animated.ScrollView
+        contentContainerStyle={[styles.scroll, { paddingTop: topPad }]}
+        showsVerticalScrollIndicator={false}
+        scrollEventThrottle={16}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: false },
+        )}
+      >
         {loading ? (
           <ActivityIndicator color={colors.signal} style={{ marginTop: spacing.xl }} />
         ) : !signedIn ? (
@@ -457,7 +467,9 @@ export default function Community() {
           </>
         )}
         <View style={{ height: spacing.xl }} />
-      </ScrollView>
+      </Animated.ScrollView>
+
+      <TopBar page="community" scrollY={scrollY} />
     </SafeAreaView>
   );
 }

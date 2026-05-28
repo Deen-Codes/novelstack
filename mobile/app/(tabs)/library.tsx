@@ -1,6 +1,6 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import {
-  ScrollView,
+  Animated,
   View,
   Text,
   Pressable,
@@ -13,7 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, radius, fonts } from '@/theme/tokens';
 import { apiGetCached, apiSend, getSessionToken } from '@/lib/api';
 import { getCurrentUser } from '@/lib/auth';
-import { TopBar } from '@/components/TopBar';
+import { TopBar, useTopBarOffset } from '@/components/TopBar';
 import { Cover } from '@/components/Cover';
 import { SignInPitch } from '@/components/SignInPitch';
 import { AmbientGlow } from '@/components/AmbientGlow';
@@ -123,24 +123,29 @@ export default function Library() {
     );
   }
 
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const topPad = useTopBarOffset();
+
   if (loading) {
     return (
-      <SafeAreaView style={styles.safe} edges={['top']}>
+      <SafeAreaView style={styles.safe} edges={[]}>
+        <ActivityIndicator color={colors.signal} style={{ marginTop: 80 + topPad }} />
         <TopBar page="library" />
-        <ActivityIndicator color={colors.signal} style={{ marginTop: 80 }} />
       </SafeAreaView>
     );
   }
 
   if (signedIn === false) {
     return (
-      <SafeAreaView style={styles.safe} edges={['top']}>
+      <SafeAreaView style={styles.safe} edges={[]}>
         <AmbientGlow />
+        <View style={{ paddingTop: topPad }}>
+          <SignInPitch
+            headline="Build your library"
+            sub="Save stories, pick up where you left off, and follow the writers you love — all kept in sync."
+          />
+        </View>
         <TopBar page="library" />
-        <SignInPitch
-          headline="Build your library"
-          sub="Save stories, pick up where you left off, and follow the writers you love — all kept in sync."
-        />
       </SafeAreaView>
     );
   }
@@ -150,10 +155,19 @@ export default function Library() {
   const isEmpty = saved.length === 0;
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
+    <SafeAreaView style={styles.safe} edges={[]}>
       <AmbientGlow />
-      <TopBar page="library" />
-      <ScrollView contentContainerStyle={isEmpty ? styles.scrollEmpty : styles.scroll}>
+      <Animated.ScrollView
+        contentContainerStyle={[
+          isEmpty ? styles.scrollEmpty : styles.scroll,
+          { paddingTop: topPad },
+        ]}
+        scrollEventThrottle={16}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: false },
+        )}
+      >
         {isEmpty ? (
           <View style={styles.emptyWrap}>
             <View style={styles.emptyIcon}>
@@ -204,7 +218,9 @@ export default function Library() {
             )}
           </>
         )}
-      </ScrollView>
+      </Animated.ScrollView>
+
+      <TopBar page="library" scrollY={scrollY} />
     </SafeAreaView>
   );
 }

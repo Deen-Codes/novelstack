@@ -17,7 +17,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { colors, spacing, radius, fonts } from '@/theme/tokens';
 import { apiGetCached, apiSend } from '@/lib/api';
 import { Cover } from '@/components/Cover';
-import { TopBar } from '@/components/TopBar';
+import { TopBar, useTopBarOffset } from '@/components/TopBar';
 import type { FeedStory, HomeExtras, Shelf } from '@/lib/types';
 
 // hex → rgba, used to derive the ambient glow from a book's cover colour.
@@ -40,6 +40,8 @@ export default function Home() {
   const fade = useRef(new Animated.Value(0)).current; // entrance
   const heroFade = useRef(new Animated.Value(1)).current; // spotlight cross-fade
   const drift = useRef(new Animated.Value(0)).current; // ambient drift loop
+  const scrollY = useRef(new Animated.Value(0)).current; // drives the top bar shrink
+  const topPad = useTopBarOffset();
 
   const load = useCallback(async () => {
     const [f, e, sh] = await Promise.allSettled([
@@ -137,7 +139,7 @@ export default function Home() {
   }
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
+    <SafeAreaView style={styles.safe} edges={[]}>
       {/* Ambient glow — colour from the current spotlight, drifting + dipping */}
       {spot && (
         <Animated.View
@@ -161,13 +163,21 @@ export default function Home() {
         </Animated.View>
       )}
 
-      <TopBar page="home" />
-
-      <ScrollView
-        contentContainerStyle={styles.scroll}
+      <Animated.ScrollView
+        contentContainerStyle={[styles.scroll, { paddingTop: topPad }]}
         showsVerticalScrollIndicator={false}
+        scrollEventThrottle={16}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: false },
+        )}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.signal} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.signal}
+            progressViewOffset={topPad}
+          />
         }
       >
         <Animated.View
@@ -292,7 +302,9 @@ export default function Home() {
           )}
           <View style={{ height: spacing.xl }} />
         </Animated.View>
-      </ScrollView>
+      </Animated.ScrollView>
+
+      <TopBar page="home" scrollY={scrollY} />
     </SafeAreaView>
   );
 }

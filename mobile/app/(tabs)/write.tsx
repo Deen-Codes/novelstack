@@ -18,7 +18,7 @@ import { GENRES, genreLabel } from '@/lib/genres';
 import { Cover } from '@/components/Cover';
 import { AmbientGlow } from '@/components/AmbientGlow';
 import { SignInPitch } from '@/components/SignInPitch';
-import { TopBar } from '@/components/TopBar';
+import { TopBar, useTopBarOffset } from '@/components/TopBar';
 import { Typewriter } from '@/components/Typewriter';
 import type { Shelf, Story } from '@/lib/types';
 
@@ -110,6 +110,9 @@ export default function Write() {
     setBusy(false);
   }
 
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const topPad = useTopBarOffset();
+
   if (loading) {
     return (
       <SafeAreaView style={styles.safe} edges={['top']}>
@@ -131,10 +134,17 @@ export default function Write() {
   }
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
+    <SafeAreaView style={styles.safe} edges={[]}>
       <AmbientGlow />
-      <TopBar page="write" />
-      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+      <Animated.ScrollView
+        contentContainerStyle={[styles.scroll, { paddingTop: topPad }]}
+        keyboardShouldPersistTaps="handled"
+        scrollEventThrottle={16}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: false },
+        )}
+      >
         {step === 0 ? (
           <Pressable style={styles.newCard} onPress={() => setStep(1)}>
             <View style={styles.newIcon}>
@@ -365,7 +375,9 @@ export default function Write() {
             ))}
           </View>
         )}
-      </ScrollView>
+      </Animated.ScrollView>
+
+      <TopBar page="write" scrollY={scrollY} />
     </SafeAreaView>
   );
 }

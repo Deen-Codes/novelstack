@@ -15,7 +15,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { colors, spacing, fonts } from '@/theme/tokens';
 import { apiGet, apiGetCached } from '@/lib/api';
 import { Cover } from '@/components/Cover';
-import { TopBar } from '@/components/TopBar';
+import { TopBar, useTopBarOffset } from '@/components/TopBar';
 import { AmbientGlow } from '@/components/AmbientGlow';
 import type { Story } from '@/lib/types';
 
@@ -107,15 +107,21 @@ export default function Search() {
   }, [q]);
 
   const hasQuery = q.trim().length > 0;
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const topPad = useTopBarOffset();
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
+    <SafeAreaView style={styles.safe} edges={[]}>
       <AmbientGlow />
-      <TopBar page="search" />
-      <ScrollView
-        contentContainerStyle={styles.scroll}
+      <Animated.ScrollView
+        contentContainerStyle={[styles.scroll, { paddingTop: topPad }]}
         keyboardShouldPersistTaps="never"
         keyboardDismissMode="on-drag"
+        scrollEventThrottle={16}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: false },
+        )}
       >
         <View style={styles.field}>
           <Ionicons name="search" size={18} color={colors.inkFaint} />
@@ -239,7 +245,9 @@ export default function Search() {
           </>
         )}
         <View style={{ height: spacing.xl }} />
-      </ScrollView>
+      </Animated.ScrollView>
+
+      <TopBar page="search" scrollY={scrollY} />
     </SafeAreaView>
   );
 }
