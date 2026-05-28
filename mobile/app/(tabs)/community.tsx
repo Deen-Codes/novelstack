@@ -21,6 +21,7 @@ import { TopBar } from '@/components/TopBar';
 import { SignInPitch } from '@/components/SignInPitch';
 import { AmbientGlow } from '@/components/AmbientGlow';
 import { StaggerIn } from '@/components/StaggerIn';
+import { Avatar } from '@/components/Avatar';
 import { ago } from '@/lib/time';
 import type { Shelf, FeedStory, User, CommunityPost } from '@/lib/types';
 
@@ -238,15 +239,7 @@ export default function Community() {
                 misleading (we don't do 24-hour stories), so the feed leads
                 straight with the composer + posts + discovery cards. */}
             <Pressable style={styles.composer} onPress={() => router.push('/compose')}>
-              <View style={styles.composerAv}>
-                {me?.avatarUrl ? (
-                  <Image source={{ uri: me.avatarUrl }} style={styles.composerAvImg} />
-                ) : (
-                  <Text style={styles.composerAvText}>
-                    {(me?.displayName ?? '?').slice(0, 1).toUpperCase()}
-                  </Text>
-                )}
-              </View>
+              <Avatar url={me?.avatarUrl} seed={me?.id} size={34} />
               <Text style={styles.composerPh}>Share an update with your readers…</Text>
               <Ionicons name="create-outline" size={18} color={colors.signal} />
             </Pressable>
@@ -272,25 +265,17 @@ export default function Community() {
                       >
                         <View style={styles.postHead}>
                           <Pressable
-                            style={styles.postAv}
                             onPress={() =>
                               item.post.author?.username &&
                               router.push(`/u/${item.post.author.username}`)
                             }
                             hitSlop={4}
                           >
-                            {item.post.author?.avatarUrl ? (
-                              <Image
-                                source={{ uri: item.post.author.avatarUrl }}
-                                style={styles.postAvImg}
-                              />
-                            ) : (
-                              <Text style={styles.postAvText}>
-                                {(item.post.author?.displayName ?? '?')
-                                  .slice(0, 1)
-                                  .toUpperCase()}
-                              </Text>
-                            )}
+                            <Avatar
+                              url={item.post.author?.avatarUrl}
+                              seed={item.post.author?.id}
+                              size={40}
+                            />
                           </Pressable>
                           <Pressable
                             style={styles.postWho}
@@ -384,22 +369,14 @@ export default function Community() {
                       <View style={styles.post}>
                         <View style={styles.postHead}>
                           <Pressable
-                            style={styles.postAv}
                             onPress={() => router.push(`/u/${item.pick.user.username}`)}
                             hitSlop={4}
                           >
-                            {item.pick.user.avatarUrl ? (
-                              <Image
-                                source={{ uri: item.pick.user.avatarUrl }}
-                                style={styles.postAvImg}
-                              />
-                            ) : (
-                              <Text style={styles.postAvText}>
-                                {(item.pick.user.displayName ?? '?')
-                                  .slice(0, 1)
-                                  .toUpperCase()}
-                              </Text>
-                            )}
+                            <Avatar
+                              url={item.pick.user.avatarUrl}
+                              seed={item.pick.user.id}
+                              size={40}
+                            />
                           </Pressable>
                           <Pressable
                             style={styles.postWho}

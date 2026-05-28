@@ -3,7 +3,6 @@ import {
   ScrollView,
   View,
   Text,
-  Image,
   Pressable,
   ActivityIndicator,
   StyleSheet,
@@ -13,6 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 import { colors, spacing, radius, fonts } from '@/theme/tokens';
 import { apiGet, apiSend } from '@/lib/api';
+import { Avatar } from '@/components/Avatar';
 
 type BlockedUser = {
   id: string;
@@ -77,15 +77,7 @@ export default function BlockedUsersScreen() {
         <ScrollView contentContainerStyle={styles.scroll}>
           {list.map((u) => (
             <View key={u.id} style={styles.row}>
-              <View style={styles.avatar}>
-                {u.avatarUrl ? (
-                  <Image source={{ uri: u.avatarUrl }} style={styles.avatarImg} />
-                ) : (
-                  <Text style={styles.avatarInitial}>
-                    {(u.displayName ?? '?').slice(0, 1).toUpperCase()}
-                  </Text>
-                )}
-              </View>
+              <Avatar url={u.avatarUrl} seed={u.id} size={44} />
               <View style={styles.rowText}>
                 <Text style={styles.name} numberOfLines={1}>
                   {u.displayName}

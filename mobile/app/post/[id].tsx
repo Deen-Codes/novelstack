@@ -4,7 +4,6 @@ import {
   View,
   Text,
   TextInput,
-  Image,
   Pressable,
   ActivityIndicator,
   Alert,
@@ -20,21 +19,8 @@ import { apiGet, apiSend } from '@/lib/api';
 import { getCurrentUser } from '@/lib/auth';
 import { ago } from '@/lib/time';
 import { Cover } from '@/components/Cover';
+import { Avatar } from '@/components/Avatar';
 import type { PostComment, PostDetail } from '@/lib/types';
-
-function Avatar({ url, name, size }: { url: string | null; name: string; size: number }) {
-  return (
-    <View style={[styles.av, { width: size, height: size, borderRadius: size / 2 }]}>
-      {url ? (
-        <Image source={{ uri: url }} style={{ width: size, height: size }} />
-      ) : (
-        <Text style={[styles.avText, { fontSize: size * 0.4 }]}>
-          {(name || '?').slice(0, 1).toUpperCase()}
-        </Text>
-      )}
-    </View>
-  );
-}
 
 // A community update with its full comment thread. Readers can like and
 // reply; authors can edit or delete their own post and comments.
@@ -229,7 +215,7 @@ export default function PostScreen() {
           <View style={styles.postHead}>
             <Avatar
               url={post.author?.avatarUrl ?? null}
-              name={post.author?.displayName ?? '?'}
+              seed={post.author?.id ?? post.authorId}
               size={44}
             />
             <View style={{ flex: 1, minWidth: 0 }}>
@@ -311,7 +297,7 @@ export default function PostScreen() {
                 <View key={c.id} style={styles.comment}>
                   <Avatar
                     url={c.user?.avatarUrl ?? null}
-                    name={c.user?.displayName ?? '?'}
+                    seed={c.user?.id ?? c.userId}
                     size={34}
                   />
                   <View style={styles.commentBubble}>

@@ -19,6 +19,7 @@ import { apiGetCached, apiSend } from '@/lib/api';
 import { getCurrentUser } from '@/lib/auth';
 import { genreLabel } from '@/lib/genres';
 import { Cover } from '@/components/Cover';
+import { Avatar } from '@/components/Avatar';
 import { DobField } from '@/components/DobField';
 import { BottomSheet } from '@/components/BottomSheet';
 import { purchaseTip, TIP_TIERS, type TipTier } from '@/lib/iap';
@@ -452,11 +453,11 @@ export default function StoryScreen() {
             story.author?.username && router.push(`/u/${story.author.username}`)
           }
         >
-          <View style={styles.authorAv}>
-            <Text style={styles.authorAvText}>
-              {(story.author?.displayName ?? '?').slice(0, 1).toUpperCase()}
-            </Text>
-          </View>
+          <Avatar
+            url={story.author?.avatarUrl ?? null}
+            seed={story.author?.id ?? story.authorId}
+            size={26}
+          />
           <Text style={styles.authorName}>
             {story.author?.displayName ?? 'a NovelStack writer'}
           </Text>

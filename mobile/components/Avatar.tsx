@@ -1,10 +1,11 @@
 import { Image, View, StyleSheet, type ImageSourcePropType, type ViewStyle, type StyleProp } from 'react-native';
 import { colors, radius } from '@/theme/tokens';
 
-// Pre-bundled defaults — Metro turns each require() into a static asset
-// ID, so they're available offline and never round-trip through the
-// network. Swap any of these PNGs out in /assets/avatars/ to change the
-// look without touching code.
+// Pre-bundled defaults — the 8 literary AI avatars (Classic Reader, Night
+// Reader, Poet, Scholar, Minimalist, Vintage, Fantasy, Sci-Fi…). Metro
+// turns each require() into a static asset ID so they're available offline
+// and never round-trip through the network. Drop a new PNG in
+// /assets/avatars/avatar-N.png and add a line here to extend the pool.
 const DEFAULTS: ImageSourcePropType[] = [
   require('@/assets/avatars/avatar-0.png'),
   require('@/assets/avatars/avatar-1.png'),
@@ -14,8 +15,6 @@ const DEFAULTS: ImageSourcePropType[] = [
   require('@/assets/avatars/avatar-5.png'),
   require('@/assets/avatars/avatar-6.png'),
   require('@/assets/avatars/avatar-7.png'),
-  require('@/assets/avatars/avatar-8.png'),
-  require('@/assets/avatars/avatar-9.png'),
 ];
 
 // Deterministic hash → pick — same user always gets the same default avatar

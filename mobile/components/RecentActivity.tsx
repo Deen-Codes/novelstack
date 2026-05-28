@@ -1,8 +1,9 @@
 import { useMemo } from 'react';
-import { View, Text, Image, Pressable, StyleSheet } from 'react-native';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { colors, spacing, radius, fonts } from '@/theme/tokens';
 import { Cover } from '@/components/Cover';
+import { Avatar } from '@/components/Avatar';
 import { ago } from '@/lib/time';
 import type { FeedStory } from '@/lib/types';
 
@@ -28,15 +29,11 @@ export function RecentActivity({ stories }: { stories: FeedStory[] }) {
               onPress={() => router.push(`/story/${s.slug}`)}
             >
               <View style={styles.postHead}>
-                <View style={styles.avatar}>
-                  {s.author?.avatarUrl ? (
-                    <Image source={{ uri: s.author.avatarUrl }} style={styles.avatarImg} />
-                  ) : (
-                    <Text style={styles.avatarInitial}>
-                      {name.slice(0, 1).toUpperCase()}
-                    </Text>
-                  )}
-                </View>
+                <Avatar
+                  url={s.author?.avatarUrl ?? null}
+                  seed={s.author?.id ?? s.authorId}
+                  size={36}
+                />
                 <View style={styles.headText}>
                   <Text style={styles.name} numberOfLines={1}>
                     {name}

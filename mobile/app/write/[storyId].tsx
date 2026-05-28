@@ -1,21 +1,33 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  Animated,
   ScrollView,
   View,
   Text,
+  TextInput,
   Pressable,
   ActivityIndicator,
   Alert,
   StyleSheet,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useFocusEffect, router } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { colors, spacing, radius, fonts } from '@/theme/tokens';
 import { apiGet, apiSend, apiUpload } from '@/lib/api';
 import { genreLabel } from '@/lib/genres';
 import { Cover } from '@/components/Cover';
+import { BottomSheet } from '@/components/BottomSheet';
 import type { Shelf, Story, Chapter, StoryDetail } from '@/lib/types';
+
+type Section = 'cover' | 'status' | 'access';
+
+const SECTION_LABELS: Record<Section, { label: string; icon: React.ComponentProps<typeof Ionicons>['name'] }> = {
+  cover: { label: 'Cover', icon: 'image-outline' },
+  status: { label: 'Status', icon: 'pulse-outline' },
+  access: { label: 'Access', icon: 'lock-open-outline' },
+};
 
 export default function StoryWriter() {
   const { storyId } = useLocalSearchParams<{ storyId: string }>();
@@ -26,7 +38,65 @@ export default function StoryWriter() {
   const [status, setStatus] = useState('');
   const [coverBusy, setCoverBusy] = useState(false);
   const [coverError, setCoverError] = useState('');
-  const [tab, setTab] = useState<'cover' | 'status' | 'access'>('cover');
+  const [tab, setTab] = useState<Section>('cover');
+
+  // Hamburger FAB state — open toggles a stack of action buttons that fly
+  // out from the bottom-right where the thumb naturally lives.
+  const [menuOpen, setMenuOpen] = useState(false);
+  const insets = useSafeAreaInsets();
+  const menuAnim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.spring(menuAnim, {
+      toValue: menuOpen ? 1 : 0,
+      useNativeDriver: true,
+      stiffness: 220,
+      damping: 22,
+      mass: 0.7,
+    }).start();
+  }, [menuOpen, menuAnim]);
+
+  // Edit-details bottom sheet — title + description editor.
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [draftTitle, setDraftTitle] = useState('');
+  const [draftDesc, setDraftDesc] = useState('');
+  const [detailsBusy, setDetailsBusy] = useState(false);
+  const [detailsError, setDetailsError] = useState('');
+
+  function openDetails() {
+    if (!story) return;
+    setDraftTitle(story.title);
+    setDraftDesc(story.description ?? '');
+    setDetailsError('');
+    setDetailsOpen(true);
+  }
+
+  async function saveDetails() {
+    if (!story || detailsBusy) return;
+    const title = draftTitle.trim();
+    if (!title) {
+      setDetailsError('A title is required.');
+      return;
+    }
+    setDetailsBusy(true);
+    setDetailsError('');
+    try {
+      const updated = await apiSend<Story>(
+        `/api/me/stories/${storyId}`,
+        'PATCH',
+        { title, description: draftDesc.trim() },
+      );
+      setStory(updated);
+      setDetailsOpen(false);
+    } catch (e) {
+      setDetailsError(e instanceof Error ? e.message : 'Could not save.');
+    }
+    setDetailsBusy(false);
+  }
+
+  function selectSection(s: Section) {
+    setTab(s);
+    setMenuOpen(false);
+  }
 
   const load = useCallback(async () => {
     // The shelf carries the full Story (incl. slug) for every story we own.
@@ -224,19 +294,9 @@ export default function StoryWriter() {
           {genreLabel(story.genre)} · {story.status === 'draft' ? 'Offline draft' : story.status}
         </Text>
 
-        <View style={styles.tabs}>
-          {(['cover', 'status', 'access'] as const).map((t) => (
-            <Pressable
-              key={t}
-              style={[styles.tab, tab === t && styles.tabOn]}
-              onPress={() => setTab(t)}
-            >
-              <Text style={[styles.tabText, tab === t && styles.tabTextOn]}>
-                {t === 'cover' ? 'Cover' : t === 'status' ? 'Status' : 'Access'}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
+        {/* Section label replaces the old tab strip — section is chosen via
+            the bottom-right hamburger FAB below. */}
+        <Text style={styles.sectionLabel}>{SECTION_LABELS[tab].label}</Text>
 
         {tab === 'cover' && (
           <View style={styles.coverCard}>
@@ -399,7 +459,162 @@ export default function StoryWriter() {
           <Text style={styles.deleteBtnText}>Delete story</Text>
         </Pressable>
       </ScrollView>
+
+      {/* Tap-anywhere-to-close backdrop when the FAB menu is open. Sits
+          above the scroll content but below the buttons themselves. */}
+      {menuOpen && (
+        <Pressable
+          style={StyleSheet.absoluteFill}
+          onPress={() => setMenuOpen(false)}
+        />
+      )}
+
+      {/* Floating action buttons — fly out above the FAB, in order:
+          Cover, Status, Access, Edit details. */}
+      <View
+        pointerEvents="box-none"
+        style={[
+          styles.fabStack,
+          { bottom: Math.max(insets.bottom, 8) + 80 },
+        ]}
+      >
+        {(['cover', 'status', 'access'] as Section[]).map((s, i) => {
+          const reverseIdx = 3 - i; // farthest from FAB first
+          return (
+            <FloatingItem
+              key={s}
+              anim={menuAnim}
+              order={reverseIdx}
+              icon={SECTION_LABELS[s].icon}
+              label={SECTION_LABELS[s].label}
+              active={tab === s}
+              onPress={() => selectSection(s)}
+            />
+          );
+        })}
+        <FloatingItem
+          anim={menuAnim}
+          order={0}
+          icon="create-outline"
+          label="Edit details"
+          onPress={() => {
+            setMenuOpen(false);
+            openDetails();
+          }}
+        />
+      </View>
+
+      {/* The hamburger / X FAB itself. */}
+      <Pressable
+        style={[styles.fab, { bottom: Math.max(insets.bottom, 8) + 16 }]}
+        onPress={() => setMenuOpen((o) => !o)}
+        hitSlop={6}
+      >
+        <Animated.View
+          style={{
+            transform: [
+              {
+                rotate: menuAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: ['0deg', '90deg'],
+                }),
+              },
+            ],
+          }}
+        >
+          <Ionicons
+            name={menuOpen ? 'close' : 'menu'}
+            size={24}
+            color="#FFFFFF"
+          />
+        </Animated.View>
+      </Pressable>
+
+      <BottomSheet visible={detailsOpen} onClose={() => setDetailsOpen(false)}>
+        <Text style={styles.sheetTitle}>Edit details</Text>
+        <Text style={styles.sheetSub}>
+          Change the title or blurb. Genre and maturity stay where they are.
+        </Text>
+        <Text style={styles.detailsLabel}>Title</Text>
+        <TextInput
+          value={draftTitle}
+          onChangeText={setDraftTitle}
+          placeholder="Story title"
+          placeholderTextColor={colors.inkFaint}
+          style={styles.detailsInput}
+        />
+        <Text style={styles.detailsLabel}>Description</Text>
+        <TextInput
+          value={draftDesc}
+          onChangeText={setDraftDesc}
+          placeholder="A short blurb readers will see on the cover."
+          placeholderTextColor={colors.inkFaint}
+          multiline
+          style={[styles.detailsInput, { height: 110, textAlignVertical: 'top' }]}
+        />
+        {!!detailsError && <Text style={styles.detailsError}>{detailsError}</Text>}
+        <Pressable
+          style={[styles.detailsBtn, detailsBusy && { opacity: 0.6 }]}
+          onPress={saveDetails}
+          disabled={detailsBusy}
+        >
+          <Text style={styles.detailsBtnText}>
+            {detailsBusy ? 'Saving…' : 'Save changes'}
+          </Text>
+        </Pressable>
+      </BottomSheet>
     </SafeAreaView>
+  );
+}
+
+// Single fly-out action button — sits stacked above the FAB, anim 0..1
+// drives both the opacity and the rise-from-FAB translation.
+function FloatingItem({
+  anim,
+  order,
+  icon,
+  label,
+  active,
+  onPress,
+}: {
+  anim: Animated.Value;
+  order: number;
+  icon: React.ComponentProps<typeof Ionicons>['name'];
+  label: string;
+  active?: boolean;
+  onPress: () => void;
+}) {
+  // Stagger each button rising 64pt further than the one before it.
+  const distance = 64 * (order + 1);
+  const translateY = anim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [distance, 0],
+  });
+  return (
+    <Animated.View
+      style={[
+        styles.fabItemWrap,
+        {
+          opacity: anim,
+          transform: [{ translateY }],
+        },
+      ]}
+      pointerEvents="box-none"
+    >
+      <Pressable
+        style={[styles.fabItem, active && styles.fabItemActive]}
+        onPress={onPress}
+      >
+        <Text style={[styles.fabItemLabel, active && styles.fabItemLabelActive]}>
+          {label}
+        </Text>
+        <Ionicons
+          name={icon}
+          size={17}
+          color={active ? '#FFFFFF' : colors.ink}
+        />
+      </Pressable>
+    </Animated.View>
   );
 }
 
@@ -468,6 +683,94 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   deleteBtnText: { fontSize: 14, color: '#D9656F', fontWeight: '500' },
+
+  // Section heading replaces the old tab strip — what you're editing now,
+  // chosen via the FAB menu.
+  sectionLabel: {
+    fontFamily: fonts.display,
+    fontSize: 17,
+    color: colors.ink,
+    marginTop: spacing.lg,
+    marginBottom: spacing.md,
+  },
+
+  // Floating action button (hamburger) — bottom-right where the thumb lives.
+  fab: {
+    position: 'absolute',
+    right: 18,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: colors.signal,
+    alignItems: 'center',
+    justifyContent: 'center',
+    // Lift the button off the page so the menu visually pops.
+    shadowColor: '#000',
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 6,
+  },
+
+  // Stack of fly-out action buttons — sit just above the FAB.
+  fabStack: {
+    position: 'absolute',
+    right: 18,
+    alignItems: 'flex-end',
+  },
+  fabItemWrap: { marginBottom: 8 },
+  fabItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.borderSoft,
+    borderRadius: 24,
+    paddingLeft: 16,
+    paddingRight: 14,
+    height: 44,
+  },
+  fabItemActive: { backgroundColor: colors.signal, borderColor: colors.signal },
+  fabItemLabel: { fontSize: 14, fontWeight: '600', color: colors.ink },
+  fabItemLabelActive: { color: '#FFFFFF' },
+
+  // Edit-details bottom sheet inputs.
+  sheetTitle: {
+    fontFamily: fonts.display,
+    fontSize: 18,
+    color: colors.ink,
+  },
+  sheetSub: { fontSize: 13, color: colors.inkMuted, marginTop: 4, lineHeight: 19 },
+  detailsLabel: {
+    fontSize: 11,
+    color: colors.inkFaint,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+    fontWeight: '700',
+    marginTop: spacing.md,
+    marginBottom: 6,
+  },
+  detailsInput: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    paddingHorizontal: 13,
+    paddingVertical: 11,
+    fontSize: 15,
+    backgroundColor: colors.paper,
+    color: colors.ink,
+  },
+  detailsError: { fontSize: 13, color: colors.signal, marginTop: 8 },
+  detailsBtn: {
+    marginTop: spacing.md,
+    height: 48,
+    borderRadius: 13,
+    backgroundColor: '#F4ECDF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  detailsBtnText: { fontSize: 15, fontWeight: '700', color: '#15100E' },
   addBtn: {
     backgroundColor: '#F4ECDF',
     paddingVertical: 15,
