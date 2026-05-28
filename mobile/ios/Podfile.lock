@@ -64,6 +64,8 @@ PODS:
     - ExpoModulesCore
   - ExpoTrackingTransparency (5.1.1):
     - ExpoModulesCore
+  - ExpoWebBrowser (14.0.2):
+    - ExpoModulesCore
   - EXStructuredHeaders (4.0.0)
   - EXUpdates (0.27.5):
     - DoubleConversion
@@ -1743,6 +1745,7 @@ DEPENDENCIES:
   - ExpoModulesCore (from `../node_modules/expo-modules-core`)
   - ExpoSpeech (from `../node_modules/expo-speech/ios`)
   - ExpoTrackingTransparency (from `../node_modules/expo-tracking-transparency/ios`)
+  - ExpoWebBrowser (from `../node_modules/expo-web-browser/ios`)
   - EXStructuredHeaders (from `../node_modules/expo-structured-headers/ios`)
   - EXUpdates (from `../node_modules/expo-updates/ios`)
   - EXUpdatesInterface (from `../node_modules/expo-updates-interface/ios`)
@@ -1875,6 +1878,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/expo-speech/ios"
   ExpoTrackingTransparency:
     :path: "../node_modules/expo-tracking-transparency/ios"
+  ExpoWebBrowser:
+    :path: "../node_modules/expo-web-browser/ios"
   EXStructuredHeaders:
     :path: "../node_modules/expo-structured-headers/ios"
   EXUpdates:
@@ -2043,6 +2048,7 @@ SPEC CHECKSUMS:
   ExpoModulesCore: 15f60d00e33ca0cea27147543877ca6e70c42ef5
   ExpoSpeech: 8f74347608243ee8fdc2faa14e7d2cd5503f33f8
   ExpoTrackingTransparency: dbd02eaa51cd9983ed746866a66e2eeb3a0f151f
+  ExpoWebBrowser: a212e6b480d8857d3e441fba51e0c968333803b3
   EXStructuredHeaders: 09c70347b282e3d2507e25fb4c747b1b885f87f6
   EXUpdates: 61ef9e611263e59974155e269ec1b14c0ff0fc5c
   EXUpdatesInterface: 7c977640bdd8b85833c19e3959ba46145c5719db
@@ -2127,6 +2133,6 @@ SPEC CHECKSUMS:
   tentap: ff9bfc4a28a913062124562bb7ab8a1057f95d56
   Yoga: 3deb2471faa9916c8a82dda2a22d3fba2620ad37
 
-PODFILE CHECKSUM: 6bb9a1a91922351813d38c0cbac4696bbcf29101
+PODFILE CHECKSUM: 6a621a7658c0bb9d1f7bbcd70e9c81c1dd830370
 
 COCOAPODS: 1.16.2

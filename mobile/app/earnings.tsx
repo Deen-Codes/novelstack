@@ -5,12 +5,12 @@ import {
   Text,
   Pressable,
   ActivityIndicator,
-  Linking,
   StyleSheet,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import * as WebBrowser from 'expo-web-browser';
 import { colors, spacing, radius, fonts } from '@/theme/tokens';
 import { apiGet, apiSend, getSessionToken } from '@/lib/api';
 import { AmbientGlow } from '@/components/AmbientGlow';
@@ -76,15 +76,22 @@ export default function EarningsScreen() {
     }, [load]),
   );
 
-  // Opens Stripe-hosted onboarding to connect (or finish connecting) a payout
-  // account. The browser returns to the app, where focus triggers a reload.
+  // Opens Stripe-hosted onboarding in an in-app browser so the writer never
+  // leaves NovelStack visually — when they close it, focus returns to this
+  // screen and useFocusEffect triggers a reload (so "Set up payouts" flips
+  // to "Payouts active" immediately if onboarding completed).
   async function setupPayouts() {
     if (busy) return;
     setBusy(true);
     setMsg('');
     try {
       const { url } = await apiSend<{ url: string }>('/api/me/stripe/connect', 'POST');
-      await Linking.openURL(url);
+      // openAuthSessionAsync mounts SFAuthenticationSession on iOS — Apple's
+      // native in-app browser that auto-dismisses on redirect back to our
+      // domain. Falls back to a plain in-app browser on Android.
+      await WebBrowser.openAuthSessionAsync(url, 'novelstack://earnings');
+      // No need to read the result — the focus effect reloads earnings
+      // when the user returns to this screen.
     } catch (e) {
       setMsg(e instanceof Error ? e.message : 'Could not start payout setup.');
     }
@@ -98,7 +105,7 @@ export default function EarningsScreen() {
     setMsg('');
     try {
       const { url } = await apiGet<{ url: string }>('/api/me/stripe/dashboard');
-      await Linking.openURL(url);
+      await WebBrowser.openAuthSessionAsync(url, 'novelstack://earnings');
     } catch (e) {
       setMsg(e instanceof Error ? e.message : 'Could not open the payout dashboard.');
     }
@@ -173,6 +180,38 @@ export default function EarningsScreen() {
 
         <Text style={styles.h1}>Earnings</Text>
 
+        {/* "Get paid to write" hero — visible only when the writer hasn't
+            earned anything yet (no balance + no lifetime). Sells the value
+            prop on first visit so new writers understand the system, and
+            makes for a clean screenshot when nothing else fills the screen. */}
+        {data.availableCents === 0 && data.lifetimeCents === 0 && !data.routesToCompany && (
+          <View style={styles.heroCard}>
+            <View style={styles.heroIcon}>
+              <Ionicons name="cash-outline" size={22} color={colors.creamInk} />
+            </View>
+            <Text style={styles.heroTitle}>Get paid to write</Text>
+            <Text style={styles.heroBody}>
+              Readers tip your stories, and a share of every NovelStack+
+              subscription + chapter ad goes into the writer pool. As soon as
+              your earnings clear £10, we pay them straight to your bank.
+            </Text>
+            <View style={styles.heroRow}>
+              <View style={styles.heroPill}>
+                <Ionicons name="heart-outline" size={13} color={colors.signal} />
+                <Text style={styles.heroPillText}>Reader tips</Text>
+              </View>
+              <View style={styles.heroPill}>
+                <Ionicons name="people-outline" size={13} color={colors.signal} />
+                <Text style={styles.heroPillText}>NovelStack+ share</Text>
+              </View>
+              <View style={styles.heroPill}>
+                <Ionicons name="play-outline" size={13} color={colors.signal} />
+                <Text style={styles.heroPillText}>Ad revenue</Text>
+              </View>
+            </View>
+          </View>
+        )}
+
         {/* Available balance */}
         <View style={styles.balanceCard}>
           <Text style={styles.balanceLabel}>Available balance</Text>
@@ -196,8 +235,11 @@ export default function EarningsScreen() {
           </View>
         </View>
 
-        {/* Payout setup */}
-        {data.routesToCompany ? (
+        {/* Payout setup — hidden entirely when the server flags this user
+            with hidePayoutSetup (App Review test account). The dashboard
+            still shows balance + history but no setup/manage CTAs that
+            would lead to a broken Stripe flow. */}
+        {data.hidePayoutSetup ? null : data.routesToCompany ? (
           <View style={styles.card}>
             <View style={styles.cardHead}>
               <Ionicons name="business-outline" size={18} color={colors.inkMuted} />
@@ -442,6 +484,61 @@ const styles = StyleSheet.create({
   },
   statValue: { fontFamily: fonts.display, fontSize: 19, color: colors.ink },
   statLabel: { fontSize: 12, color: colors.inkMuted, marginTop: 3 },
+
+  // Empty-state hero — "Get paid to write" card shown when the writer has
+  // nothing in the dashboard yet. Cream surface so it stands out from the
+  // dark balance card and reads as the headline of the page.
+  heroCard: {
+    backgroundColor: colors.cream,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+    marginTop: spacing.md,
+    marginBottom: spacing.sm,
+  },
+  heroIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: radius.md,
+    backgroundColor: 'rgba(21,16,14,0.08)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.sm,
+  },
+  heroTitle: {
+    fontFamily: fonts.displayXl,
+    fontSize: 24,
+    color: colors.creamInk,
+    letterSpacing: -0.5,
+  },
+  heroBody: {
+    fontSize: 13.5,
+    color: '#3A2A22',
+    lineHeight: 19,
+    marginTop: 6,
+  },
+  heroRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: spacing.md,
+  },
+  heroPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: radius.pill,
+    backgroundColor: 'rgba(200,65,78,0.10)',
+    borderWidth: 1,
+    borderColor: 'rgba(200,65,78,0.35)',
+  },
+  heroPillText: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: colors.signal,
+    letterSpacing: 0.2,
+  },
 
   card: {
     backgroundColor: colors.card,

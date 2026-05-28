@@ -42,19 +42,36 @@ const DISABLED: ConnectStatus = {
 };
 
 // Creates a Connect Express account for a writer. Caller stores the returned
-// id on `users.stripe_connect_id`.
+// id on `users.stripe_connect_id`. If the NovelStack Stripe account hasn't
+// yet activated Connect (one-time enrollment at dashboard.stripe.com/connect),
+// Stripe returns a 400 with a recognisable message — we catch it and surface
+// a writer-friendly explanation rather than a raw Stripe error string.
 export async function createConnectAccount(email: string): Promise<string> {
   if (!stripe) throw new Error('Payouts are not available yet.');
-  const account = await stripe.accounts.create({
-    type: 'express',
-    email,
-    capabilities: { transfers: { requested: true } },
-    business_profile: {
-      product_description: 'Royalties earned from stories published on NovelStack.',
-    },
-    metadata: { platform: 'novelstack' },
-  });
-  return account.id;
+  try {
+    const account = await stripe.accounts.create({
+      type: 'express',
+      email,
+      capabilities: { transfers: { requested: true } },
+      business_profile: {
+        product_description: 'Royalties earned from stories published on NovelStack.',
+      },
+      metadata: { platform: 'novelstack' },
+    });
+    return account.id;
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : '';
+    if (
+      msg.includes('signed up for Connect') ||
+      msg.includes('signed up for connect') ||
+      msg.includes('dashboard.stripe.com/connect')
+    ) {
+      throw new Error(
+        "Payouts aren't switched on yet — NovelStack is finishing Stripe Connect setup. Please try again soon.",
+      );
+    }
+    throw err;
+  }
 }
 
 // A Stripe-hosted onboarding link the writer opens to finish (or resume)

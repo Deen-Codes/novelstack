@@ -1,77 +1,65 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
-// Local Expo config plugin — patches the generated ios/Podfile to:
+// Local Expo config plugin — patches the generated ios/Podfile to silence a
+// huge pile of cosmetic warnings from third-party Pods (Expo SDK 52,
+// React Native 0.76, SDWebImage, RNGoogleMobileAds, RNCAsyncStorage, etc).
 //
-//   1. Silence the noisy "pointer is missing a nullability type specifier"
-//      / deprecated-API / category-override / etc. warnings coming from
-//      third-party Pods (Expo SDK 52, React Native 0.76, SDWebImage,
-//      RNGoogleMobileAds, RNCAsyncStorage, etc). These are cosmetic — Pod
-//      authors will fix them upstream eventually, and they'll be gone for
-//      good when we move to a newer Expo SDK.
+// CocoaPods only permits one top-level `post_install` block per Podfile, so
+// we splice our hook code INSIDE Expo's existing post_install block rather
+// than appending a second one (which errors out with "Specifying multiple
+// `post_install` hooks is unsupported").
 //
-//   2. Silence the "[CP-User] Run script build phase will be run during
-//      every build because it does not specify any outputs" warnings for
-//      every Pod with a CP-User script phase (RNGoogleMobileAds, Hermes,
-//      [RN]Check rncore, expo-updates resources). They're MEANT to always
-//      run, so we explicitly mark them always-out-of-date.
+// Four classes of warning get killed:
 //
-//   3. Dedupe `-lc++` in OTHER_LDFLAGS so the "Ignoring duplicate
-//      libraries" warning goes away.
+//   1. "Pointer is missing a nullability type specifier" + every other
+//      cosmetic Pod warning — silenced via per-Pod GCC_WARN_INHIBIT_ALL_WARNINGS.
+//      Our own app target is untouched, so warnings in our code still surface.
 //
-//   4. Bump every Pod whose IPHONEOS_DEPLOYMENT_TARGET is still 9.0 up to
-//      our project's 15.1, killing the "iOS deployment target is set to
-//      9.0, but the range of supported deployment target versions is 12.0
-//      to 26.2.99" warnings (RNCAsyncStorage, SDWebImage).
+//   2. "[CP-User] Run script build phase will be run during every build
+//      because it does not specify any outputs" — those scripts are
+//      *supposed* to run every build, so we explicitly mark them
+//      always-out-of-date.
 //
-// The plugin runs every time `expo prebuild` regenerates ios/, so these
-// fixes survive across rebuilds — no manual Podfile maintenance needed.
+//   3. "Ignoring duplicate libraries: '-lc++'" — OTHER_LDFLAGS deduped.
+//
+//   4. "iOS deployment target 'IPHONEOS_DEPLOYMENT_TARGET' is set to 9.0,
+//      but the range of supported deployment target versions is 12.0 to 26.x"
+//      — every Pod below 15.1 bumped to match our project minimum.
+//
+// The plugin is idempotent — it removes any previously injected block
+// before re-injecting the current version, so re-running prebuild is safe.
 const { withDangerousMod } = require('@expo/config-plugins');
 const fs = require('fs');
 const path = require('path');
 
-// The post_install hook body we inject before the closing `end` of the
-// `target 'NovelStack' do` block. Wrapped in BEGIN/END markers so we never
-// double-inject if the plugin runs twice or the Podfile is already patched.
 const MARKER_BEGIN = '# >>> with-silent-pod-warnings begin >>>';
 const MARKER_END = '# <<< with-silent-pod-warnings end <<<';
 
-const HOOK_SNIPPET = `
-  ${MARKER_BEGIN}
-  post_install do |installer|
+// Body to inject *inside* the existing post_install do |installer| ... end
+// block — uses the same `installer` variable Expo's hook receives.
+const HOOK_BODY = `
+    ${MARKER_BEGIN}
     installer.pods_project.targets.each do |target|
-      # Bump every Pod stuck on iOS 9 to match our project minimum so
-      # Xcode stops warning "deployment target is set to 9.0, but the
-      # range of supported deployment target versions is 12.0 to 26.x".
       target.build_configurations.each do |config|
         current = config.build_settings['IPHONEOS_DEPLOYMENT_TARGET']
         if current.nil? || current.to_f < 15.1
           config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.1'
         end
-        # Silence cosmetic Pod warnings (nullability, deprecated API
-        # markers, category-override, etc). Pod-only — our app target is
-        # untouched, so warnings in our own code still surface.
         config.build_settings['GCC_WARN_INHIBIT_ALL_WARNINGS'] = 'YES'
         config.build_settings['CLANG_WARN_DOCUMENTATION_COMMENTS'] = 'NO'
         config.build_settings['CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF'] = 'NO'
         config.build_settings['CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS'] = 'NO'
         config.build_settings['CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER'] = 'NO'
-        # Kill the duplicate '-lc++' linker warning.
         if config.build_settings['OTHER_LDFLAGS'].is_a?(Array)
           config.build_settings['OTHER_LDFLAGS'] = config.build_settings['OTHER_LDFLAGS'].uniq
         end
       end
-
-      # Mark every [CP-User] script phase always-out-of-date so Xcode
-      # stops warning that they have no declared outputs. These scripts
-      # are *supposed* to run every build (they write build-time
-      # config, replace Hermes, generate updates resources, etc).
       target.build_phases.each do |phase|
         if phase.respond_to?(:name) && phase.name && phase.name.include?('[CP-User]')
           phase.always_out_of_date = '1'
         end
       end
     end
-  end
-  ${MARKER_END}
+    ${MARKER_END}
 `;
 
 module.exports = function withSilentPodWarnings(config) {
@@ -85,28 +73,38 @@ module.exports = function withSilentPodWarnings(config) {
       if (!fs.existsSync(podfilePath)) return cfg;
       let src = fs.readFileSync(podfilePath, 'utf8');
 
-      // Idempotent — drop any previous block we injected, then re-inject
-      // the current version. Means re-running this plugin is always safe,
-      // and updates to HOOK_SNIPPET propagate without leaving stale code.
+      // Drop any prior version of our block — keeps the plugin idempotent so
+      // re-running prebuild never accumulates stale code.
       const blockRe = new RegExp(
         `\\s*${MARKER_BEGIN}[\\s\\S]*?${MARKER_END}\\s*`,
         'g',
       );
       src = src.replace(blockRe, '\n');
 
-      // Inject the hook just before the closing `end` of `target 'NovelStack' do`.
-      // Anchor on the literal target line so we never accidentally patch the
-      // global `post_install` or a different target block.
-      const targetRe = /(target\s+'[^']+'\s+do[\s\S]*?)\n\s*end\s*$/m;
-      const m = src.match(targetRe);
-      if (!m) {
+      // Find the closing `end` of Expo's existing post_install block (the
+      // second-to-last `end` in the Podfile — the very last one closes the
+      // outer `target 'NovelStack' do`). Inject our hook body just before
+      // that `end` so our settings run *after* react_native_post_install,
+      // which means we always win on any setting it touches.
+      //
+      // Trimmed-right view of the relevant block at end of file:
+      //   ...closing nested .each ends...
+      //     end
+      //     end
+      //   end       ← post_install close (2-space indent)
+      // end         ← target close (no indent), end-of-file
+      //
+      // The regex anchors on those last two lines. Without the /m flag,
+      // `$` matches only end-of-string, so we always splice at the very
+      // bottom and never in the middle of a similar-looking block.
+      const closingRe = /(\n[ \t]*end[ \t]*)(\nend[ \t]*\n?)$/;
+      if (!closingRe.test(src)) {
         console.warn(
-          '[with-silent-pod-warnings] Could not locate target block in Podfile — skipping injection.',
+          '[with-silent-pod-warnings] Could not locate the post_install closing — skipping injection.',
         );
         return cfg;
       }
-      const insertAt = m.index + m[1].length;
-      src = src.slice(0, insertAt) + '\n' + HOOK_SNIPPET + src.slice(insertAt);
+      src = src.replace(closingRe, `\n${HOOK_BODY}$1$2`);
 
       fs.writeFileSync(podfilePath, src);
       return cfg;

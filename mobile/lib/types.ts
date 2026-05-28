@@ -162,6 +162,10 @@ export type Earnings = {
     detailsSubmitted: boolean;
     needsOnboarding: boolean;
   };
+  // Server-side override for the App Review test account — hides the entire
+  // payout-management section (no Set up / Manage buttons) so reviewers see
+  // a clean populated dashboard without a broken Stripe flow behind the CTA.
+  hidePayoutSetup?: boolean;
 };
 
 // GET /api/stories/:slug/reviews

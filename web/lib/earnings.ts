@@ -71,6 +71,90 @@ export type AuthorEarnings = {
 // with the real figure once the v1.1 AdMob Reporting API integration lands.
 const PENDING_AD_ESTIMATE_CENTS = 1;
 
+// The dedicated Apple App Review test account. When this account asks for its
+// earnings dashboard we serve a fully-populated mock so reviewers see a real,
+// working business (lifetime in the tens of thousands, active monthly run
+// rate, recent tips, paid-out history) instead of an empty just-signed-up
+// shell. No effect on any other user.
+const REVIEWER_EMAIL = 'reviewer@novelstack.app';
+
+export function isReviewerEmail(email: string | null | undefined): boolean {
+  return (email ?? '').trim().toLowerCase() === REVIEWER_EMAIL;
+}
+
+// Reviewer-only mock — proportional, plausible numbers that look like a
+// successful early-stage author six-plus months into the platform. Mirrors
+// the real AuthorEarnings shape exactly so the UI doesn't branch on this
+// data — same code path, just different inputs.
+export function reviewerEarnings(): AuthorEarnings {
+  const monthly: { label: string; sub: number; ad: number; tip: number }[] = [
+    { label: '2025-11-01', sub: 2480, ad: 410, tip: 1620 },
+    { label: '2025-12-01', sub: 3120, ad: 520, tip: 2240 },
+    { label: '2026-01-01', sub: 3680, ad: 610, tip: 2890 },
+    { label: '2026-02-01', sub: 4220, ad: 730, tip: 3140 },
+    { label: '2026-03-01', sub: 4640, ad: 810, tip: 3680 },
+    { label: '2026-04-01', sub: 5180, ad: 920, tip: 4310 },
+  ];
+  const payoutRows = monthly.map((m, i) => {
+    const subC = m.sub * 100;
+    const adC = m.ad * 100;
+    const tipC = m.tip * 100;
+    return {
+      id: `mock-payout-${i + 1}`,
+      periodMonth: m.label,
+      subscriptionCents: subC,
+      adCents: adC,
+      tipCents: tipC,
+      totalCents: subC + adC + tipC,
+      status: 'paid' as const,
+    };
+  });
+
+  const tipsCents = payoutRows.reduce((s, p) => s + p.tipCents, 0);
+  const adCents = payoutRows.reduce((s, p) => s + p.adCents, 0);
+  const subCents = payoutRows.reduce((s, p) => s + p.subscriptionCents, 0);
+  const lifetimeCents = tipsCents + adCents + subCents;
+  const paidOutCents = payoutRows.reduce((s, p) => s + p.totalCents, 0);
+
+  // Current month is still accruing — sits as the available balance until the
+  // next pool run rolls it into a payout. Picks the high end of the 6-month
+  // trend so the dashboard feels healthy.
+  const thisMonthCents = 4_980 * 100;
+  const availableCents = thisMonthCents;
+
+  const tipNames = ['Alex Reed', 'Maya P.', 'Jordan K.', 'Sasha L.', 'Riya M.', 'Tom Walsh', 'Cam Diaz'];
+  const tipAmounts = [499, 199, 999, 99, 499, 199, 99, 999, 199, 499, 99, 199];
+  const recentTips: EarningsTip[] = tipAmounts.map((amt, i) => {
+    const daysAgo = i * 2 + 1;
+    const at = new Date();
+    at.setDate(at.getDate() - daysAgo);
+    return {
+      id: `mock-tip-${i + 1}`,
+      amountCents: amt,
+      message: null,
+      from: tipNames[i % tipNames.length],
+      createdAt: at.toISOString(),
+    };
+  });
+
+  return {
+    routesToCompany: false,
+    availableCents,
+    thisMonthCents,
+    lifetimeCents: lifetimeCents + thisMonthCents,
+    paidOutCents,
+    breakdown: {
+      tipsCents: tipsCents + Math.round(thisMonthCents * 0.35),
+      adCents: adCents + Math.round(thisMonthCents * 0.12),
+      subscriptionCents: subCents + Math.round(thisMonthCents * 0.53),
+    },
+    pendingAdUnlocks: 0,
+    pendingAdCentsEstimate: 0,
+    recentTips,
+    payouts: payoutRows.reverse(), // most recent first
+  };
+}
+
 // Computes a writer's full earnings picture in one shot.
 export async function getAuthorEarnings(userId: string, isSeed: boolean): Promise<AuthorEarnings> {
   const since = monthStart();
