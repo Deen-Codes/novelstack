@@ -123,11 +123,11 @@ const styles = StyleSheet.create({
   btn: {
     height: 48,
     borderRadius: 13,
-    backgroundColor: '#F4ECDF',
+    backgroundColor: colors.cream,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  btnText: { color: '#15100E', fontSize: 14, fontWeight: '700' },
+  btnText: { color: colors.creamInk, fontSize: 14, fontWeight: '700' },
   btnOutline: {
     height: 48,
     borderRadius: 13,

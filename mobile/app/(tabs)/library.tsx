@@ -31,6 +31,7 @@ function isFinished(s: Story): boolean {
 export default function Library() {
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
   const [saved, setSaved] = useState<Story[]>([]);
+  const [loadError, setLoadError] = useState(false);
   const [loading, setLoading] = useState(true);
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [tab, setTab] = useState<'reading' | 'finished'>('reading');
@@ -51,12 +52,16 @@ export default function Library() {
       setLoading(false);
       return;
     }
+    // From here on we know the user is signed in. If the shelf fetch fails
+    // it's a network/server problem, not an auth one — keep them on the
+    // Library and show a retry, never boot them to SignInPitch.
+    setSignedIn(true);
     try {
       const data = await apiGetCached<Shelf>('/api/me/shelf');
       setSaved(data.saved ?? []);
-      setSignedIn(true);
+      setLoadError(false);
     } catch {
-      setSignedIn(false);
+      setLoadError(true);
     }
     setLoading(false);
   }, []);
@@ -156,6 +161,39 @@ export default function Library() {
   const finished = saved.filter(isFinished);
   const isEmpty = saved.length === 0;
 
+  // Network or server error path — we know the user is signed in, the shelf
+  // just couldn't be fetched. Offer a retry instead of silently showing an
+  // empty library or booting to SignInPitch.
+  if (loadError && saved.length === 0) {
+    return (
+      <SafeAreaView style={styles.safe} edges={[]}>
+        <AmbientGlow />
+        <View style={[styles.emptyWrap, { paddingTop: topPad + 40 }]}>
+          <View style={styles.emptyIcon}>
+            <Ionicons name="cloud-offline-outline" size={28} color={colors.signal} />
+          </View>
+          <Text style={styles.emptyTitle}>Couldn&apos;t load your library</Text>
+          <Text style={styles.emptyBody}>
+            Looks like a connection hiccup. Tap retry and we&apos;ll pull your
+            shelf again.
+          </Text>
+          <Pressable
+            style={styles.browseBtn}
+            onPress={() => {
+              setLoading(true);
+              setLoadError(false);
+              load();
+            }}
+          >
+            <Ionicons name="refresh-outline" size={18} color={colors.creamInk} />
+            <Text style={styles.browseBtnText}>Retry</Text>
+          </Pressable>
+        </View>
+        <TopBar page="library" scrollY={scrollY} />
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.safe} edges={[]}>
       <AmbientGlow />
@@ -179,7 +217,7 @@ export default function Library() {
               kept in sync, ready to pick back up.
             </Text>
             <Pressable style={styles.browseBtn} onPress={() => router.push('/')}>
-              <Ionicons name="compass-outline" size={18} color="#15100E" />
+              <Ionicons name="compass-outline" size={18} color={colors.creamInk} />
               <Text style={styles.browseBtnText}>Browse stories</Text>
             </Pressable>
           </View>
@@ -284,7 +322,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
   },
   floatPillOn: {
-    backgroundColor: '#F4ECDF',
+    backgroundColor: colors.cream,
     shadowColor: '#000',
     shadowOpacity: 0.32,
     shadowRadius: 10,
@@ -294,7 +332,7 @@ const styles = StyleSheet.create({
   // Subtitle-sized — reads clearly near the thumb without competing with
   // the topbar title.
   floatPillText: { fontSize: 16, fontWeight: '600', color: colors.inkFaint, letterSpacing: -0.2 },
-  floatPillTextOn: { color: '#15100E', fontWeight: '700' },
+  floatPillTextOn: { color: colors.creamInk, fontWeight: '700' },
 
   emptyWrap: { alignItems: 'center', paddingHorizontal: 16 },
   emptyIcon: {
@@ -325,13 +363,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: '#F4ECDF',
+    backgroundColor: colors.cream,
     borderRadius: 13,
     paddingHorizontal: 22,
     height: 50,
     marginTop: spacing.xl,
   },
-  browseBtnText: { fontSize: 14, fontWeight: '700', color: '#15100E' },
+  browseBtnText: { fontSize: 14, fontWeight: '700', color: colors.creamInk },
 
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   gridItem: { width: '31%' },

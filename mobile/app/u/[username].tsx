@@ -357,15 +357,15 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   followBtnOff: {
-    backgroundColor: '#F4ECDF',
-    borderColor: '#F4ECDF',
+    backgroundColor: colors.cream,
+    borderColor: colors.cream,
   },
   followBtnOn: {
     backgroundColor: 'rgba(200,65,78,0.15)',
     borderColor: colors.signal,
   },
   followBtnText: { fontSize: 14, fontWeight: '700' },
-  followBtnTextOff: { color: '#15100E' },
+  followBtnTextOff: { color: colors.creamInk },
   followBtnTextOn: { color: colors.signal },
 
   shareBtn: {

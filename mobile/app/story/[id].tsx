@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   ScrollView,
   View,
@@ -21,7 +21,7 @@ import { Cover } from '@/components/Cover';
 import { Avatar } from '@/components/Avatar';
 import { DobField } from '@/components/DobField';
 import { BottomSheet } from '@/components/BottomSheet';
-import { purchaseTip, TIP_TIERS, type TipTier } from '@/lib/iap';
+import { purchaseTip, loadTipPriceLabels, TIP_TIERS, type TipTier, type TipProductId } from '@/lib/iap';
 import type {
   StoryDetail,
   Shelf,
@@ -135,6 +135,10 @@ export default function StoryScreen() {
   const [tipDone, setTipDone] = useState(false);
   const [tipPending, setTipPending] = useState<string | null>(null);
   const [tipError, setTipError] = useState('');
+  // Live, locale-correct App Store price labels per tip product. The
+  // hardcoded GBP fallback in TIP_TIERS shows until this resolves so the
+  // sheet is never visually empty.
+  const [livePrices, setLivePrices] = useState<Partial<Record<TipProductId, string>>>({});
 
   const [reportOpen, setReportOpen] = useState(false);
   const [reportReason, setReportReason] = useState('harassment');
@@ -147,6 +151,26 @@ export default function StoryScreen() {
   const [reviewsOpen, setReviewsOpen] = useState(false);
 
   const userId = user?.id ?? null;
+
+  // Fetch reviews payload and seed the summary used by the cover-side stars.
+  // Called from load() once the story is known, and again after submitReview
+  // so the freshly-posted rating shows up immediately. Declared above load()
+  // so load can include it in its dependency array without a temporal cycle.
+  const loadReviews = useCallback(async (story_slug: string) => {
+    try {
+      const data = await apiGetCached<ReviewsResponse>(
+        `/api/stories/${story_slug}/reviews`,
+      );
+      setReviewData(data);
+      setReviewSummary(data.summary);
+      if (data.myReview) {
+        setDraftRating(data.myReview.rating);
+        setDraftBody(data.myReview.body);
+      }
+    } catch {
+      // Best-effort — Reviews sheet will just show empty.
+    }
+  }, []);
 
   const load = useCallback(async () => {
     // Critical path: the story itself, plus who we are (the user lookup is
@@ -210,25 +234,6 @@ export default function StoryScreen() {
       load();
     }, [load]),
   );
-
-  // Fetch reviews payload and seed the summary used by the cover-side stars.
-  // Called from load() once the story is known, and again after submitReview
-  // so the freshly-posted rating shows up immediately.
-  const loadReviews = useCallback(async (story_slug: string) => {
-    try {
-      const data = await apiGetCached<ReviewsResponse>(
-        `/api/stories/${story_slug}/reviews`,
-      );
-      setReviewData(data);
-      setReviewSummary(data.summary);
-      if (data.myReview) {
-        setDraftRating(data.myReview.rating);
-        setDraftBody(data.myReview.body);
-      }
-    } catch {
-      // Best-effort — Reviews tab will just show empty.
-    }
-  }, []);
 
   async function submitReview() {
     if (!story || reviewBusy) return;
@@ -302,6 +307,20 @@ export default function StoryScreen() {
       // Share cancelled — no-op.
     }
   }
+
+  // Fetch live App Store prices the first time the tip sheet is opened, so
+  // a US reader sees "$0.99" and a JP reader sees "¥120" — never the
+  // hardcoded GBP placeholder. One-shot: cached for the screen's lifetime.
+  useEffect(() => {
+    if (!tipOpen || Object.keys(livePrices).length > 0) return;
+    let cancelled = false;
+    loadTipPriceLabels().then((map) => {
+      if (!cancelled) setLivePrices(map);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [tipOpen, livePrices]);
 
   async function sendTip(tier: TipTier) {
     if (requireSignIn() || tipPending || !story) return;
@@ -431,12 +450,13 @@ export default function StoryScreen() {
           )}
         </View>
         {/* Star rating — only shown when the story has at least one review.
-            Tapping jumps straight to the Reviews tab. */}
+            Tapping opens the Reviews bottom sheet. */}
         {reviewSummary.count > 0 && reviewSummary.avg != null && (
           <Pressable
             style={styles.ratingRow}
-            onPress={() => setTab('reviews')}
+            onPress={() => setReviewsOpen(true)}
             hitSlop={4}
+            accessibilityLabel={`${reviewSummary.avg.toFixed(1)} stars, ${reviewSummary.count} review${reviewSummary.count === 1 ? '' : 's'}. Open reviews.`}
           >
             <Stars value={reviewSummary.avg} size={15} />
             <Text style={styles.ratingNum}>{reviewSummary.avg.toFixed(1)}</Text>
@@ -516,7 +536,7 @@ export default function StoryScreen() {
                 disabled={!readTarget}
                 onPress={() => readTarget && router.push(`/read/${readTarget}`)}
               >
-                <Ionicons name="play" size={16} color="#15100E" />
+                <Ionicons name="play" size={16} color={colors.creamInk} />
                 <Text style={styles.btnReadText}>
                   {continueId ? 'Continue' : 'Start reading'}
                 </Text>
@@ -575,19 +595,24 @@ export default function StoryScreen() {
               <View style={styles.tierList}>
                 {TIP_TIERS.map((tier) => {
                   const isPending = tipPending === tier.productId;
+                  // Live price from StoreKit when available — fallback to
+                  // the hardcoded GBP label otherwise so the sheet renders
+                  // immediately while RevenueCat resolves.
+                  const label = livePrices[tier.productId] ?? tier.priceLabel;
                   return (
                     <Pressable
                       key={tier.productId}
                       style={[styles.tierRow, isPending && { opacity: 0.6 }]}
                       onPress={() => sendTip(tier)}
                       disabled={!!tipPending}
+                      accessibilityLabel={`Tip ${tier.name}, ${label}`}
                     >
                       <View style={{ flex: 1, minWidth: 0 }}>
                         <Text style={styles.tierName}>{tier.name}</Text>
                         <Text style={styles.tierDesc}>{tier.description}</Text>
                       </View>
                       <Text style={styles.tierPrice}>
-                        {isPending ? '…' : tier.priceLabel}
+                        {isPending ? '…' : label}
                       </Text>
                     </Pressable>
                   );
@@ -870,8 +895,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 7,
   },
-  btnRead: { flex: 1.7, backgroundColor: '#F4ECDF' },
-  btnReadText: { fontSize: 15, fontWeight: '700', color: '#15100E' },
+  btnRead: { flex: 1.7, backgroundColor: colors.cream },
+  btnReadText: { fontSize: 15, fontWeight: '700', color: colors.creamInk },
   btnReadSub: { fontSize: 12, fontWeight: '500', color: 'rgba(21,16,14,0.65)' },
   btnSave: {
     flex: 1,
@@ -949,22 +974,22 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   sheetBtn: {
-    backgroundColor: '#F4ECDF',
+    backgroundColor: colors.cream,
     height: 52,
     borderRadius: 13,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: spacing.md,
   },
-  sheetBtnText: { color: '#15100E', fontSize: 15, fontWeight: '700' },
+  sheetBtnText: { color: colors.creamInk, fontSize: 15, fontWeight: '700' },
   gateBtn: {
-    backgroundColor: '#F4ECDF',
+    backgroundColor: colors.cream,
     height: 50,
     borderRadius: 13,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  gateBtnText: { color: '#15100E', fontSize: 15, fontWeight: '700' },
+  gateBtnText: { color: colors.creamInk, fontSize: 15, fontWeight: '700' },
 
   gate: {
     marginTop: spacing.lg,
@@ -1020,11 +1045,11 @@ const styles = StyleSheet.create({
     marginTop: 8,
     height: 44,
     borderRadius: 12,
-    backgroundColor: '#F4ECDF',
+    backgroundColor: colors.cream,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  reviewBtnText: { fontSize: 14, fontWeight: '700', color: '#15100E' },
+  reviewBtnText: { fontSize: 14, fontWeight: '700', color: colors.creamInk },
   reviewRow: {
     paddingVertical: 14,
     borderBottomWidth: 1,

@@ -141,13 +141,13 @@ const styles = StyleSheet.create({
   cancel: { fontSize: 15, color: colors.inkMuted },
   title: { fontFamily: fonts.display, fontSize: 16, color: colors.ink },
   postBtn: {
-    backgroundColor: '#F4ECDF',
+    backgroundColor: colors.cream,
     borderRadius: radius.pill,
     paddingHorizontal: 18,
     paddingVertical: 8,
   },
   postBtnOff: { backgroundColor: colors.card },
-  postBtnText: { fontSize: 14, fontWeight: '700', color: '#15100E' },
+  postBtnText: { fontSize: 14, fontWeight: '700', color: colors.creamInk },
   postBtnTextOff: { color: colors.inkFaint },
 
   scroll: { padding: spacing.lg },

@@ -134,13 +134,13 @@ const styles = StyleSheet.create({
   error: { fontSize: 13, color: colors.signal, marginTop: spacing.md },
   btn: {
     marginTop: spacing.md,
-    backgroundColor: '#F4ECDF',
+    backgroundColor: colors.cream,
     height: 52,
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  btnText: { color: '#15100E', fontSize: 15, fontWeight: '700' },
+  btnText: { color: colors.creamInk, fontSize: 15, fontWeight: '700' },
   link: {
     fontSize: 13,
     color: colors.inkMuted,

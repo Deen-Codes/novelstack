@@ -110,7 +110,7 @@ export function SignInPitch({ headline, sub }: { headline: string; sub: string }
                 {loading ? 'Sending…' : 'Email me a link'}
               </Text>
               {!loading && (
-                <Ionicons name="arrow-forward" size={18} color="#15100E" />
+                <Ionicons name="arrow-forward" size={18} color={colors.creamInk} />
               )}
             </Pressable>
             <Text style={styles.hint}>
@@ -166,13 +166,13 @@ const styles = StyleSheet.create({
     marginTop: 12,
     height: 54,
     borderRadius: 14,
-    backgroundColor: '#F4ECDF',
+    backgroundColor: colors.cream,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
   },
-  btnText: { color: '#15100E', fontSize: 15, fontWeight: '700' },
+  btnText: { color: colors.creamInk, fontSize: 15, fontWeight: '700' },
   hint: { fontSize: 12.5, color: colors.inkFaint, marginTop: 16, lineHeight: 18 },
 
   sentCard: { marginTop: spacing.xl },

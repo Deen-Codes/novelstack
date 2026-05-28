@@ -176,10 +176,10 @@ const styles = StyleSheet.create({
   },
   btn: {
     marginTop: spacing.lg,
-    backgroundColor: '#F4ECDF',
+    backgroundColor: colors.cream,
     paddingVertical: 13,
     paddingHorizontal: 28,
     borderRadius: radius.pill,
   },
-  btnText: { color: '#15100E', fontSize: 14, fontWeight: '700' },
+  btnText: { color: colors.creamInk, fontSize: 14, fontWeight: '700' },
 });

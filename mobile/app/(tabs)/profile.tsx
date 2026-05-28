@@ -361,12 +361,12 @@ const styles = StyleSheet.create({
   saveBtn: {
     height: 52,
     borderRadius: 14,
-    backgroundColor: '#F4ECDF',
+    backgroundColor: colors.cream,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: spacing.lg,
   },
-  saveBtnText: { color: '#15100E', fontSize: 15, fontWeight: '700' },
+  saveBtnText: { color: colors.creamInk, fontSize: 15, fontWeight: '700' },
 
   plusCard: {
     marginTop: spacing.xl,

@@ -594,12 +594,12 @@ const styles = StyleSheet.create({
   createBtn: {
     flex: 1,
     height: 48,
-    backgroundColor: '#F4ECDF',
+    backgroundColor: colors.cream,
     borderRadius: radius.md,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  createBtnText: { color: '#15100E', fontSize: 15, fontWeight: '700' },
+  createBtnText: { color: colors.creamInk, fontSize: 15, fontWeight: '700' },
 
   // Your stories.
   section: {

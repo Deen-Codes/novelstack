@@ -230,7 +230,7 @@ export default function Home() {
                       style={[styles.btn, styles.btnRead]}
                       onPress={() => router.push(`/story/${spot.slug}`)}
                     >
-                      <Ionicons name="play" size={17} color="#15100E" />
+                      <Ionicons name="play" size={17} color={colors.creamInk} />
                       <Text style={styles.btnReadText}>Read</Text>
                     </Pressable>
                     <Pressable style={[styles.btn, styles.btnSave]} onPress={toggleSave}>
@@ -288,7 +288,7 @@ export default function Home() {
                     </View>
                   </View>
                   <View style={styles.playBtn}>
-                    <Ionicons name="play" size={15} color="#15100E" />
+                    <Ionicons name="play" size={15} color={colors.creamInk} />
                   </View>
                 </Pressable>
               )}
@@ -395,8 +395,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
   },
-  btnRead: { flex: 1.6, backgroundColor: '#F4ECDF' },
-  btnReadText: { fontSize: 15, fontWeight: '700', color: '#15100E' },
+  btnRead: { flex: 1.6, backgroundColor: colors.cream },
+  btnReadText: { fontSize: 15, fontWeight: '700', color: colors.creamInk },
   btnSave: {
     flex: 1,
     backgroundColor: 'rgba(255,255,255,0.10)',
@@ -432,7 +432,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: '#F4ECDF',
+    backgroundColor: colors.cream,
     alignItems: 'center',
     justifyContent: 'center',
   },

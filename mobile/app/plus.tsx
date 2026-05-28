@@ -158,7 +158,7 @@ export default function Plus() {
             },
           ]}
         >
-          <Ionicons name="sparkles" size={26} color="#15100E" />
+          <Ionicons name="sparkles" size={26} color={colors.creamInk} />
         </Animated.View>
         <Text style={styles.title}>
           NovelStack<Text style={{ color: colors.signal }}>+</Text>
@@ -226,7 +226,7 @@ export default function Plus() {
 
         {plus?.active ? (
           <View style={[styles.cta, styles.ctaMember]}>
-            <Ionicons name="checkmark-circle" size={19} color="#15100E" />
+            <Ionicons name="checkmark-circle" size={19} color={colors.creamInk} />
             <Text style={styles.ctaText}>You&apos;re a member</Text>
           </View>
         ) : (
@@ -288,7 +288,7 @@ const styles = StyleSheet.create({
     width: 66,
     height: 66,
     borderRadius: 19,
-    backgroundColor: '#F4ECDF',
+    backgroundColor: colors.cream,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: spacing.sm,
@@ -362,19 +362,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     paddingVertical: 2,
   },
-  saveTagText: { fontSize: 10, fontWeight: '800', color: '#15100E', letterSpacing: 0.4 },
+  saveTagText: { fontSize: 10, fontWeight: '800', color: colors.creamInk, letterSpacing: 0.4 },
 
   cta: {
     width: '100%',
     height: 54,
     borderRadius: 14,
-    backgroundColor: '#F4ECDF',
+    backgroundColor: colors.cream,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: spacing.xl,
   },
   ctaMember: { flexDirection: 'row', gap: 8 },
-  ctaText: { color: '#15100E', fontSize: 15, fontWeight: '700' },
+  ctaText: { color: colors.creamInk, fontSize: 15, fontWeight: '700' },
   restore: {
     fontSize: 13,
     color: colors.inkMuted,

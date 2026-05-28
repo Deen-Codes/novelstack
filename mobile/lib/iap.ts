@@ -206,6 +206,12 @@ export type TipTier = {
   description: string;
 };
 
+// Fallback price labels — only ever shown if the StoreKit fetch fails or
+// hasn't completed yet. The live `priceString` from RevenueCat is the truth
+// (it's localised to the user's App Store region — €, ¥, $, ₹, etc.) and
+// gets used in the UI as soon as it lands. The fallback uses GBP because
+// the tiers were sized to UK pricing — it's a sensible-looking holdover,
+// not what we want a US/EU user to actually see.
 export const TIP_TIERS: TipTier[] = [
   {
     productId: TIP_PRODUCT_IDS.spark,
@@ -232,6 +238,28 @@ export const TIP_TIERS: TipTier[] = [
     description: 'A real lift — proper patronage of a story you adore.',
   },
 ];
+
+// Loads the live, locale-correct App Store price strings for every tip
+// product. Returns a `productId → priceString` map (e.g. "$0.99", "€0,99",
+// "¥120"). Empty object on failure — call sites fall back to the hardcoded
+// GBP label so the tip sheet still renders.
+export async function loadTipPriceLabels(): Promise<Partial<Record<TipProductId, string>>> {
+  configurePurchases();
+  if (!configured) return {};
+  try {
+    const ids = Object.values(TIP_PRODUCT_IDS);
+    // RN purchases supports product-id lookup directly for consumables.
+    const products = await Purchases.getProducts(ids);
+    const out: Partial<Record<TipProductId, string>> = {};
+    for (const p of products) {
+      const id = p.identifier as TipProductId;
+      if (id && p.priceString) out[id] = p.priceString;
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}
 
 export type TipPurchaseResult = {
   ok: boolean;

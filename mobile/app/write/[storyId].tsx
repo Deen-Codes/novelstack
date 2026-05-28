@@ -423,6 +423,8 @@ export default function StoryWriter() {
         style={[styles.fab, { bottom: fabBottom }]}
         onPress={() => setMenuOpen((o) => !o)}
         hitSlop={6}
+        accessibilityRole="button"
+        accessibilityLabel={menuOpen ? 'Close section menu' : 'Open section menu'}
       >
         <Animated.View
           style={{
@@ -439,7 +441,7 @@ export default function StoryWriter() {
           <Ionicons
             name={menuOpen ? 'close' : 'menu'}
             size={28}
-            color="#15100E"
+            color={colors.creamInk}
           />
         </Animated.View>
       </Pressable>
@@ -510,7 +512,7 @@ function ChaptersSection({
   return (
     <View>
       <Pressable style={styles.primaryBtnWide} onPress={onNew}>
-        <Ionicons name="add" size={18} color="#15100E" />
+        <Ionicons name="add" size={18} color={colors.creamInk} />
         <Text style={styles.primaryBtnText}>New chapter</Text>
       </Pressable>
 
@@ -752,7 +754,7 @@ function StatusSection({
             onValueChange={(on) => onChangeStatus(on ? 'draft' : 'ongoing')}
             disabled={busy}
             trackColor={{ false: colors.borderSoft, true: colors.signalDeep }}
-            thumbColor={offline ? colors.signal : '#F4ECDF'}
+            thumbColor={offline ? colors.signal : colors.cream}
             ios_backgroundColor={colors.borderSoft}
           />
         </View>
@@ -835,7 +837,7 @@ function FloatingItem({
         <Ionicons
           name={icon}
           size={19}
-          color={active ? '#15100E' : colors.ink}
+          color={active ? colors.creamInk : colors.ink}
         />
       </Pressable>
     </Animated.View>
@@ -921,7 +923,7 @@ const styles = StyleSheet.create({
 
   // Primary action button — cream rounded-square like the home Read button.
   primaryBtn: {
-    backgroundColor: '#F4ECDF',
+    backgroundColor: colors.cream,
     height: 52,
     paddingHorizontal: 26,
     borderRadius: 13,
@@ -931,13 +933,13 @@ const styles = StyleSheet.create({
   primaryBtnWide: {
     flexDirection: 'row',
     gap: 6,
-    backgroundColor: '#F4ECDF',
+    backgroundColor: colors.cream,
     height: 52,
     borderRadius: 13,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  primaryBtnText: { color: '#15100E', fontSize: 15, fontWeight: '700' },
+  primaryBtnText: { color: colors.creamInk, fontSize: 15, fontWeight: '700' },
 
   // Secondary action — same rounded-square family but ghosted, used for
   // "Go to chapters" under the cover.
@@ -1112,7 +1114,7 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 18,
-    backgroundColor: '#F4ECDF',
+    backgroundColor: colors.cream,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
@@ -1147,7 +1149,7 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   // Selected fly-out button paints cream like the primary buttons.
-  fabItemActive: { backgroundColor: '#F4ECDF', borderColor: '#F4ECDF' },
+  fabItemActive: { backgroundColor: colors.cream, borderColor: colors.cream },
   fabItemLabel: { fontSize: 15, fontWeight: '600', color: colors.ink },
-  fabItemLabelActive: { color: '#15100E', fontWeight: '700' },
+  fabItemLabelActive: { color: colors.creamInk, fontWeight: '700' },
 });

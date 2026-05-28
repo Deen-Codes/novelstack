@@ -42,6 +42,7 @@ const PAYOUT_STATUS: Record<string, { label: string; tone: 'paid' | 'wait' | 'fa
 export default function EarningsScreen() {
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
   const [data, setData] = useState<Earnings | null>(null);
+  const [loadError, setLoadError] = useState(false);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
@@ -53,12 +54,16 @@ export default function EarningsScreen() {
       setLoading(false);
       return;
     }
+    // Token present — treat as signed in. A failed earnings fetch is a
+    // network/server hiccup, not an auth problem; we surface a retry rather
+    // than booting an authenticated author to the SignInPitch.
+    setSignedIn(true);
     try {
       const earnings = await apiGet<Earnings>('/api/me/earnings');
       setData(earnings);
-      setSignedIn(true);
+      setLoadError(false);
     } catch {
-      setSignedIn(false);
+      setLoadError(true);
     }
     setLoading(false);
   }, []);
@@ -108,7 +113,7 @@ export default function EarningsScreen() {
     );
   }
 
-  if (signedIn === false || !data) {
+  if (signedIn === false) {
     return (
       <SafeAreaView style={styles.safe} edges={['top']}>
         <AmbientGlow />
@@ -116,6 +121,43 @@ export default function EarningsScreen() {
           headline="Earnings & payouts"
           sub="Sign in to track what your stories earn and set up how you get paid."
         />
+      </SafeAreaView>
+    );
+  }
+
+  // Signed in but the request failed — offer a retry instead of pretending
+  // there's nothing to show or treating the network blip as a sign-out.
+  if (!data) {
+    return (
+      <SafeAreaView style={styles.safe} edges={['top']}>
+        <AmbientGlow />
+        <ScrollView contentContainerStyle={styles.scroll}>
+          <Pressable style={styles.back} onPress={() => router.back()} hitSlop={8}>
+            <Ionicons name="chevron-back" size={22} color={colors.ink} />
+            <Text style={styles.backText}>Profile</Text>
+          </Pressable>
+          <Text style={styles.h1}>Earnings</Text>
+          <View style={{ alignItems: 'center', paddingHorizontal: 24, marginTop: 60 }}>
+            <Ionicons name="cloud-offline-outline" size={28} color={colors.signal} />
+            <Text style={[styles.balanceLabel, { marginTop: 16, textAlign: 'center' }]}>
+              {loadError
+                ? "Couldn't load your earnings — looks like a connection hiccup."
+                : 'No earnings data yet.'}
+            </Text>
+            {loadError && (
+              <Pressable
+                style={[styles.outlineBtn, { marginTop: 18 }]}
+                onPress={() => {
+                  setLoading(true);
+                  setLoadError(false);
+                  load();
+                }}
+              >
+                <Text style={styles.outlineBtnText}>Retry</Text>
+              </Pressable>
+            )}
+          </View>
+        </ScrollView>
       </SafeAreaView>
     );
   }
@@ -416,12 +458,12 @@ const styles = StyleSheet.create({
   primaryBtn: {
     height: 48,
     borderRadius: 13,
-    backgroundColor: '#F4ECDF',
+    backgroundColor: colors.cream,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: spacing.md,
   },
-  primaryBtnText: { color: '#15100E', fontSize: 14.5, fontWeight: '700' },
+  primaryBtnText: { color: colors.creamInk, fontSize: 14.5, fontWeight: '700' },
   outlineBtn: {
     height: 46,
     borderRadius: 13,

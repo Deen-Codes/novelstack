@@ -19,6 +19,13 @@ export const colors = {
   signalDeep: '#8E2C38',
   signalSoft: '#3A2025', // tinted fill behind accent elements
 
+  // Primary button family — cream pill background with dark ink for the
+  // label. Used on home Read/Continue, library tabs, story-manage primary
+  // actions, hamburger FAB, splash mark "n". Pulled out so all primary
+  // affordances stay in sync if the brand reskins.
+  cream: '#F4ECDF',
+  creamInk: '#15100E',
+
   // Lines
   borderSoft: '#332B25',
   border: '#3F352D',

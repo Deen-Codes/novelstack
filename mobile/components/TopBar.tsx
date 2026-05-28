@@ -157,6 +157,12 @@ export function TopBar({
               style={styles.icon}
               hitSlop={8}
               onPress={() => router.push('/notifications')}
+              accessibilityRole="button"
+              accessibilityLabel={
+                unread > 0
+                  ? `Notifications, ${unread} unread`
+                  : 'Notifications'
+              }
             >
               <Ionicons name="notifications-outline" size={19} color={colors.ink} />
               {unread > 0 && (
@@ -165,7 +171,12 @@ export function TopBar({
                 </View>
               )}
             </Pressable>
-            <Pressable hitSlop={8} onPress={() => setSheetOpen(true)}>
+            <Pressable
+              hitSlop={8}
+              onPress={() => setSheetOpen(true)}
+              accessibilityRole="button"
+              accessibilityLabel={user ? 'Open profile' : 'Sign in'}
+            >
               {user ? (
                 <Avatar url={user.avatarUrl} seed={user.id} size={38} />
               ) : (

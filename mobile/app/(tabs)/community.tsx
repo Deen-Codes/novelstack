@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import {
   Animated,
   ScrollView,
@@ -164,44 +164,45 @@ export default function Community() {
     }
   }
 
-  const followedIds = new Set(following.map((w) => w.id));
-
-  // Rank writers worth surfacing in the empty-feed "Writers to follow"
-  // section. Score combines straight popularity (reads + followers) with
-  // a 2× boost for writers whose stories sit in genres the reader has
-  // already saved — so suggestions feel personally relevant when the user
-  // has reading history, and degrade to "trending" when they don't.
-  const myGenres = new Set(savedStories.map((s) => s.genre));
-  type WriterPick = {
-    user: User;
-    topStory: FeedStory;
-    score: number;
-    affinity: boolean;
-  };
-  const writerMap = new Map<string, WriterPick>();
-  for (const s of feed) {
-    const a = s.author;
-    if (!a || followedIds.has(a.id) || a.id === me?.id) continue;
-    const reach = (s.totalReads ?? 0) + (s.totalFollowers ?? 0) * 10;
-    const aff = myGenres.has(s.genre);
-    const bumped = aff ? reach * 2 : reach;
-    const prev = writerMap.get(a.id);
-    if (!prev) {
-      writerMap.set(a.id, { user: a, topStory: s, score: bumped, affinity: aff });
-    } else {
-      prev.score += bumped;
-      prev.affinity = prev.affinity || aff;
-      const prevReach =
-        (prev.topStory.totalReads ?? 0) + (prev.topStory.totalFollowers ?? 0) * 10;
-      if (reach > prevReach) prev.topStory = s;
+  // Suggested-writer ranking. Memoised against the inputs it actually
+  // depends on so we don't redo the Map + sort on every render — only when
+  // the feed itself, who the user follows, or their saved-story genres
+  // change. (For the same reason follow/like animations stay smooth as
+  // posts grow.)
+  const suggestedWriters = useMemo(() => {
+    const followedIds = new Set(following.map((w) => w.id));
+    const myGenres = new Set(savedStories.map((s) => s.genre));
+    type WriterPick = {
+      user: User;
+      topStory: FeedStory;
+      score: number;
+      affinity: boolean;
+    };
+    const writerMap = new Map<string, WriterPick>();
+    for (const s of feed) {
+      const a = s.author;
+      if (!a || followedIds.has(a.id) || a.id === me?.id) continue;
+      const reach = (s.totalReads ?? 0) + (s.totalFollowers ?? 0) * 10;
+      const aff = myGenres.has(s.genre);
+      const bumped = aff ? reach * 2 : reach;
+      const prev = writerMap.get(a.id);
+      if (!prev) {
+        writerMap.set(a.id, { user: a, topStory: s, score: bumped, affinity: aff });
+      } else {
+        prev.score += bumped;
+        prev.affinity = prev.affinity || aff;
+        const prevReach =
+          (prev.topStory.totalReads ?? 0) + (prev.topStory.totalFollowers ?? 0) * 10;
+        if (reach > prevReach) prev.topStory = s;
+      }
     }
-  }
-  const suggestedWriters = Array.from(writerMap.values())
-    .sort((a, b) => {
-      if (a.affinity !== b.affinity) return a.affinity ? -1 : 1;
-      return b.score - a.score;
-    })
-    .slice(0, 6);
+    return Array.from(writerMap.values())
+      .sort((a, b) => {
+        if (a.affinity !== b.affinity) return a.affinity ? -1 : 1;
+        return b.score - a.score;
+      })
+      .slice(0, 6);
+  }, [feed, following, savedStories, me?.id]);
 
   // Mix "ghost" discovery cards into the feed at all times — fewer when the
   // reader already follows lots of writers, more when they're new. They look
@@ -209,18 +210,24 @@ export default function Community() {
   // story's own description and an honest "Suggested" badge sits in place of
   // the "Update" pill. Always keeps something fresh in the feed even after
   // the reader has caught up with everyone they follow.
-  const ghostCount = following.length < 5 ? 5 : 3;
-  const ghostItems = suggestedWriters
-    .filter((s) => !justFollowed.has(s.user.id))
-    .slice(0, ghostCount)
-    .map((s) => ({ kind: 'ghost' as const, key: `g-${s.user.id}`, pick: s }));
+  //
+  // NOTE: once feeds routinely top ~30 items, swap this `.map()` inside the
+  // ScrollView for a FlatList — same data, but windowed rendering so cards
+  // way below the fold don't mount until they're scrolled near.
   type FeedItem =
     | { kind: 'post'; key: string; post: CommunityPost }
     | { kind: 'ghost'; key: string; pick: typeof suggestedWriters[number] };
-  const feedItems: FeedItem[] = [
-    ...posts.map((p) => ({ kind: 'post' as const, key: `p-${p.id}`, post: p })),
-    ...ghostItems,
-  ];
+  const feedItems: FeedItem[] = useMemo(() => {
+    const ghostCount = following.length < 5 ? 5 : 3;
+    const ghostItems = suggestedWriters
+      .filter((s) => !justFollowed.has(s.user.id))
+      .slice(0, ghostCount)
+      .map((s) => ({ kind: 'ghost' as const, key: `g-${s.user.id}`, pick: s }));
+    return [
+      ...posts.map((p) => ({ kind: 'post' as const, key: `p-${p.id}`, post: p })),
+      ...ghostItems,
+    ];
+  }, [posts, suggestedWriters, following.length, justFollowed]);
 
   const { scrollRef, scrollY, topPad, onScroll } = useTabScroll();
 
@@ -437,7 +444,7 @@ export default function Community() {
                             onPress={() => followInline(item.pick.user.id)}
                             hitSlop={6}
                           >
-                            <Ionicons name="add" size={15} color="#15100E" />
+                            <Ionicons name="add" size={15} color={colors.creamInk} />
                             <Text style={styles.followInlineText}>
                               Follow {item.pick.user.displayName.split(' ')[0]}
                             </Text>
@@ -689,10 +696,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    backgroundColor: '#F4ECDF',
+    backgroundColor: colors.cream,
     borderRadius: radius.pill,
     paddingHorizontal: 13,
     paddingVertical: 7,
   },
-  followInlineText: { fontSize: 13, fontWeight: '700', color: '#15100E' },
+  followInlineText: { fontSize: 13, fontWeight: '700', color: colors.creamInk },
 });

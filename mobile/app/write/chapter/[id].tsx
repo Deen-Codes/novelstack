@@ -441,14 +441,14 @@ const styles = StyleSheet.create({
   topRight: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   iconBtn: { padding: 4 },
   publishBtn: {
-    backgroundColor: '#F4ECDF',
+    backgroundColor: colors.cream,
     paddingHorizontal: 18,
     paddingVertical: 9,
     borderRadius: radius.md,
     marginLeft: 2,
   },
   publishOff: { backgroundColor: colors.cardHi },
-  publishText: { color: '#15100E', fontSize: 13, fontWeight: '700' },
+  publishText: { color: colors.creamInk, fontSize: 13, fontWeight: '700' },
   publishTextOff: { color: colors.inkFaint },
 
   errorText: { fontSize: 14, color: colors.inkMuted, padding: spacing.lg },
@@ -517,13 +517,13 @@ const styles = StyleSheet.create({
   freeHint: { fontSize: 12, color: colors.inkFaint, marginTop: 2, lineHeight: 16 },
 
   confirmBtn: {
-    backgroundColor: '#F4ECDF',
+    backgroundColor: colors.cream,
     paddingVertical: 14,
     borderRadius: radius.md,
     alignItems: 'center',
     marginTop: spacing.md,
   },
-  confirmText: { color: '#15100E', fontSize: 15, fontWeight: '700' },
+  confirmText: { color: colors.creamInk, fontSize: 15, fontWeight: '700' },
   sheetNote: {
     fontSize: 12,
     color: colors.inkFaint,

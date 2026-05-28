@@ -366,7 +366,7 @@ export default function PostScreen() {
             onPress={send}
             disabled={!comment.trim() || busy}
           >
-            <Ionicons name="arrow-up" size={18} color="#15100E" />
+            <Ionicons name="arrow-up" size={18} color={colors.creamInk} />
           </Pressable>
         </View>
       </KeyboardAvoidingView>
@@ -484,7 +484,7 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: radius.pill,
-    backgroundColor: '#F4ECDF',
+    backgroundColor: colors.cream,
     alignItems: 'center',
     justifyContent: 'center',
   },

@@ -234,8 +234,8 @@ export default function Reader() {
 
   // Primary-button palette — cream on the dark theme, ink on paper, so the
   // call to action stays high-contrast in either reading mode.
-  const primaryBg = paper ? paperMode.ink : '#F4ECDF';
-  const primaryInk = paper ? paperMode.bg : '#15100E';
+  const primaryBg = paper ? paperMode.ink : colors.cream;
+  const primaryInk = paper ? paperMode.bg : colors.creamInk;
 
   if (loading) {
     return (
