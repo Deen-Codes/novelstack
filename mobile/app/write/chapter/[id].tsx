@@ -110,7 +110,9 @@ export default function ChapterEditor() {
         number: num,
         title: `Chapter ${num}`,
         html: '<p></p>',
-        isFree: num <= 3,
+        // New chapters start free — the story-manage Chapters page is where
+        // authors flip individual chapters to paid.
+        isFree: true,
       });
       return;
     }
@@ -164,7 +166,10 @@ export default function ChapterEditor() {
 function EditorBody({ data }: { data: Loaded }) {
   const { isNew, chapterId, storyId, number } = data;
   const [title, setTitle] = useState(data.title);
-  const [isFree, setIsFree] = useState(data.isFree);
+  // isFree is no longer prompted at publish — authors set Free/Paid on the
+  // story-manage Chapters page. We carry the chapter's existing value so an
+  // edit-save round-trip doesn't clobber it.
+  const isFree = data.isFree;
   const [review, setReview] = useState(false);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState('');
@@ -192,7 +197,6 @@ function EditorBody({ data }: { data: Loaded }) {
 
   const dirty =
     title !== data.title ||
-    isFree !== data.isFree ||
     (liveHtml != null && baseline.current != null && liveHtml !== baseline.current);
 
   // Picks an illustration, uploads it to R2, drops it into the editor.
@@ -379,20 +383,6 @@ function EditorBody({ data }: { data: Loaded }) {
             <Text style={styles.sheetDot}>·</Text>
             <Text style={styles.sheetStat}>{readMinutes} min read</Text>
           </View>
-
-          <Pressable style={styles.freeRow} onPress={() => setIsFree((f) => !f)}>
-            <View style={[styles.checkbox, isFree && styles.checkboxOn]}>
-              {isFree && <Text style={styles.checkMark}>✓</Text>}
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.freeLabel}>Free chapter</Text>
-              <Text style={styles.freeHint}>
-                {isFree
-                  ? 'Anyone can read this chapter at no cost.'
-                  : 'Readers unlock this with an ad or NovelStack+.'}
-              </Text>
-            </View>
-          </Pressable>
 
           <Pressable
             style={[styles.confirmBtn, busy && { opacity: 0.6 }]}

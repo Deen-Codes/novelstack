@@ -6,6 +6,7 @@ import {
   Text,
   TextInput,
   Pressable,
+  Switch,
   ActivityIndicator,
   Alert,
   StyleSheet,
@@ -20,7 +21,7 @@ import { GENRES, genreLabel } from '@/lib/genres';
 import { Cover } from '@/components/Cover';
 import type { Shelf, Story, Chapter, StoryDetail } from '@/lib/types';
 
-type Section = 'cover' | 'chapters' | 'details' | 'status' | 'access';
+type Section = 'cover' | 'chapters' | 'details' | 'status';
 
 const SECTION_LABELS: Record<
   Section,
@@ -30,12 +31,11 @@ const SECTION_LABELS: Record<
   chapters: { label: 'Chapters', icon: 'list-outline' },
   details: { label: 'Details', icon: 'create-outline' },
   status: { label: 'Status', icon: 'pulse-outline' },
-  access: { label: 'Access', icon: 'lock-open-outline' },
 };
 
 // Order in the fly-out (top of stack first). Cover is the most-used so it
 // sits closest to the thumb when the menu opens.
-const SECTION_ORDER: Section[] = ['cover', 'chapters', 'details', 'status', 'access'];
+const SECTION_ORDER: Section[] = ['cover', 'chapters', 'details', 'status'];
 
 export default function StoryWriter() {
   const { storyId } = useLocalSearchParams<{ storyId: string }>();
@@ -63,8 +63,8 @@ export default function StoryWriter() {
     }).start();
   }, [menuOpen, menuAnim]);
 
-  // Details editor (now lives inline on the Details page rather than a
-  // bottom sheet — drafts are seeded from the story once it loads.
+  // Details editor (inline, not a bottom sheet) — drafts are seeded from the
+  // story once it loads so the inputs are immediately populated.
   const [draftTitle, setDraftTitle] = useState('');
   const [draftDesc, setDraftDesc] = useState('');
   const [draftGenre, setDraftGenre] = useState('');
@@ -74,8 +74,9 @@ export default function StoryWriter() {
   const [detailsError, setDetailsError] = useState('');
   const [detailsSaved, setDetailsSaved] = useState(false);
 
-  // Chapter reorder state — local first, server PATCH on commit.
-  const [reorderBusy, setReorderBusy] = useState(false);
+  // Optimistic per-chapter pending state for the Free/Paid toggle so the
+  // pill flips immediately even while the PATCH is in flight.
+  const [pendingFreeId, setPendingFreeId] = useState<string | null>(null);
 
   function selectSection(s: Section) {
     setTab(s);
@@ -119,7 +120,9 @@ export default function StoryWriter() {
     }, [load]),
   );
 
-  // Opens the immersive editor to draft a brand-new chapter.
+  // Opens the immersive editor to draft a brand-new chapter. New chapters
+  // default to free; authors flip individual chapters to paid from the
+  // chapters page instead of being prompted at publish.
   function openNew() {
     router.push({
       pathname: '/write/chapter/[id]',
@@ -173,7 +176,7 @@ export default function StoryWriter() {
     setCoverBusy(false);
   }
 
-  // Flips the story's mature (18+) flag.
+  // Flips the story's mature (18+) flag (used from Details page).
   async function toggleMature() {
     if (!story || busy) return;
     try {
@@ -186,8 +189,7 @@ export default function StoryWriter() {
     }
   }
 
-  // Sets the story's status — draft → live, ongoing ⟷ complete, or back
-  // to draft to take the story offline.
+  // Sets the story's status — draft (offline) ⟷ ongoing ⟷ complete.
   async function changeStatus(next: 'draft' | 'ongoing' | 'complete') {
     if (busy || !story || story.status === next) return;
     setBusy(true);
@@ -204,49 +206,22 @@ export default function StoryWriter() {
     setBusy(false);
   }
 
-  // Ad-gating cutoff: makes the first `n` chapters free and gates the rest.
-  async function setFreeChapters(n: number) {
-    if (busy) return;
-    setBusy(true);
+  // Flips one chapter between free and paid (ad/NS+ gated). PATCH is
+  // optimistic — the pill updates locally while the request flies.
+  async function toggleChapterFree(ch: Chapter) {
+    if (pendingFreeId) return;
+    const nextFree = !ch.isFree;
+    setPendingFreeId(ch.id);
+    setChapters((list) =>
+      list.map((c) => (c.id === ch.id ? { ...c, isFree: nextFree } : c)),
+    );
     try {
-      await Promise.all(
-        chapters.map((c, i) => {
-          const shouldBeFree = i < n;
-          return c.isFree === shouldBeFree
-            ? Promise.resolve()
-            : apiSend(`/api/me/chapters/${c.id}`, 'PATCH', { isFree: shouldBeFree });
-        }),
-      );
-      await load();
+      await apiSend(`/api/me/chapters/${ch.id}`, 'PATCH', { isFree: nextFree });
     } catch {
-      // UI reflects server state on next load.
-    }
-    setBusy(false);
-  }
-
-  // Moves a chapter up or down in the order, then persists the new order.
-  async function moveChapter(index: number, direction: -1 | 1) {
-    if (reorderBusy) return;
-    const target = index + direction;
-    if (target < 0 || target >= chapters.length) return;
-
-    // Optimistic local swap + renumber for the on-screen card.
-    const next = chapters.slice();
-    const [moved] = next.splice(index, 1);
-    next.splice(target, 0, moved);
-    const renumbered = next.map((c, i) => ({ ...c, number: i + 1 }));
-    setChapters(renumbered);
-
-    setReorderBusy(true);
-    try {
-      await apiSend(`/api/me/stories/${storyId}/chapters/reorder`, 'POST', {
-        ids: renumbered.map((c) => c.id),
-      });
-    } catch {
-      // Rollback on failure by re-fetching the truth.
+      // Rollback by re-fetching the truth.
       await load();
     }
-    setReorderBusy(false);
+    setPendingFreeId(null);
   }
 
   // Saves the editable Details fields (title, description, genre) to the
@@ -273,7 +248,6 @@ export default function StoryWriter() {
       );
       setStory(updated);
       setDetailsSaved(true);
-      // Fade the "saved" toast back out after a beat.
       setTimeout(() => setDetailsSaved(false), 1800);
     } catch (e) {
       setDetailsError(e instanceof Error ? e.message : 'Could not save.');
@@ -328,7 +302,7 @@ export default function StoryWriter() {
             hitSlop={16}
             style={styles.backWrap}
           >
-            <Text style={styles.back}>‹ Write</Text>
+            <Text style={styles.back}>‹ Exit writing</Text>
           </Pressable>
           <Text style={styles.empty}>Story not found, or it isn&apos;t yours.</Text>
         </View>
@@ -336,25 +310,27 @@ export default function StoryWriter() {
     );
   }
 
-  const freeCount = chapters.filter((c) => c.isFree).length;
+  // FAB sits a little higher than the SafeArea so it lands where the thumb
+  // naturally rests on modern iPhones. Bigger hit area too.
+  const fabBottom = Math.max(insets.bottom, 8) + 64;
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <View style={styles.topBar}>
         <Pressable onPress={() => router.back()} hitSlop={16} style={styles.backWrap}>
-          <Text style={styles.back}>‹ Write</Text>
+          <Text style={styles.back}>‹ Exit writing</Text>
         </Pressable>
         <Text style={styles.topTitle} numberOfLines={1}>
           {story.title}
         </Text>
-        <View style={{ width: 60 }} />
+        <View style={{ width: 110 }} />
       </View>
 
       <ScrollView
         contentContainerStyle={styles.scroll}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Big page title — same look across all five sections. */}
+        {/* Big page title — same look across all four sections. */}
         <Text style={styles.pageTitle}>{SECTION_LABELS[tab].label}</Text>
 
         {tab === 'cover' && (
@@ -363,19 +339,17 @@ export default function StoryWriter() {
             busy={coverBusy}
             error={coverError}
             onPick={pickCover}
+            onGoChapters={() => setTab('chapters')}
           />
         )}
 
         {tab === 'chapters' && (
           <ChaptersSection
             chapters={chapters}
-            freeCount={freeCount}
-            reorderBusy={reorderBusy}
-            busy={busy}
+            pendingFreeId={pendingFreeId}
             onOpen={openEditor}
             onNew={openNew}
-            onMove={moveChapter}
-            onMoveDivider={(n) => setFreeChapters(n)}
+            onToggleFree={toggleChapterFree}
           />
         )}
 
@@ -406,25 +380,14 @@ export default function StoryWriter() {
           <StatusSection
             story={story}
             busy={busy}
-            onMature={toggleMature}
             onChangeStatus={changeStatus}
           />
         )}
 
-        {tab === 'access' && (
-          <AccessSection
-            chapters={chapters}
-            freeCount={freeCount}
-            busy={busy}
-            onChange={setFreeChapters}
-          />
-        )}
-
-        {!!status && <Text style={styles.status}>{status}</Text>}
+        {!!status && <Text style={styles.statusMsg}>{status}</Text>}
       </ScrollView>
 
-      {/* Tap-anywhere-to-close backdrop when the FAB menu is open. Sits
-          above the scroll content but below the buttons themselves. */}
+      {/* Tap-anywhere-to-close backdrop when the FAB menu is open. */}
       {menuOpen && (
         <Pressable
           style={StyleSheet.absoluteFill}
@@ -432,13 +395,10 @@ export default function StoryWriter() {
         />
       )}
 
-      {/* Fly-out stack — five action buttons rise from the FAB. */}
+      {/* Fly-out stack — four section buttons rise from the FAB. */}
       <View
         pointerEvents={menuOpen ? 'box-none' : 'none'}
-        style={[
-          styles.fabStack,
-          { bottom: Math.max(insets.bottom, 8) + 80 },
-        ]}
+        style={[styles.fabStack, { bottom: fabBottom + 78 }]}
       >
         {SECTION_ORDER.map((s, i) => {
           // Farthest-from-FAB item moves first so the rise reads as a stack.
@@ -457,9 +417,9 @@ export default function StoryWriter() {
         })}
       </View>
 
-      {/* The hamburger / X FAB itself. */}
+      {/* The hamburger / X FAB itself — bigger + higher than before. */}
       <Pressable
-        style={[styles.fab, { bottom: Math.max(insets.bottom, 8) + 16 }]}
+        style={[styles.fab, { bottom: fabBottom }]}
         onPress={() => setMenuOpen((o) => !o)}
         hitSlop={6}
       >
@@ -477,7 +437,7 @@ export default function StoryWriter() {
         >
           <Ionicons
             name={menuOpen ? 'close' : 'menu'}
-            size={24}
+            size={28}
             color="#FFFFFF"
           />
         </Animated.View>
@@ -487,18 +447,20 @@ export default function StoryWriter() {
 }
 
 // ---------- Section: Cover --------------------------------------------------
-// A full-page preview with the upload button beneath. The cover image gets
-// the spotlight here — no other competing content on the page.
+// A full-page preview with upload + "go to chapters" beneath. The cover image
+// gets the spotlight here — no other competing content on the page.
 function CoverSection({
   story,
   busy,
   error,
   onPick,
+  onGoChapters,
 }: {
   story: Story;
   busy: boolean;
   error: string;
   onPick: () => void;
+  onGoChapters: () => void;
 }) {
   return (
     <View style={{ alignItems: 'center' }}>
@@ -519,31 +481,30 @@ function CoverSection({
       </Pressable>
       <Text style={styles.helperCentered}>JPEG, PNG or WebP · up to 5 MB</Text>
       {!!error && <Text style={styles.errorCentered}>{error}</Text>}
+
+      <Pressable style={styles.secondaryBtn} onPress={onGoChapters}>
+        <Text style={styles.secondaryBtnText}>Go to chapters</Text>
+        <Ionicons name="arrow-forward" size={15} color={colors.ink} />
+      </Pressable>
     </View>
   );
 }
 
 // ---------- Section: Chapters ----------------------------------------------
-// Ordered list with up/down reorder buttons and a single divider line that
-// splits free chapters from the paid/ad-gated ones beneath it.
+// Ordered chapter list. Each row has a Free ⟷ Paid pill that flips
+// instantly — that's how authors gate chapters. No reorder UI.
 function ChaptersSection({
   chapters,
-  freeCount,
-  reorderBusy,
-  busy,
+  pendingFreeId,
   onOpen,
   onNew,
-  onMove,
-  onMoveDivider,
+  onToggleFree,
 }: {
   chapters: Chapter[];
-  freeCount: number;
-  reorderBusy: boolean;
-  busy: boolean;
+  pendingFreeId: string | null;
   onOpen: (c: Chapter) => void;
   onNew: () => void;
-  onMove: (i: number, dir: -1 | 1) => void;
-  onMoveDivider: (n: number) => void;
+  onToggleFree: (c: Chapter) => void;
 }) {
   return (
     <View>
@@ -556,31 +517,11 @@ function ChaptersSection({
         <Text style={styles.empty}>No chapters yet — start with one above.</Text>
       )}
 
-      {chapters.map((ch, i) => (
-        <View key={ch.id}>
-          <Pressable style={styles.chapterCard} onPress={() => onOpen(ch)}>
-            <View style={styles.chapterReorder}>
-              <Pressable
-                hitSlop={8}
-                disabled={i === 0 || reorderBusy}
-                onPress={() => onMove(i, -1)}
-                style={[styles.reorderBtn, (i === 0 || reorderBusy) && styles.reorderBtnOff]}
-              >
-                <Ionicons name="chevron-up" size={14} color={colors.ink} />
-              </Pressable>
-              <Pressable
-                hitSlop={8}
-                disabled={i === chapters.length - 1 || reorderBusy}
-                onPress={() => onMove(i, 1)}
-                style={[
-                  styles.reorderBtn,
-                  (i === chapters.length - 1 || reorderBusy) && styles.reorderBtnOff,
-                ]}
-              >
-                <Ionicons name="chevron-down" size={14} color={colors.ink} />
-              </Pressable>
-            </View>
-            <View style={{ flex: 1 }}>
+      {chapters.map((ch) => {
+        const flipping = pendingFreeId === ch.id;
+        return (
+          <View key={ch.id} style={styles.chapterCard}>
+            <Pressable style={{ flex: 1 }} onPress={() => onOpen(ch)}>
               <Text style={styles.chapterTitle}>
                 {ch.number}. {ch.title}
               </Text>
@@ -588,102 +529,41 @@ function ChaptersSection({
                 {ch.publishedAt ? 'Published' : 'Draft'}
                 {ch.wordCount ? ` · ${ch.wordCount.toLocaleString()} words` : ''}
               </Text>
-            </View>
-            <View style={[styles.accessBadge, ch.isFree ? styles.freeBadge : styles.paidBadge]}>
+            </Pressable>
+            <Pressable
+              disabled={flipping}
+              onPress={() => onToggleFree(ch)}
+              style={[
+                styles.freePaidPill,
+                ch.isFree ? styles.freePill : styles.paidPill,
+                flipping && { opacity: 0.55 },
+              ]}
+              hitSlop={6}
+            >
               <Ionicons
                 name={ch.isFree ? 'eye-outline' : 'lock-closed'}
-                size={11}
+                size={12}
                 color={ch.isFree ? '#5E8E5A' : '#C8414E'}
               />
-              <Text style={[styles.accessBadgeText, { color: ch.isFree ? '#5E8E5A' : '#C8414E' }]}>
+              <Text
+                style={[
+                  styles.freePaidText,
+                  { color: ch.isFree ? '#5E8E5A' : '#C8414E' },
+                ]}
+              >
                 {ch.isFree ? 'Free' : 'Paid'}
               </Text>
-            </View>
-          </Pressable>
+            </Pressable>
+          </View>
+        );
+      })}
 
-          {/* Divider drops between free and paid — drag (well, tap) it to
-              change the cutoff. Only renders inside the chapter run, never
-              before the first or after the last chapter. */}
-          {i + 1 === freeCount && i + 1 < chapters.length && (
-            <DividerRow
-              busy={busy}
-              freeCount={freeCount}
-              total={chapters.length}
-              onMoveDivider={onMoveDivider}
-            />
-          )}
-        </View>
-      ))}
-
-      {/* If nothing's gated yet, show the divider as a hint at the top */}
-      {chapters.length > 0 && freeCount === 0 && (
-        <DividerRow
-          busy={busy}
-          freeCount={freeCount}
-          total={chapters.length}
-          onMoveDivider={onMoveDivider}
-          placement="all-paid"
-        />
-      )}
-
-      {/* All chapters free → hint at the bottom. */}
-      {chapters.length > 0 && freeCount === chapters.length && (
-        <DividerRow
-          busy={busy}
-          freeCount={freeCount}
-          total={chapters.length}
-          onMoveDivider={onMoveDivider}
-          placement="all-free"
-        />
-      )}
-    </View>
-  );
-}
-
-function DividerRow({
-  busy,
-  freeCount,
-  total,
-  onMoveDivider,
-  placement,
-}: {
-  busy: boolean;
-  freeCount: number;
-  total: number;
-  onMoveDivider: (n: number) => void;
-  placement?: 'all-free' | 'all-paid';
-}) {
-  const upDisabled = busy || freeCount === 0;
-  const downDisabled = busy || freeCount === total;
-  return (
-    <View style={styles.dividerRow}>
-      <View style={styles.dividerLine} />
-      <View style={styles.dividerChip}>
-        <Pressable
-          hitSlop={6}
-          disabled={upDisabled}
-          onPress={() => onMoveDivider(Math.max(0, freeCount - 1))}
-          style={[styles.dividerStep, upDisabled && { opacity: 0.4 }]}
-        >
-          <Ionicons name="chevron-up" size={13} color={colors.ink} />
-        </Pressable>
-        <Text style={styles.dividerText}>
-          {placement === 'all-free'
-            ? 'All chapters free'
-            : placement === 'all-paid'
-              ? 'Every chapter ad-gated'
-              : 'Paid / ad-gated below'}
+      {chapters.length > 0 && (
+        <Text style={styles.helper}>
+          Tap a chapter to edit. Tap the Free/Paid pill to gate it behind an ad
+          or NovelStack+.
         </Text>
-        <Pressable
-          hitSlop={6}
-          disabled={downDisabled}
-          onPress={() => onMoveDivider(Math.min(total, freeCount + 1))}
-          style={[styles.dividerStep, downDisabled && { opacity: 0.4 }]}
-        >
-          <Ionicons name="chevron-down" size={13} color={colors.ink} />
-        </Pressable>
-      </View>
-      <View style={styles.dividerLine} />
+      )}
     </View>
   );
 }
@@ -841,129 +721,70 @@ function DetailsSection({
 }
 
 // ---------- Section: Status -------------------------------------------------
-// Just the publish state controls. Mature toggle moved to Details — this
-// page is purely about live / ongoing / complete / offline.
+// One Offline switch for hide-from-readers, and an Ongoing/Complete picker
+// underneath when the story is live. Flipping Offline off after a previously
+// offline story defaults back to Ongoing.
 function StatusSection({
   story,
   busy,
-  onMature: _onMature,
   onChangeStatus,
 }: {
   story: Story;
   busy: boolean;
-  onMature: () => void;
   onChangeStatus: (next: 'draft' | 'ongoing' | 'complete') => void;
 }) {
-  if (story.status === 'draft') {
-    return (
-      <View>
-        <Text style={styles.helper}>
-          Your story is an offline draft — only you can see it. Make it live to
-          share it with readers.
-        </Text>
-        <Pressable
-          style={[styles.primaryBtnWide, busy && { opacity: 0.6 }, { marginTop: spacing.lg }]}
-          onPress={() => onChangeStatus('ongoing')}
-          disabled={busy}
-        >
-          <Text style={styles.primaryBtnText}>Make story live</Text>
-        </Pressable>
-      </View>
-    );
-  }
+  const offline = story.status === 'draft';
   return (
     <View>
-      <Text style={styles.fieldLabel}>Story status</Text>
-      <View style={styles.segment}>
-        <Pressable
-          style={[styles.segBtn, story.status === 'ongoing' && styles.segOn]}
-          onPress={() => onChangeStatus('ongoing')}
-          disabled={busy}
-        >
-          <Text style={[styles.segText, story.status === 'ongoing' && styles.segTextOn]}>
-            Ongoing
+      <View style={styles.switchRow}>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.switchLabel}>Offline</Text>
+          <Text style={styles.switchHint}>
+            {offline
+              ? 'Only you can see this story. Flick the switch to make it live.'
+              : 'Live — readers can find and read it. Flick on to hide it again.'}
           </Text>
-        </Pressable>
-        <Pressable
-          style={[styles.segBtn, story.status === 'complete' && styles.segOn]}
-          onPress={() => onChangeStatus('complete')}
+        </View>
+        <Switch
+          value={offline}
+          onValueChange={(on) => onChangeStatus(on ? 'draft' : 'ongoing')}
           disabled={busy}
-        >
-          <Text style={[styles.segText, story.status === 'complete' && styles.segTextOn]}>
-            Complete
+          trackColor={{ false: colors.borderSoft, true: colors.signalDeep }}
+          thumbColor={offline ? colors.signal : '#F4ECDF'}
+          ios_backgroundColor={colors.borderSoft}
+        />
+      </View>
+
+      {!offline && (
+        <>
+          <Text style={styles.fieldLabel}>Story status</Text>
+          <View style={styles.segment}>
+            <Pressable
+              style={[styles.segBtn, story.status === 'ongoing' && styles.segOn]}
+              onPress={() => onChangeStatus('ongoing')}
+              disabled={busy}
+            >
+              <Text style={[styles.segText, story.status === 'ongoing' && styles.segTextOn]}>
+                Ongoing
+              </Text>
+            </Pressable>
+            <Pressable
+              style={[styles.segBtn, story.status === 'complete' && styles.segOn]}
+              onPress={() => onChangeStatus('complete')}
+              disabled={busy}
+            >
+              <Text style={[styles.segText, story.status === 'complete' && styles.segTextOn]}>
+                Complete
+              </Text>
+            </Pressable>
+          </View>
+          <Text style={styles.helper}>
+            {story.status === 'complete'
+              ? 'Readers see this as a finished book.'
+              : 'Readers know more chapters are still coming.'}
           </Text>
-        </Pressable>
-      </View>
-      <Text style={styles.helper}>
-        {story.status === 'complete'
-          ? 'Readers see this as a finished book.'
-          : 'Readers know more chapters are still coming.'}
-      </Text>
-
-      <Pressable
-        style={[styles.offlineBtn, busy && { opacity: 0.5 }]}
-        onPress={() => onChangeStatus('draft')}
-        disabled={busy}
-      >
-        <Text style={styles.offlineBtnText}>Take offline — back to draft</Text>
-      </Pressable>
-      <Text style={styles.helper}>
-        An offline story is hidden from readers until you make it live again.
-      </Text>
-    </View>
-  );
-}
-
-// ---------- Section: Access -------------------------------------------------
-// The free-chapter stepper. Mirrors the chapters-page divider so authors can
-// land here from either direction.
-function AccessSection({
-  chapters,
-  freeCount,
-  busy,
-  onChange,
-}: {
-  chapters: Chapter[];
-  freeCount: number;
-  busy: boolean;
-  onChange: (n: number) => void;
-}) {
-  if (chapters.length === 0) {
-    return (
-      <Text style={styles.helper}>
-        Add chapters first — then choose how many are free to read before the ad
-        gate.
-      </Text>
-    );
-  }
-  return (
-    <View>
-      <Text style={styles.fieldLabel}>Free chapters</Text>
-      <View style={styles.stepper}>
-        <Pressable
-          style={[styles.stepBtn, busy && { opacity: 0.5 }]}
-          onPress={() => onChange(Math.max(0, freeCount - 1))}
-          disabled={busy || freeCount === 0}
-        >
-          <Text style={styles.stepBtnText}>−</Text>
-        </Pressable>
-        <Text style={styles.stepValue}>{freeCount}</Text>
-        <Pressable
-          style={[styles.stepBtn, busy && { opacity: 0.5 }]}
-          onPress={() => onChange(Math.min(chapters.length, freeCount + 1))}
-          disabled={busy || freeCount >= chapters.length}
-        >
-          <Text style={styles.stepBtnText}>+</Text>
-        </Pressable>
-        <Text style={styles.stepLabel}>
-          of {chapters.length} chapter{chapters.length === 1 ? '' : 's'}
-        </Text>
-      </View>
-      <Text style={styles.helper}>
-        {freeCount >= chapters.length
-          ? 'Every chapter is free to read.'
-          : `Chapter ${freeCount + 1} onward is gated behind an ad or NovelStack+.`}
-      </Text>
+        </>
+      )}
     </View>
   );
 }
@@ -984,8 +805,8 @@ function FloatingItem({
   active?: boolean;
   onPress: () => void;
 }) {
-  // Stagger each button rising 56pt further than the one before it.
-  const distance = 56 * (order + 1);
+  // Stagger each button rising 60pt further than the one before it.
+  const distance = 60 * (order + 1);
   const translateY = anim.interpolate({
     inputRange: [0, 1],
     outputRange: [distance, 0],
@@ -1010,7 +831,7 @@ function FloatingItem({
         </Text>
         <Ionicons
           name={icon}
-          size={17}
+          size={19}
           color={active ? '#FFFFFF' : colors.ink}
         />
       </Pressable>
@@ -1020,10 +841,10 @@ function FloatingItem({
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.paper },
-  scroll: { padding: spacing.lg, paddingBottom: spacing.xl * 4 },
+  scroll: { padding: spacing.lg, paddingBottom: spacing.xl * 5 },
 
-  // Compact top bar — slim back link + the story title centered, so the
-  // page title beneath can own the visual weight.
+  // Compact top bar — back link plus the story title centered, so the page
+  // title beneath can own the visual weight.
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1062,7 +883,7 @@ const styles = StyleSheet.create({
   },
   errorCentered: { fontSize: 13, color: colors.signal, marginTop: 8, textAlign: 'center' },
 
-  // Field labels reused across Details + Status + Access.
+  // Field labels reused across Details + Status.
   fieldLabel: {
     fontSize: 11,
     color: colors.inkFaint,
@@ -1074,7 +895,7 @@ const styles = StyleSheet.create({
   },
   fieldError: { fontSize: 13, color: colors.signal, marginTop: 10 },
 
-  // Generic input look — paper bg, ember focus is left to the OS default.
+  // Generic input look.
   input: {
     borderWidth: 1,
     borderColor: colors.border,
@@ -1114,7 +935,22 @@ const styles = StyleSheet.create({
   },
   primaryBtnText: { color: '#15100E', fontSize: 15, fontWeight: '700' },
 
-  // Chapter row + reorder controls.
+  // Secondary action — outline pill, used for "Go to chapters" under the cover.
+  secondaryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: spacing.xl,
+    paddingVertical: 10,
+    paddingHorizontal: 18,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: colors.borderSoft,
+  },
+  secondaryBtnText: { fontSize: 14, color: colors.ink, fontWeight: '600' },
+
+  // Chapter row — title left, Free/Paid pill right. Tap title to edit, tap
+  // pill to flip the gate.
   chapterCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1126,66 +962,20 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     marginTop: spacing.md,
   },
-  chapterReorder: { gap: 4 },
-  reorderBtn: {
-    width: 28,
-    height: 22,
-    borderRadius: 6,
-    backgroundColor: colors.paperSoft,
-    borderWidth: 1,
-    borderColor: colors.borderSoft,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  reorderBtnOff: { opacity: 0.35 },
   chapterTitle: { fontSize: 15, fontWeight: '500', color: colors.ink },
   chapterMeta: { fontSize: 12, color: colors.inkFaint, marginTop: 3 },
-  accessBadge: {
+  freePaidPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 9,
-    paddingVertical: 4,
+    gap: 5,
+    paddingHorizontal: 11,
+    paddingVertical: 6,
     borderRadius: radius.pill,
     borderWidth: 1,
   },
-  freeBadge: { backgroundColor: 'rgba(140, 175, 130, 0.12)', borderColor: 'rgba(140, 175, 130, 0.4)' },
-  paidBadge: { backgroundColor: 'rgba(200, 65, 78, 0.10)', borderColor: 'rgba(200, 65, 78, 0.35)' },
-  accessBadgeText: { fontSize: 11, fontWeight: '700' },
-
-  // Divider between free and paid chapters.
-  dividerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginTop: spacing.md,
-    marginBottom: 2,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: colors.borderSoft,
-  },
-  dividerChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: radius.pill,
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.borderSoft,
-  },
-  dividerStep: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.paperSoft,
-  },
-  dividerText: { fontSize: 11, fontWeight: '700', color: colors.inkMuted, letterSpacing: 0.4 },
+  freePill: { backgroundColor: 'rgba(140, 175, 130, 0.12)', borderColor: 'rgba(140, 175, 130, 0.4)' },
+  paidPill: { backgroundColor: 'rgba(200, 65, 78, 0.10)', borderColor: 'rgba(200, 65, 78, 0.35)' },
+  freePaidText: { fontSize: 12, fontWeight: '700' },
 
   // Details — genre picker.
   genreField: {
@@ -1221,7 +1011,7 @@ const styles = StyleSheet.create({
   chipText: { fontSize: 13, color: colors.ink, fontWeight: '500' },
   chipTextOn: { color: '#FFFFFF', fontWeight: '700' },
 
-  // 18+ row — shared between Details and (legacy) Status if it ever returns.
+  // 18+ row.
   matureRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1269,7 +1059,19 @@ const styles = StyleSheet.create({
   deleteBtnText: { fontSize: 14, color: '#D9656F', fontWeight: '600' },
   dangerHint: { fontSize: 12, color: colors.inkFaint, marginTop: 10, lineHeight: 17 },
 
-  // Status segment.
+  // Status — Offline switch row + Ongoing/Complete segment.
+  switchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.borderSoft,
+    borderRadius: radius.lg,
+    padding: spacing.md,
+  },
+  switchLabel: { fontSize: 15, fontWeight: '700', color: colors.ink },
+  switchHint: { fontSize: 12, color: colors.inkMuted, marginTop: 4, lineHeight: 17 },
   segment: {
     flexDirection: 'row',
     backgroundColor: colors.paper,
@@ -1288,76 +1090,51 @@ const styles = StyleSheet.create({
   segOn: { backgroundColor: colors.signal },
   segText: { fontSize: 13, fontWeight: '600', color: colors.inkMuted },
   segTextOn: { color: '#FFFFFF' },
-  offlineBtn: {
-    alignSelf: 'flex-start',
-    marginTop: spacing.lg,
-    paddingVertical: 9,
-    paddingHorizontal: 16,
-    borderRadius: radius.pill,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  offlineBtnText: { fontSize: 12.5, color: colors.inkMuted, fontWeight: '600' },
 
-  // Access stepper.
-  stepper: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  stepBtn: {
-    width: 42,
-    height: 42,
-    borderRadius: radius.md,
-    backgroundColor: colors.paper,
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  stepBtnText: { fontSize: 22, color: colors.ink, fontWeight: '600' },
-  stepValue: {
-    fontFamily: fonts.displayXl,
-    fontSize: 26,
-    color: colors.ink,
-    minWidth: 28,
-    textAlign: 'center',
-  },
-  stepLabel: { fontSize: 13, color: colors.inkMuted },
+  statusMsg: { fontSize: 12, color: colors.signal, textAlign: 'right', marginTop: spacing.md },
 
-  status: { fontSize: 12, color: colors.signal, textAlign: 'right', marginTop: spacing.md },
-
-  // FAB + fly-out items.
+  // FAB + fly-out items — bigger + higher than before for thumb reach.
   fab: {
     position: 'absolute',
-    right: 18,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    right: 20,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     backgroundColor: colors.signal,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 6,
+    shadowOpacity: 0.32,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 7,
   },
   fabStack: {
     position: 'absolute',
-    right: 18,
+    right: 20,
     alignItems: 'flex-end',
   },
-  fabItemWrap: { marginBottom: 8 },
+  fabItemWrap: { marginBottom: 10 },
   fabItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 12,
     backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.borderSoft,
-    borderRadius: 24,
-    paddingLeft: 16,
-    paddingRight: 14,
-    height: 44,
+    borderRadius: 28,
+    paddingLeft: 20,
+    paddingRight: 18,
+    height: 52,
+    minWidth: 152,
+    justifyContent: 'space-between',
+    shadowColor: '#000',
+    shadowOpacity: 0.18,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 3,
   },
   fabItemActive: { backgroundColor: colors.signal, borderColor: colors.signal },
-  fabItemLabel: { fontSize: 14, fontWeight: '600', color: colors.ink },
+  fabItemLabel: { fontSize: 15, fontWeight: '600', color: colors.ink },
   fabItemLabelActive: { color: '#FFFFFF' },
 });
