@@ -651,7 +651,9 @@ export async function updateProfile(
     username: string;
     bio: string;
     dateOfBirth: string;
-    avatarUrl: string;
+    // null clears the uploaded photo so the reader falls back to a
+    // hash-picked default avatar in the mobile app.
+    avatarUrl: string | null;
   }>,
 ) {
   const next = { ...patch };

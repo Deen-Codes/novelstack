@@ -5,7 +5,6 @@ import {
   ScrollView,
   View,
   Text,
-  Image,
   Pressable,
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -16,23 +15,25 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { colors, spacing, radius, fonts } from '@/theme/tokens';
-import { getCurrentUser, signOut, subscribeAuthChange } from '@/lib/auth';
+import { getCurrentUser, subscribeAuthChange } from '@/lib/auth';
 import { apiGet } from '@/lib/api';
 import { Cover } from './Cover';
+import { Avatar } from './Avatar';
 import { SignInPitch } from './SignInPitch';
 import type { User, Shelf, Story } from '@/lib/types';
 
-// Compactor matching the public profile so the two read the same.
+// Compact stat number — "1.2k" / "12.4k" / "120k".
 function compact(n: number): string {
   if (n >= 10_000) return `${(n / 1000).toFixed(1)}k`;
   if (n >= 1000) return `${(n / 1000).toFixed(1)}k`;
   return n.toLocaleString('en-US');
 }
 
-// The profile bottom sheet — opened from the TopBar avatar. A live preview
-// of your own public profile (Instagram-style top card with inline edit
-// pencils, horizontal stories rail, bottom menu of account essentials).
-// Sits flush against the bottom of the screen so it doesn't look orphaned.
+// The profile bottom sheet — opened from the TopBar avatar. Single-glance
+// preview: profile card, your stories rail, then two rows (Earnings,
+// Settings). Settings is where the heavier flows live (edit profile,
+// NovelStack+, blocked users, sign out, delete account) — keeps the sheet
+// itself fit-on-screen with nothing to scroll.
 export function ProfileSheet({
   visible,
   onClose,
@@ -111,21 +112,10 @@ export function ProfileSheet({
     router.push(path as never);
   }
 
-  async function handleSignOut() {
-    await signOut();
-    onClose();
-    router.replace('/(tabs)');
-  }
-
   const translateY = anim.interpolate({
     inputRange: [0, 1],
     outputRange: [sheetH, 0],
   });
-
-  // Pencils all jump to the full /profile edit screen — inline editing inside
-  // a bottom sheet over the keyboard is fragile; the dedicated screen is the
-  // honest place to make changes.
-  const editProfile = () => go('/profile');
 
   const totalReads = stories.reduce((sum, s) => sum + (s.totalReads ?? 0), 0);
 
@@ -138,7 +128,11 @@ export function ProfileSheet({
 
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <Animated.View
-          style={[styles.sheet, { transform: [{ translateY }] }]}
+          style={[
+            styles.sheet,
+            { paddingBottom: Math.max(insets.bottom, 12) + 14 },
+            { transform: [{ translateY }] },
+          ]}
           onLayout={(e) => setSheetH(e.nativeEvent.layout.height)}
         >
           <View style={styles.grab} />
@@ -150,53 +144,19 @@ export function ProfileSheet({
               sub="Follow writers, save stories, and pick up where you left off — no password needed."
             />
           ) : (
-            <ScrollView
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={[
-                styles.scroll,
-                { paddingBottom: Math.max(insets.bottom, 12) + 24 },
-              ]}
-            >
-              {/* Instagram-style top card — avatar left, name + handle to its
-                  right with inline pencil icons. Tapping any pencil jumps to
-                  the full edit screen. */}
+            <>
+              {/* Profile card — avatar + name + handle + stats + bio. No
+                  inline pencils anymore; editing happens in Settings. */}
               <View style={styles.card}>
                 <View style={styles.cardRow}>
-                  <Pressable onPress={editProfile} hitSlop={4}>
-                    <View style={styles.avatar}>
-                      {user.avatarUrl ? (
-                        <Image source={{ uri: user.avatarUrl }} style={styles.avatarImg} />
-                      ) : (
-                        <Text style={styles.avatarText}>
-                          {(user.displayName || '?').slice(0, 1).toUpperCase()}
-                        </Text>
-                      )}
-                      <View style={styles.avatarPencil}>
-                        <Ionicons name="pencil" size={11} color="#FFFFFF" />
-                      </View>
-                    </View>
-                  </Pressable>
+                  <Avatar url={user.avatarUrl} seed={user.id} size={68} />
                   <View style={styles.cardMain}>
-                    <Pressable
-                      style={styles.editableRow}
-                      onPress={editProfile}
-                      hitSlop={4}
-                    >
-                      <Text style={styles.name} numberOfLines={1}>
-                        {user.displayName}
-                      </Text>
-                      <Ionicons name="pencil" size={13} color={colors.inkMuted} />
-                    </Pressable>
-                    <Pressable
-                      style={styles.editableRow}
-                      onPress={editProfile}
-                      hitSlop={4}
-                    >
-                      <Text style={styles.handle} numberOfLines={1}>
-                        @{user.username}
-                      </Text>
-                      <Ionicons name="pencil" size={11} color={colors.inkFaint} />
-                    </Pressable>
+                    <Text style={styles.name} numberOfLines={1}>
+                      {user.displayName}
+                    </Text>
+                    <Text style={styles.handle} numberOfLines={1}>
+                      @{user.username}
+                    </Text>
                   </View>
                 </View>
 
@@ -221,75 +181,50 @@ export function ProfileSheet({
                   </Pressable>
                 </View>
 
-                <Pressable
-                  style={styles.editableBio}
-                  onPress={editProfile}
-                  hitSlop={4}
-                >
-                  <Text style={styles.bio} numberOfLines={3}>
-                    {user.bio?.trim() || 'Add a bio so readers know who you are.'}
+                {!!user.bio?.trim() && (
+                  <Text style={styles.bio} numberOfLines={2}>
+                    {user.bio}
                   </Text>
-                  <Ionicons name="pencil" size={12} color={colors.inkFaint} />
-                </Pressable>
+                )}
               </View>
 
-              {/* Horizontal stories rail — left/right scroll instead of a
-                  grid, leaving the bottom menu room to breathe. */}
-              {stories.length > 0 && (
-                <>
-                  <Text style={styles.section}>Stories</Text>
-                  <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={styles.rail}
-                  >
-                    {stories.map((s) => (
-                      <Pressable
-                        key={s.id}
-                        style={styles.railItem}
-                        onPress={() => go(`/story/${s.slug}`)}
-                      >
-                        <Cover
-                          coverUrl={s.coverUrl}
-                          coverColor={s.coverColor}
-                          title={s.title}
-                          mature={s.isMature}
-                          style={styles.railCover}
-                        />
-                        <Text style={styles.railTitle} numberOfLines={2}>
-                          {s.title}
-                        </Text>
-                      </Pressable>
-                    ))}
-                  </ScrollView>
-                </>
-              )}
-              {stories.length === 0 && (
+              {/* Horizontal stories rail — scrolls left/right within the
+                  sheet without making the whole sheet scrollable. */}
+              {stories.length > 0 ? (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.rail}
+                >
+                  {stories.map((s) => (
+                    <Pressable
+                      key={s.id}
+                      style={styles.railItem}
+                      onPress={() => go(`/story/${s.slug}`)}
+                    >
+                      <Cover
+                        coverUrl={s.coverUrl}
+                        coverColor={s.coverColor}
+                        title={s.title}
+                        mature={s.isMature}
+                        style={styles.railCover}
+                      />
+                      <Text style={styles.railTitle} numberOfLines={2}>
+                        {s.title}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </ScrollView>
+              ) : (
                 <Pressable style={styles.startWriting} onPress={() => go('/write')}>
-                  <Ionicons name="create-outline" size={20} color={colors.signal} />
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.startWritingTitle}>Start writing</Text>
-                    <Text style={styles.startWritingSub}>
-                      Publish your first story — readers can save, tip and follow.
-                    </Text>
-                  </View>
+                  <Ionicons name="create-outline" size={18} color={colors.signal} />
+                  <Text style={styles.startWritingText}>Start your first story</Text>
                   <Ionicons name="chevron-forward" size={16} color={colors.inkFaint} />
                 </Pressable>
               )}
 
-              {/* Bottom menu — NovelStack+ first (coral, primary), then the
-                  practical account rows. */}
-              <Pressable style={styles.plusRow} onPress={() => go('/plus')}>
-                <View style={styles.plusIcon}>
-                  <Ionicons name="sparkles" size={18} color="#FFFFFF" />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.plusTitle}>NovelStack+</Text>
-                  <Text style={styles.plusSub}>Ad-free · every chapter unlocked</Text>
-                </View>
-                <Ionicons name="chevron-forward" size={16} color={colors.signal} />
-              </Pressable>
-
+              {/* Two-row menu at the bottom — heavy account flows live one
+                  push away inside Settings. */}
               <View style={styles.menu}>
                 <Pressable style={styles.mrow} onPress={() => go('/earnings')}>
                   <View style={styles.mico}>
@@ -299,19 +234,15 @@ export function ProfileSheet({
                   <Ionicons name="chevron-forward" size={16} color={colors.inkFaint} />
                 </Pressable>
                 <View style={styles.divider} />
-                <Pressable style={styles.mrow} onPress={() => go('/blocked')}>
+                <Pressable style={styles.mrow} onPress={() => go('/settings')}>
                   <View style={styles.mico}>
-                    <Ionicons name="ban-outline" size={17} color={colors.inkMuted} />
+                    <Ionicons name="settings-outline" size={17} color={colors.inkMuted} />
                   </View>
-                  <Text style={styles.mlabel}>Blocked users</Text>
+                  <Text style={styles.mlabel}>Settings</Text>
                   <Ionicons name="chevron-forward" size={16} color={colors.inkFaint} />
                 </Pressable>
               </View>
-
-              <Pressable style={styles.signOut} onPress={handleSignOut}>
-                <Text style={styles.signOutText}>Sign out</Text>
-              </Pressable>
-            </ScrollView>
+            </>
           )}
         </Animated.View>
         </KeyboardAvoidingView>
@@ -331,12 +262,10 @@ const styles = StyleSheet.create({
     borderColor: colors.borderSoft,
     paddingHorizontal: 16,
     paddingTop: 10,
-    // No bottom padding on the sheet itself — sits flush against the screen
-    // edge. The ScrollView handles safe-area bottom inset for its content.
-    paddingBottom: 0,
-    maxHeight: '92%',
+    // No vertical scroll — sheet auto-sizes to its content. Sits flush
+    // against the screen bottom thanks to the safe-area inset on
+    // paddingBottom set inline above.
   },
-  scroll: { paddingTop: 4 },
   grab: {
     width: 38,
     height: 4,
@@ -346,7 +275,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
 
-  // Top card — Instagram-style.
+  // Profile card.
   card: {
     backgroundColor: colors.card,
     borderWidth: 1,
@@ -356,32 +285,18 @@ const styles = StyleSheet.create({
   },
   cardRow: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   avatar: {
-    width: 72,
-    height: 72,
+    width: 68,
+    height: 68,
     borderRadius: radius.pill,
     backgroundColor: colors.signalDeep,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
   },
-  avatarImg: { width: 72, height: 72 },
-  avatarText: { fontSize: 28, fontWeight: '600', color: '#FFFFFF' },
-  avatarPencil: {
-    position: 'absolute',
-    bottom: -2,
-    right: -2,
-    width: 22,
-    height: 22,
-    borderRadius: radius.pill,
-    backgroundColor: colors.signal,
-    borderWidth: 2,
-    borderColor: colors.card,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  avatarImg: { width: 68, height: 68 },
+  avatarText: { fontSize: 27, fontWeight: '600', color: '#FFFFFF' },
   cardMain: { flex: 1, minWidth: 0 },
-  editableRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  name: { fontFamily: fonts.displayXl, fontSize: 21, color: colors.ink },
+  name: { fontFamily: fonts.displayXl, fontSize: 20, color: colors.ink },
   handle: { fontSize: 13, color: colors.inkFaint, marginTop: 2 },
 
   stats: {
@@ -397,27 +312,11 @@ const styles = StyleSheet.create({
   statN: { fontSize: 16, fontWeight: '700', color: colors.ink },
   statL: { fontSize: 11, color: colors.inkMuted, marginTop: 2 },
 
-  editableBio: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 8,
-    marginTop: 12,
-  },
-  bio: { flex: 1, fontSize: 13.5, color: colors.inkMuted, lineHeight: 19 },
+  bio: { fontSize: 13.5, color: colors.inkMuted, lineHeight: 19, marginTop: 12 },
 
-  section: {
-    fontSize: 11,
-    color: colors.inkFaint,
-    textTransform: 'uppercase',
-    letterSpacing: 0.6,
-    fontWeight: '700',
-    marginTop: spacing.lg,
-    marginBottom: 8,
-    paddingHorizontal: 6,
-  },
-  rail: { gap: 10, paddingHorizontal: 4, paddingBottom: 4 },
-  railItem: { width: 92 },
-  railCover: { width: 92, height: 122, borderRadius: 10 },
+  rail: { gap: 10, paddingHorizontal: 2, paddingTop: spacing.md, paddingBottom: 4 },
+  railItem: { width: 84 },
+  railCover: { width: 84, height: 112, borderRadius: 9 },
   railTitle: { fontSize: 11.5, fontWeight: '600', color: colors.ink, marginTop: 6 },
 
   startWriting: {
@@ -428,34 +327,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.borderSoft,
     borderRadius: 14,
-    padding: 14,
+    padding: 12,
     marginTop: spacing.md,
   },
-  startWritingTitle: { fontSize: 14.5, fontWeight: '600', color: colors.ink },
-  startWritingSub: { fontSize: 12, color: colors.inkMuted, marginTop: 2 },
-
-  // NovelStack+ row — coral surface to stand out from the plain account menu.
-  plusRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 13,
-    backgroundColor: colors.signalSoft,
-    borderWidth: 1,
-    borderColor: '#6E3138',
-    borderRadius: 14,
-    padding: 13,
-    marginTop: spacing.lg,
-  },
-  plusIcon: {
-    width: 34,
-    height: 34,
-    borderRadius: 9,
-    backgroundColor: colors.signal,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  plusTitle: { fontSize: 14.5, fontWeight: '700', color: colors.ink },
-  plusSub: { fontSize: 12, color: '#C9A89F', marginTop: 1 },
+  startWritingText: { flex: 1, fontSize: 14, fontWeight: '600', color: colors.ink },
 
   menu: {
     backgroundColor: colors.card,
@@ -463,7 +338,7 @@ const styles = StyleSheet.create({
     borderColor: colors.borderSoft,
     borderRadius: 14,
     overflow: 'hidden',
-    marginTop: 8,
+    marginTop: spacing.md,
   },
   mrow: { flexDirection: 'row', alignItems: 'center', gap: 13, padding: 13 },
   divider: { height: 1, backgroundColor: '#2A231F' },
@@ -476,14 +351,4 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   mlabel: { flex: 1, fontSize: 14.5, color: colors.ink },
-
-  signOut: {
-    marginTop: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.borderSoft,
-    borderRadius: 14,
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  signOutText: { fontSize: 13.5, color: colors.inkMuted, fontWeight: '500' },
 });

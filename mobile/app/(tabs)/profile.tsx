@@ -7,19 +7,19 @@ import {
   TextInput,
   Pressable,
   ActivityIndicator,
-  Alert,
   StyleSheet,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useFocusEffect, router, type Href } from 'expo-router';
+import { useFocusEffect, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { colors, spacing, radius, fonts } from '@/theme/tokens';
 import { apiSend, apiUpload, getSessionToken } from '@/lib/api';
-import { getCurrentUser, signOut as clearSessionAuth } from '@/lib/auth';
+import { getCurrentUser } from '@/lib/auth';
 import { DobField } from '@/components/DobField';
 import { AmbientGlow } from '@/components/AmbientGlow';
 import { SignInPitch } from '@/components/SignInPitch';
+import { Avatar } from '@/components/Avatar';
 import type { User } from '@/lib/types';
 
 // One screen, no modes: the photo, name and username are tap-to-edit, the bio
@@ -116,7 +116,9 @@ export default function ProfileScreen() {
         username: username.trim().toLowerCase(),
         bio: bio.trim(),
         ...(dob.trim() ? { dateOfBirth: dob.trim() } : {}),
-        ...(avatarUrl ? { avatarUrl } : {}),
+        // Always send avatarUrl so `null` (Remove photo) is persisted, not
+        // dropped. Treat empty string as null for safety.
+        avatarUrl: avatarUrl || null,
       });
       setProfile(updated);
       setEditField(null);
@@ -126,38 +128,6 @@ export default function ProfileScreen() {
       setError(e instanceof Error ? e.message : 'Could not save. Please try again.');
     }
     setBusy(false);
-  }
-
-  async function signOut() {
-    await clearSessionAuth();
-    setProfile(null);
-    setSignedIn(false);
-  }
-
-  function confirmDeleteAccount() {
-    Alert.alert(
-      'Delete your account?',
-      'This permanently deletes your account, your stories and all your data. It cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Delete account', style: 'destructive', onPress: deleteAccountNow },
-      ],
-    );
-  }
-
-  async function deleteAccountNow() {
-    try {
-      await apiSend('/api/me', 'DELETE');
-    } catch (e) {
-      setError(
-        e instanceof Error ? e.message : 'Could not delete your account. Please try again.',
-      );
-      return;
-    }
-    // Account is gone — clear the local session and return to signed-out.
-    await clearSessionAuth();
-    setProfile(null);
-    setSignedIn(false);
   }
 
   if (loading) {
@@ -180,20 +150,13 @@ export default function ProfileScreen() {
     );
   }
 
-  const initial = (displayName || '?').slice(0, 1).toUpperCase();
-
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-        {/* Photo — tap anywhere on it to change */}
+        {/* Photo — tap the avatar to upload, tap "Remove photo" below to
+            clear back to a hash-picked default. */}
         <Pressable style={styles.avatarWrap} onPress={pickAvatar} disabled={avatarBusy}>
-          <View style={styles.avatar}>
-            {avatarUrl ? (
-              <Image source={{ uri: avatarUrl }} style={styles.avatarImg} />
-            ) : (
-              <Text style={styles.avatarText}>{initial}</Text>
-            )}
-          </View>
+          <Avatar url={avatarUrl} seed={profile?.id ?? username} size={96} />
           <View style={styles.cameraBadge}>
             {avatarBusy ? (
               <ActivityIndicator size="small" color="#FFFFFF" />
@@ -202,6 +165,15 @@ export default function ProfileScreen() {
             )}
           </View>
         </Pressable>
+        {avatarUrl && (
+          <Pressable
+            style={styles.removePhoto}
+            onPress={() => setAvatarUrl(null)}
+            hitSlop={6}
+          >
+            <Text style={styles.removePhotoText}>Remove photo</Text>
+          </Pressable>
+        )}
 
         {/* Name + username — tap the pencil to edit each */}
         <View style={styles.field}>
@@ -294,35 +266,9 @@ export default function ProfileScreen() {
           <Text style={styles.saveBtnText}>{busy ? 'Saving…' : 'Save changes'}</Text>
         </Pressable>
 
-        <Pressable style={styles.linkRow} onPress={() => router.push('/earnings' as Href)}>
-          <View style={styles.linkIcon}>
-            <Ionicons name="cash-outline" size={18} color={colors.signal} />
-          </View>
-          <View style={{ flex: 1, minWidth: 0 }}>
-            <Text style={styles.linkTitle}>Earnings &amp; payouts</Text>
-            <Text style={styles.linkSub}>Track what your stories earn and get paid.</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={18} color={colors.inkFaint} />
-        </Pressable>
-
-        <Pressable style={styles.linkRow} onPress={() => router.push('/blocked' as Href)}>
-          <View style={styles.linkIcon}>
-            <Ionicons name="ban-outline" size={18} color={colors.signal} />
-          </View>
-          <View style={{ flex: 1, minWidth: 0 }}>
-            <Text style={styles.linkTitle}>Blocked users</Text>
-            <Text style={styles.linkSub}>People you&apos;ve hidden from NovelStack.</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={18} color={colors.inkFaint} />
-        </Pressable>
-
-        <Pressable style={styles.signOut} onPress={signOut}>
-          <Text style={styles.signOutText}>Sign out</Text>
-        </Pressable>
-
-        <Pressable style={styles.deleteAccount} onPress={confirmDeleteAccount} hitSlop={6}>
-          <Text style={styles.deleteAccountText}>Delete account</Text>
-        </Pressable>
+        {/* Earnings, Blocked users, Sign out and Delete account all live in
+            Settings now — reached from the profile bottom sheet → Settings —
+            so they don't crowd the editing form. */}
       </ScrollView>
     </SafeAreaView>
   );
@@ -357,6 +303,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+
+  // Tap to clear an uploaded photo and fall back to a default avatar.
+  removePhoto: { alignSelf: 'center', paddingVertical: 8, marginTop: 4 },
+  removePhotoText: { fontSize: 13, color: colors.signal, fontWeight: '600' },
 
   field: {
     flexDirection: 'row',

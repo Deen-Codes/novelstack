@@ -1,5 +1,6 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  Animated,
   ScrollView,
   View,
   Text,
@@ -25,7 +26,8 @@ export default function Write() {
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
   const [stories, setStories] = useState<Story[]>([]);
   const [loading, setLoading] = useState(true);
-  const [creating, setCreating] = useState(false);
+  // 0 = the "Start a new story" pressable, 1..3 = wizard steps.
+  const [step, setStep] = useState<0 | 1 | 2 | 3>(0);
   const [title, setTitle] = useState('');
   const [genre, setGenre] = useState('');
   const [genreQuery, setGenreQuery] = useState('');
@@ -33,6 +35,29 @@ export default function Write() {
   const [mature, setMature] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+
+  // Cross-fade + lift between wizard steps so the experience feels
+  // intentional, not like a form that swaps content abruptly.
+  const stepFade = useRef(new Animated.Value(1)).current;
+  const stepLift = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    stepFade.setValue(0);
+    stepLift.setValue(10);
+    Animated.parallel([
+      Animated.timing(stepFade, { toValue: 1, duration: 320, useNativeDriver: true }),
+      Animated.timing(stepLift, { toValue: 0, duration: 320, useNativeDriver: true }),
+    ]).start();
+  }, [step, stepFade, stepLift]);
+
+  function resetWizard() {
+    setStep(0);
+    setTitle('');
+    setGenre('');
+    setGenreQuery('');
+    setDesc('');
+    setMature(false);
+    setError('');
+  }
 
   const load = useCallback(async () => {
     const token = await getSessionToken();
@@ -77,12 +102,7 @@ export default function Write() {
         genre,
         isMature: mature,
       });
-      setTitle('');
-      setGenre('');
-      setGenreQuery('');
-      setDesc('');
-      setMature(false);
-      setCreating(false);
+      resetWizard();
       router.push(`/write/${story.id}`);
     } catch {
       setError('Something went wrong creating the story. Please try again.');
@@ -115,120 +135,199 @@ export default function Write() {
       <AmbientGlow />
       <TopBar page="write" />
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-        {!creating ? (
-          <Pressable style={styles.newCard} onPress={() => setCreating(true)}>
+        {step === 0 ? (
+          <Pressable style={styles.newCard} onPress={() => setStep(1)}>
             <View style={styles.newIcon}>
               <Ionicons name="add" size={24} color={colors.signal} />
             </View>
             <View style={styles.newText}>
               {/* Typewriter draws the eye to the primary action — "Start a
-                  new story." types itself out and lands with a blinking
-                  caret each time the screen comes into focus. */}
+                  new story." types itself out each time the screen comes
+                  into focus. */}
               <Typewriter
                 text="Start a new story."
                 style={styles.newTitle}
                 caretColor={colors.signal}
               />
-              <Text style={styles.newSub}>Set the basics, then write and publish chapters.</Text>
+              <Text style={styles.newSub}>A few quick questions, then you're writing.</Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color={colors.inkFaint} />
           </Pressable>
         ) : (
-          <View style={styles.form}>
-            <Text style={styles.formTitle}>New story</Text>
-            <TextInput
-              value={title}
-              onChangeText={setTitle}
-              placeholder="Story title"
-              placeholderTextColor={colors.inkFaint}
-              style={styles.input}
-            />
-            <View style={styles.genreField}>
-              <Text style={styles.fieldLabel}>Genre</Text>
-              {genre ? (
-                <Pressable
-                  style={styles.genrePicked}
-                  onPress={() => {
-                    setGenre('');
-                    setGenreQuery('');
-                  }}
-                >
-                  <Text style={styles.genrePickedText}>{genreLabel(genre)}</Text>
-                  <Ionicons name="close-circle" size={17} color={colors.signal} />
-                </Pressable>
-              ) : (
-                <>
-                  <TextInput
-                    value={genreQuery}
-                    onChangeText={setGenreQuery}
-                    placeholder="Search genres…"
-                    placeholderTextColor={colors.inkFaint}
-                    style={styles.input}
-                    autoCorrect={false}
-                  />
-                  <View style={styles.chips}>
-                    {GENRES.filter((g) =>
-                      g.label.toLowerCase().includes(genreQuery.trim().toLowerCase()),
-                    )
-                      .slice(0, 8)
-                      .map((g) => (
-                        <Pressable
-                          key={g.value}
-                          style={styles.chip}
-                          onPress={() => {
-                            setGenre(g.value);
-                            setGenreQuery('');
-                            setError('');
-                          }}
-                        >
-                          <Text style={styles.chipText}>{g.label}</Text>
-                        </Pressable>
-                      ))}
-                  </View>
-                </>
-              )}
+          <Animated.View
+            style={[
+              styles.wizard,
+              {
+                opacity: stepFade,
+                transform: [{ translateY: stepLift }],
+              },
+            ]}
+          >
+            <View style={styles.wizardHead}>
+              <Text style={styles.wizardStep}>Step {step} of 3</Text>
+              <Pressable hitSlop={8} onPress={resetWizard}>
+                <Ionicons name="close" size={20} color={colors.inkMuted} />
+              </Pressable>
             </View>
-            <TextInput
-              value={desc}
-              onChangeText={setDesc}
-              placeholder="Short description"
-              placeholderTextColor={colors.inkFaint}
-              multiline
-              style={[styles.input, { height: 76, textAlignVertical: 'top' }]}
-            />
-            <Pressable style={styles.matureRow} onPress={() => setMature((m) => !m)}>
-              <View style={[styles.checkbox, mature && styles.checkboxOn]}>
-                {mature && <Ionicons name="checkmark" size={13} color="#FFFFFF" />}
-              </View>
-              <Text style={styles.matureText}>
-                Mature (18+) — adult content. Readers confirm their age first.
-              </Text>
-            </Pressable>
+            <View style={styles.stepDots}>
+              {[1, 2, 3].map((n) => (
+                <View
+                  key={n}
+                  style={[
+                    styles.dot,
+                    n === step && styles.dotOn,
+                    n < step && styles.dotPast,
+                  ]}
+                />
+              ))}
+            </View>
+
+            {step === 1 && (
+              <>
+                <Text style={styles.wizardQ}>What&apos;s your story called?</Text>
+                <Text style={styles.wizardSub}>
+                  Don&apos;t overthink it — you can rename it later.
+                </Text>
+                <TextInput
+                  value={title}
+                  onChangeText={setTitle}
+                  placeholder="A title…"
+                  placeholderTextColor={colors.inkFaint}
+                  style={styles.wizardInput}
+                  autoFocus
+                  returnKeyType="next"
+                  onSubmitEditing={() => title.trim() && setStep(2)}
+                />
+              </>
+            )}
+
+            {step === 2 && (
+              <>
+                <Text style={styles.wizardQ}>Pick a genre.</Text>
+                <Text style={styles.wizardSub}>
+                  This shapes who finds {title.trim() ? `“${title.trim()}”` : 'your story'}.
+                </Text>
+                {genre ? (
+                  <Pressable
+                    style={styles.genrePicked}
+                    onPress={() => {
+                      setGenre('');
+                      setGenreQuery('');
+                    }}
+                  >
+                    <Text style={styles.genrePickedText}>{genreLabel(genre)}</Text>
+                    <Ionicons name="close-circle" size={17} color={colors.signal} />
+                  </Pressable>
+                ) : (
+                  <>
+                    <TextInput
+                      value={genreQuery}
+                      onChangeText={setGenreQuery}
+                      placeholder="Search genres…"
+                      placeholderTextColor={colors.inkFaint}
+                      style={styles.wizardInput}
+                      autoCorrect={false}
+                      autoFocus
+                    />
+                    <View style={styles.chips}>
+                      {GENRES.filter((g) =>
+                        g.label
+                          .toLowerCase()
+                          .includes(genreQuery.trim().toLowerCase()),
+                      )
+                        .slice(0, 10)
+                        .map((g) => (
+                          <Pressable
+                            key={g.value}
+                            style={styles.chip}
+                            onPress={() => {
+                              setGenre(g.value);
+                              setGenreQuery('');
+                              setError('');
+                            }}
+                          >
+                            <Text style={styles.chipText}>{g.label}</Text>
+                          </Pressable>
+                        ))}
+                    </View>
+                  </>
+                )}
+              </>
+            )}
+
+            {step === 3 && (
+              <>
+                <Text style={styles.wizardQ}>What&apos;s it about?</Text>
+                <Text style={styles.wizardSub}>
+                  One or two lines that hook a reader. You can edit this later.
+                </Text>
+                <TextInput
+                  value={desc}
+                  onChangeText={setDesc}
+                  placeholder="A pitch in a few sentences…"
+                  placeholderTextColor={colors.inkFaint}
+                  multiline
+                  style={[styles.wizardInput, { height: 110, textAlignVertical: 'top' }]}
+                  autoFocus
+                />
+                <Pressable style={styles.matureRow} onPress={() => setMature((m) => !m)}>
+                  <View style={[styles.checkbox, mature && styles.checkboxOn]}>
+                    {mature && <Ionicons name="checkmark" size={13} color="#FFFFFF" />}
+                  </View>
+                  <Text style={styles.matureText}>
+                    Mature (18+) — adult content. Readers confirm their age first.
+                  </Text>
+                </Pressable>
+              </>
+            )}
+
             {!!error && (
               <View style={styles.errorRow}>
                 <Ionicons name="alert-circle" size={15} color={colors.signal} />
                 <Text style={styles.errorText}>{error}</Text>
               </View>
             )}
+
             <View style={styles.formBtns}>
               <Pressable
                 style={styles.ghostBtn}
                 onPress={() => {
-                  setCreating(false);
+                  if (step === 1) {
+                    resetWizard();
+                  } else {
+                    setStep((s) => (s - 1) as 0 | 1 | 2 | 3);
+                  }
                   setError('');
                 }}
               >
-                <Text style={styles.ghostBtnText}>Cancel</Text>
+                <Text style={styles.ghostBtnText}>{step === 1 ? 'Cancel' : 'Back'}</Text>
               </Pressable>
-              <Pressable
-                style={[styles.createBtn, busy && { opacity: 0.6 }]}
-                onPress={createStory}
-                disabled={busy}
-              >
-                <Text style={styles.createBtnText}>{busy ? 'Creating…' : 'Create story'}</Text>
-              </Pressable>
+              {step < 3 ? (
+                <Pressable
+                  style={[
+                    styles.createBtn,
+                    ((step === 1 && !title.trim()) || (step === 2 && !genre)) && {
+                      opacity: 0.5,
+                    },
+                  ]}
+                  onPress={() => setStep((s) => (s + 1) as 0 | 1 | 2 | 3)}
+                  disabled={(step === 1 && !title.trim()) || (step === 2 && !genre)}
+                >
+                  <Text style={styles.createBtnText}>Next</Text>
+                </Pressable>
+              ) : (
+                <Pressable
+                  style={[styles.createBtn, busy && { opacity: 0.6 }]}
+                  onPress={createStory}
+                  disabled={busy}
+                >
+                  <Text style={styles.createBtnText}>
+                    {busy ? 'Creating…' : 'Create story'}
+                  </Text>
+                </Pressable>
+              )}
             </View>
-          </View>
+          </Animated.View>
         )}
 
         <Text style={styles.section}>Your stories</Text>
@@ -318,6 +417,57 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   formTitle: { fontFamily: fonts.display, fontSize: 17, color: colors.ink },
+
+  // Three-step story-creation wizard — looks intentional and immersive,
+  // not like a generic settings form.
+  wizard: {
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+    gap: spacing.md,
+  },
+  wizardHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  wizardStep: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+    color: colors.inkFaint,
+  },
+  stepDots: { flexDirection: 'row', gap: 6, marginTop: -4 },
+  dot: {
+    width: 22,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.cardHi,
+  },
+  dotOn: { backgroundColor: colors.signal },
+  dotPast: { backgroundColor: '#7A4348' },
+  wizardQ: {
+    fontFamily: fonts.displayXl,
+    fontSize: 26,
+    color: colors.ink,
+    letterSpacing: -0.5,
+    lineHeight: 30,
+    marginTop: 4,
+  },
+  wizardSub: { fontSize: 14, color: colors.inkMuted, lineHeight: 20, marginTop: -6 },
+  wizardInput: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    fontSize: 17,
+    backgroundColor: colors.paper,
+    color: colors.ink,
+  },
   input: {
     borderWidth: 1,
     borderColor: colors.border,

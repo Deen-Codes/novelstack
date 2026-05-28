@@ -17,6 +17,7 @@ import { colors, spacing, radius, fonts } from '@/theme/tokens';
 import { apiGet, apiSend } from '@/lib/api';
 import { getCurrentUser } from '@/lib/auth';
 import { Cover } from '@/components/Cover';
+import { Avatar } from '@/components/Avatar';
 import type { AuthorProfile, User } from '@/lib/types';
 
 const SITE = 'https://novelstack.app';
@@ -185,15 +186,7 @@ export default function WriterProfile() {
             stats row below. */}
         <View style={styles.card}>
           <View style={styles.cardRow}>
-            <View style={styles.avatar}>
-              {profile.avatarUrl ? (
-                <Image source={{ uri: profile.avatarUrl }} style={styles.avatarImg} />
-              ) : (
-                <Text style={styles.avatarInitial}>
-                  {(profile.displayName ?? '?').slice(0, 1).toUpperCase()}
-                </Text>
-              )}
-            </View>
+            <Avatar url={profile.avatarUrl} seed={profile.id} size={78} />
             <View style={styles.cardMain}>
               <Text style={styles.name} numberOfLines={1}>
                 {profile.displayName}

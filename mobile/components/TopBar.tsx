@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
-import { View, Text, Image, Pressable, StyleSheet } from 'react-native';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 import { colors, radius, fonts } from '@/theme/tokens';
 import { getCurrentUser, subscribeAuthChange } from '@/lib/auth';
 import { getUnreadCount } from '@/lib/notifications';
 import { ProfileSheet } from './ProfileSheet';
+import { Avatar } from './Avatar';
 import type { User } from '@/lib/types';
 
 // Shared top bar for the tab screens: the `n.{page}` mark on the left (e.g.
@@ -60,15 +61,7 @@ export function TopBar({ page }: { page?: string }) {
           </Pressable>
           <Pressable hitSlop={8} onPress={() => setSheetOpen(true)}>
             {user ? (
-              <View style={styles.avatar}>
-                {user.avatarUrl ? (
-                  <Image source={{ uri: user.avatarUrl }} style={styles.avatarImg} />
-                ) : (
-                  <Text style={styles.avatarText}>
-                    {(user.displayName || '?').slice(0, 1).toUpperCase()}
-                  </Text>
-                )}
-              </View>
+              <Avatar url={user.avatarUrl} seed={user.id} size={38} />
             ) : (
               <View style={styles.icon}>
                 <Ionicons name="person-outline" size={18} color={colors.inkMuted} />

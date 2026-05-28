@@ -20,7 +20,6 @@ import { Cover } from '@/components/Cover';
 import { TopBar } from '@/components/TopBar';
 import { SignInPitch } from '@/components/SignInPitch';
 import { AmbientGlow } from '@/components/AmbientGlow';
-import { Typewriter } from '@/components/Typewriter';
 import { StaggerIn } from '@/components/StaggerIn';
 import { ago } from '@/lib/time';
 import type { Shelf, FeedStory, User, CommunityPost } from '@/lib/types';
@@ -248,15 +247,7 @@ export default function Community() {
                   </Text>
                 )}
               </View>
-              <View style={{ flex: 1 }}>
-                <Typewriter
-                  text="Share an update with your readers…"
-                  style={styles.composerPh}
-                  caretColor={colors.signal}
-                  speedMs={38}
-                  startDelayMs={400}
-                />
-              </View>
+              <Text style={styles.composerPh}>Share an update with your readers…</Text>
               <Ionicons name="create-outline" size={18} color={colors.signal} />
             </Pressable>
 
