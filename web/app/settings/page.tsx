@@ -16,7 +16,7 @@ export default async function Settings() {
     <>
       <AppHeader />
       <main className="max-w-xl mx-auto px-6 py-10">
-        <h1 className="font-serif text-3xl font-medium mb-6">Settings</h1>
+        <h1 className="font-display text-3xl font-medium mb-6">Settings</h1>
 
         <form action={updateProfile} className="space-y-4">
           <div>
@@ -24,7 +24,7 @@ export default async function Settings() {
             <input
               name="displayName"
               defaultValue={profile?.displayName ?? ''}
-              className="w-full border border-border-soft rounded-lg px-3.5 py-2.5 text-[15px] bg-white"
+              className="w-full border border-border-soft rounded-lg px-3.5 py-2.5 text-[15px] bg-card"
             />
           </div>
           <div>
@@ -32,7 +32,7 @@ export default async function Settings() {
             <input
               name="username"
               defaultValue={profile?.username ?? ''}
-              className="w-full border border-border-soft rounded-lg px-3.5 py-2.5 text-[15px] bg-white"
+              className="w-full border border-border-soft rounded-lg px-3.5 py-2.5 text-[15px] bg-card"
             />
           </div>
           <div>
@@ -41,7 +41,7 @@ export default async function Settings() {
               name="bio"
               defaultValue={profile?.bio ?? ''}
               rows={3}
-              className="w-full border border-border-soft rounded-lg px-3.5 py-2.5 text-[15px] bg-white"
+              className="w-full border border-border-soft rounded-lg px-3.5 py-2.5 text-[15px] bg-card"
             />
           </div>
           <div>
@@ -50,7 +50,7 @@ export default async function Settings() {
               name="dateOfBirth"
               type="date"
               defaultValue={profile?.dateOfBirth ?? ''}
-              className="w-full border border-border-soft rounded-lg px-3.5 py-2.5 text-[15px] bg-white"
+              className="w-full border border-border-soft rounded-lg px-3.5 py-2.5 text-[15px] bg-card"
             />
             <p className="text-[12px] text-ink-faint mt-1">
               Used to confirm your age — mature (18+) stories stay hidden until this is set.
@@ -58,7 +58,7 @@ export default async function Settings() {
           </div>
           <button
             type="submit"
-            className="bg-signal text-paper px-5 py-2.5 rounded-full font-medium text-sm"
+            className="bg-signal text-cream px-5 py-2.5 rounded-full font-medium text-sm"
           >
             Save
           </button>

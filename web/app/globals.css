@@ -2,54 +2,279 @@
 @tailwind components;
 @tailwind utilities;
 
-html,
-body {
-  background: #F5EFE0;
-  color: #2A2418;
+/* ============================================================
+   NovelStack brand tokens — dark/ember by default.
+   Mirrored 1:1 from mobile/theme/tokens.ts.
+   Paper-mode tokens are scoped to `.paper-mode` (reader only).
+   ============================================================ */
+
+:root {
+  /* Surfaces — warm near-black, not cold pure black */
+  --color-paper: #14110F;
+  --color-paper-soft: #1C1714;
+  --color-card: #241E1A;
+  --color-card-hi: #2C2520;
+  --color-card-web: #34291F;            /* web-only one-more-rung surface */
+
+  /* Text */
+  --color-ink: #F2EADC;
+  --color-ink-muted: #A29685;
+  --color-ink-faint: #6F6459;
+
+  /* Ember accent */
+  --color-signal: #C8414E;
+  --color-signal-deep: #8E2C38;
+  --color-signal-soft: #3A2025;
+
+  /* Cream — primary affordance pill */
+  --color-cream: #F4ECDF;
+  --color-cream-ink: #15100E;
+
+  /* Lines */
+  --color-border-soft: #332B25;
+  --color-border: #3F352D;
+  --color-divider: #221C18;
+
+  --color-warn: #E6A04A;
+}
+
+/* ---- Base (dark) ---- */
+html, body {
+  background: var(--color-paper);
+  color: var(--color-ink);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* ---- Landing-page motion: cinematic, relaxed ---- */
-/* Slow, soft easing — no bounce. Gentle rise + fade. */
+::selection {
+  background: var(--color-signal-soft);
+  color: var(--color-ink);
+}
+
+/* ---- Paper mode — reader only ----
+   Add `class="paper-mode"` to a wrapper inside /read/[chapterId] to swap
+   the palette for the reading surface. No other route should set this. */
+.paper-mode {
+  --color-paper: #F5EFE0;
+  --color-paper-soft: #EDE4CE;
+  --color-card: #F5EFE0;
+  --color-card-hi: #EDE4CE;
+  --color-ink: #2A2418;
+  --color-ink-muted: #7C6F58;
+  --color-ink-faint: #9F9075;
+  --color-border-soft: #E3D8BE;
+  --color-border: #D6C8A6;
+  --color-divider: #EDE4CE;
+  background: var(--color-paper);
+  color: var(--color-ink);
+}
+
+/* ============================================================
+   Brand atoms
+   ============================================================ */
+
+/* Ember halo — dark surface with a contained radial glow.
+   Used on the home hero + marketing surfaces. */
+.ember-halo {
+  position: relative;
+}
+.ember-halo::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(
+      ellipse 80% 60% at 50% 0%,
+      rgba(200, 65, 78, 0.18) 0%,
+      rgba(200, 65, 78, 0.06) 35%,
+      transparent 70%
+    );
+  pointer-events: none;
+  z-index: 0;
+  animation: ember-pulse 6s ease-in-out infinite;
+}
+.ember-halo > * { position: relative; z-index: 1; }
+
+/* Cream pill — primary affordance */
+.btn-cream {
+  background: var(--color-cream);
+  color: var(--color-cream-ink);
+  border-radius: 999px;
+  padding: 12px 22px;
+  font-weight: 600;
+  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: transform 200ms ease-out, box-shadow 200ms ease-out;
+  border: none;
+  cursor: pointer;
+}
+.btn-cream:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 28px -10px rgba(244, 236, 223, 0.4);
+}
+
+/* Ember outline — secondary */
+.btn-ember {
+  background: transparent;
+  color: var(--color-ink);
+  border: 1px solid var(--color-signal);
+  border-radius: 12px;
+  padding: 10px 18px;
+  font-weight: 500;
+  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: background 180ms ease-out;
+  cursor: pointer;
+}
+.btn-ember:hover { background: var(--color-signal-soft); }
+
+/* Cover lift + ember glow */
+.cover-lift {
+  transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
+              box-shadow 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.cover-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 0 28px -6px var(--color-signal-soft);
+}
+
+/* Story card — dark surface */
+.story-card {
+  background: var(--color-card);
+  border: 1px solid var(--color-border-soft);
+  border-radius: 14px;
+  transition: border-color 180ms ease-out, background 180ms ease-out;
+}
+.story-card:hover {
+  border-color: var(--color-border);
+  background: var(--color-card-hi);
+}
+
+/* ============================================================
+   Reader-specific atoms (used inside .paper-mode)
+   ============================================================ */
+
+.chapter-prose {
+  font-family: var(--font-display-newsreader), Georgia, serif;
+  font-size: 19px;
+  line-height: 1.7;
+  color: var(--color-ink);
+  max-width: 68ch;
+  margin-inline: auto;
+}
+.chapter-prose p { margin: 0 0 1.2em; }
+.chapter-prose p:first-of-type::first-letter {
+  font-family: var(--font-display-bricolage), system-ui, sans-serif;
+  font-weight: 800;
+  font-size: 3.6em;
+  float: left;
+  line-height: 0.92;
+  margin: 0.06em 0.12em 0 0;
+  color: var(--color-signal);
+}
+.chapter-prose em { font-style: italic; }
+.chapter-prose strong { font-weight: 600; }
+
+/* Right-edge chapter spine */
+.chapter-spine {
+  position: fixed;
+  right: 24px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  z-index: 30;
+}
+.chapter-spine .notch {
+  width: 2px;
+  height: 20px;
+  background: var(--color-border);
+  border-radius: 1px;
+  transition: background 200ms ease-out, height 200ms ease-out;
+}
+.chapter-spine .notch.current {
+  background: var(--color-signal);
+  height: 30px;
+  box-shadow: 0 0 14px var(--color-signal);
+}
+.chapter-spine .notch.cliffhanger {
+  width: 0; height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 6px solid var(--color-ink-faint);
+  background: transparent;
+}
+@media (max-width: 768px) {
+  .chapter-spine { display: none; }
+}
+
+/* Resume ribbon */
+.resume-ribbon {
+  border: 1px solid var(--color-border-soft);
+  border-left: 3px solid var(--color-signal);
+  background: rgba(200, 65, 78, 0.08);
+  border-radius: 0 10px 10px 0;
+  padding: 16px 20px;
+  font-size: 14px;
+  max-width: 68ch;
+  margin: 0 auto 40px;
+}
+
+/* TTS word-highlight (used by Reader's read-aloud) */
+.tts-word-active {
+  background: var(--color-signal-soft);
+  color: var(--color-signal);
+  border-radius: 3px;
+  padding: 0 2px;
+}
+
+/* ============================================================
+   Animations
+   ============================================================ */
+
+@keyframes ember-pulse {
+  0%, 100% { opacity: 0.55; }
+  50%      { opacity: 1; }
+}
 
 @keyframes ns-fade-up {
-  from {
-    opacity: 0;
-    transform: translateY(22px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
-
-/* Hero — animates once on load, children staggered. */
-.ns-hero > * {
+.fade-stagger > * {
   opacity: 0;
-  animation: ns-fade-up 1s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation: ns-fade-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
+.fade-stagger > *:nth-child(1) { animation-delay: 0.05s; }
+.fade-stagger > *:nth-child(2) { animation-delay: 0.15s; }
+.fade-stagger > *:nth-child(3) { animation-delay: 0.25s; }
+.fade-stagger > *:nth-child(4) { animation-delay: 0.35s; }
+.fade-stagger > *:nth-child(5) { animation-delay: 0.45s; }
+
+/* Legacy classes still used by some routes (landing animations) */
+.ns-hero > * { opacity: 0; animation: ns-fade-up 1s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
 .ns-hero > *:nth-child(1) { animation-delay: 0.08s; }
 .ns-hero > *:nth-child(2) { animation-delay: 0.22s; }
 .ns-hero > *:nth-child(3) { animation-delay: 0.38s; }
 .ns-hero > *:nth-child(4) { animation-delay: 0.54s; }
 
-/* Scroll reveal — toggled by the <Reveal> component when in view. */
 .ns-reveal {
   opacity: 0;
   transform: translateY(26px);
-  transition:
-    opacity 1s cubic-bezier(0.22, 1, 0.36, 1),
-    transform 1s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: opacity 1s cubic-bezier(0.22, 1, 0.36, 1),
+              transform 1s cubic-bezier(0.22, 1, 0.36, 1);
   will-change: opacity, transform;
 }
-.ns-reveal.ns-in {
-  opacity: 1;
-  transform: translateY(0);
-}
+.ns-reveal.ns-in { opacity: 1; transform: translateY(0); }
 
-/* Respect users who prefer no motion. */
 @media (prefers-reduced-motion: reduce) {
+  .ember-halo::before,
+  .fade-stagger > *,
   .ns-hero > *,
   .ns-reveal {
     animation: none !important;

@@ -24,9 +24,9 @@ export function ImportAdRevenueForm() {
   return (
     <form
       action={(fd) => startTransition(() => void onSubmit(fd))}
-      className="rounded-2xl border border-border-soft bg-white p-5 space-y-4"
+      className="rounded-2xl border border-border-soft bg-card p-5 space-y-4"
     >
-      <h2 className="font-serif text-lg text-ink">Import ad revenue</h2>
+      <h2 className="font-display text-lg text-ink">Import ad revenue</h2>
 
       <label className="block">
         <span className="text-[12px] uppercase tracking-wide font-semibold text-ink-muted">
@@ -70,7 +70,7 @@ export function ImportAdRevenueForm() {
 
       <button
         disabled={pending}
-        className="rounded-lg bg-[#15100E] text-white px-4 py-2.5 text-[14px] font-semibold disabled:opacity-60"
+        className="rounded-lg bg-[#15100E] text-cream px-4 py-2.5 text-[14px] font-semibold disabled:opacity-60"
       >
         {pending ? 'Importing…' : 'Import ad revenue'}
       </button>

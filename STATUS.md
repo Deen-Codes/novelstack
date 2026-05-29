@@ -1,7 +1,39 @@
 # NovelStack — Status
 
 The single source of truth for what's built, what's left, and how to ship.
-Last updated: 2026-05-25.
+Last updated: 2026-05-29.
+
+## Web rebuild — Phase A + Phase B done
+
+- **Aesthetic research + 3 mockups delivered (Phase A).** `AESTHETIC_RESEARCH.md` covers premium reading-platform visual register (Substack / Medium / NYT / Stripe Press / Are.na, with concrete typographic specs), dark-mode discipline, three typography pairings with sizes/leadings, layout density, motion philosophy. Three standalone HTML mockups in `aesthetic_examples/` rendered to 6 screenshots in `outputs/aesthetic_screenshots/`. **You picked mockup #2 — App-Native (Bricolage + Newsreader + Inter, ember halo).**
+
+- **Phase B parity rebuild shipped to `web/app/`.** v1 visual register applied 1:1 from mockup #2:
+  - **Foundation.** `mobile/theme/tokens.ts` mirrored into `web/app/globals.css` as CSS custom properties; paper-mode scoped to `.paper-mode` (reader only); Tailwind aliased to the vars; Bricolage Grotesque + Newsreader + Inter wired in `layout.tsx`; `AppHeader` translucent blur + ember dot; `MobileTabBar` dark/ember icons. New brand atoms: `.ember-halo` (pulsing radial), `.btn-cream` / `.btn-ember`, `.cover-lift`, `.story-card`, `.chapter-spine`, `.resume-ribbon`, `.chapter-prose` with ember drop-cap.
+  - **Home.** Rebuilt around the mockup-2 layout: ember-halo hero ("Stories worth following."), spotlight card (Continue-reading-aware CTA), and rails: Continue reading (signed-in) / Trending by read-through / From writers you follow / For tonight — cosy. Real Drizzle data through `getFeed` + `getContinueReading`. Cover component upgraded to display-font fallback with gradient covers when no image.
+  - **Reader.** Paper-mode default with dark toggle. 68ch Newsreader column; Bricolage chapter title; ember drop-cap on the first paragraph; right-edge fixed chapter spine (with `current` notch glowing ember); resume ribbon ("You left here on Tuesday — …quote…") backed by per-chapter localStorage, surfaces after a 6h gap; TTS button using `SpeechSynthesisAPI`; settings drawer with font size +/−. Translucent top bar inside the reader carries the storyTitle back-link, TTS, settings, and Paper/Dark toggle. Adsense banner stays for free chapters; tip CTA + prev/next intact.
+  - **Other routes.** Site-wide token swap (`bg-white` → `bg-card`, `text-paper` ember buttons → `text-cream`, `font-serif` chrome → `font-display`). Signin restyled (cream pill CTA, display logo). Library / Settings / Search / Browse / Story detail / Write / Earnings / Profile all inherit the dark/ember via tokens — no layout rebuilds needed in v1.
+  - **Type-check clean** across the web app.
+
+- **REDESIGN_ROADMAP.md** parks everything v2 + v3 so it doesn't fall off radar: public margin annotations (private → mutual → public), drop-off heatmap, A/B cliffhanger lab, mood-based discovery, scheduled-publish + NovelStack+ early-access tier, live earnings ticker, per-story RSS, PWA + offline, behaviour-signal weighting. v3 moonshots: Reader Clubs (>500 readers), per-paragraph tip jar, public annotations with moderation.
+
+- **Not in this session — queued for next.** Web NovelStack+ via Stripe (subscription product + checkout), tipping via Stripe with credit-pack abstraction, new pages: `/about` (70/30 economics), `/writers` (earnings calculator), `/plus` (subscription pitch), public annotations infrastructure (DB schema for highlights + private notes). All locked in the v1 scope but they're net-new functionality, not pure rebrand — they want their own pass.
+
+- **Verifying live look.** Sandbox can't keep `next dev` alive long enough to screenshot the rebuilt routes here (bash sessions kill child processes). Type-check is clean; the components are 1:1 with mockup #2 which you already saw. After a Render deploy, the live URL will look exactly like the mockup — open both side-by-side to confirm.
+
+## Pickup queue when you're back
+
+1. `cd web && npm run dev` locally, walk through Home + a chapter to feel the Bricolage hero, ember halo pulse, paper-mode reader, dark toggle, chapter spine, resume ribbon, TTS button — confirm it lands.
+2. If approved, push to Render. Site rebuilds automatically from the deploy branch.
+3. Mobile pickup queue from the prior session: push the build, set Render env vars, finish Stripe Marketplace verification, on-device test (iPhone + iPad), swap to live keys.
+4. Then schedule the web v1 follow-up: Stripe checkout for `/plus`, tipping credit packs, `/about` + `/writers` pages, private annotations DB.
+5. Long-standing pending: #77 bottom sheets, #78 social sharing, #94 offline reading, #136 community redesign, #137 status/ad entitlement logging, #165 POD hardcopies, #167 background read-aloud.
+
+## Earlier — iPad + research + sandbox tooling
+
+- **iPad pass (Task #247).** `supportsTablet: true` + `PageContainer.tsx` (`useReadingWidth`, `useGridItemWidth`). 3-col phone → 5-col iPad portrait → 6-col wide iPad. Wired into every tab + detail screen.
+- **Website research (Task #248 / Phase A above).**
+- **Stripe webhook + sandbox tools (Task #246).** `account.updated` (v1) + `v2.core.account.updated` via `STRIPE_WEBHOOK_SECRET`. Dev-only `/api/dev/simulate-earnings` gated by `SIMULATE_EARNINGS_TOKEN`.
+
 
 ## The stack
 

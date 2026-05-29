@@ -14,7 +14,7 @@ export default function TermsPage() {
         <Link href="/" className="text-sm text-ink-muted">
           ‹ NovelStack
         </Link>
-        <h1 className="font-serif text-3xl text-ink mt-4">Terms of Use</h1>
+        <h1 className="font-display text-3xl text-ink mt-4">Terms of Use</h1>
         <p className="text-sm text-ink-faint mt-1 mb-8">Last updated 25 May 2026</p>
 
         <div className="text-[15px] text-ink-muted leading-relaxed space-y-3">
@@ -23,16 +23,16 @@ export default function TermsPage() {
             website, you agree to them.
           </p>
 
-          <h2 className="font-serif text-xl text-ink mt-8">Eligibility</h2>
+          <h2 className="font-display text-xl text-ink mt-8">Eligibility</h2>
           <p>You must be at least 13 years old to use NovelStack.</p>
 
-          <h2 className="font-serif text-xl text-ink mt-8">Your account</h2>
+          <h2 className="font-display text-xl text-ink mt-8">Your account</h2>
           <p>
             You are responsible for the accuracy of your account information, for keeping
             your account secure, and for the activity that occurs under it.
           </p>
 
-          <h2 className="font-serif text-xl text-ink mt-8">Your content</h2>
+          <h2 className="font-display text-xl text-ink mt-8">Your content</h2>
           <p>
             You keep ownership of the stories, chapters, comments and other content you
             create. By posting it, you grant NovelStack a worldwide, non-exclusive licence to
@@ -41,7 +41,7 @@ export default function TermsPage() {
             rights necessary to post it.
           </p>
 
-          <h2 className="font-serif text-xl text-ink mt-8">Acceptable use</h2>
+          <h2 className="font-display text-xl text-ink mt-8">Acceptable use</h2>
           <p>
             You agree not to post content that is unlawful, infringing, hateful, harassing or
             that sexualises minors; not to spam, scrape or disrupt the service; and to mark
@@ -49,7 +49,7 @@ export default function TermsPage() {
             these terms.
           </p>
 
-          <h2 className="font-serif text-xl text-ink mt-8">NovelStack+</h2>
+          <h2 className="font-display text-xl text-ink mt-8">NovelStack+</h2>
           <p>
             NovelStack+ is an optional membership priced at $6.99 per month. Payment is
             charged to your Apple ID. The subscription renews automatically unless it is
@@ -58,30 +58,30 @@ export default function TermsPage() {
             with their policies.
           </p>
 
-          <h2 className="font-serif text-xl text-ink mt-8">Tips and earnings</h2>
+          <h2 className="font-display text-xl text-ink mt-8">Tips and earnings</h2>
           <p>
             Readers may send optional tips to writers. Writers earn a share of NovelStack
             revenue according to the payout model described in the app. Earnings and payouts
             are subject to verification and applicable law.
           </p>
 
-          <h2 className="font-serif text-xl text-ink mt-8">Advertising</h2>
+          <h2 className="font-display text-xl text-ink mt-8">Advertising</h2>
           <p>Reading NovelStack without a membership is supported by advertising.</p>
 
-          <h2 className="font-serif text-xl text-ink mt-8">Disclaimers and liability</h2>
+          <h2 className="font-display text-xl text-ink mt-8">Disclaimers and liability</h2>
           <p>
             NovelStack is provided on an as-available basis. To the extent permitted by law,
             we are not liable for indirect or consequential losses arising from your use of
             the service.
           </p>
 
-          <h2 className="font-serif text-xl text-ink mt-8">Changes</h2>
+          <h2 className="font-display text-xl text-ink mt-8">Changes</h2>
           <p>
             We may update these terms; continued use of NovelStack after an update means you
             accept the revised terms.
           </p>
 
-          <h2 className="font-serif text-xl text-ink mt-8">Contact</h2>
+          <h2 className="font-display text-xl text-ink mt-8">Contact</h2>
           <p>
             Questions about these terms:{' '}
             <a className="text-signal" href="mailto:support@novelstack.app">

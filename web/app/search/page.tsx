@@ -42,26 +42,26 @@ export default async function Search({
     <>
       <AppHeader />
       <main className="max-w-6xl mx-auto px-6 py-10">
-        <h1 className="font-serif text-3xl font-medium mb-5">Search</h1>
+        <h1 className="font-display text-3xl font-medium mb-5">Search</h1>
 
         <form action="/search" method="get" className="mb-10">
           <input
             name="q"
             defaultValue={raw}
             placeholder="Search stories, writers, genres, tags…"
-            className="w-full max-w-md border border-border-soft rounded-full px-4 py-2.5 text-[15px] bg-white"
+            className="w-full max-w-md border border-border-soft rounded-full px-4 py-2.5 text-[15px] bg-card"
           />
         </form>
 
         {q && writers.length > 0 && (
           <section className="mb-10">
-            <h2 className="font-serif text-xl font-medium mb-4">Writers</h2>
+            <h2 className="font-display text-xl font-medium mb-4">Writers</h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {writers.map((w) => (
                 <Link
                   key={w.id}
                   href={`/u/${w.username}`}
-                  className="flex items-center gap-3 border border-border-soft rounded-lg p-3 bg-white"
+                  className="flex items-center gap-3 border border-border-soft rounded-lg p-3 bg-card"
                 >
                   <div className="w-9 h-9 rounded-full bg-signal/10 text-signal flex items-center justify-center font-medium text-sm">
                     {w.displayName.slice(0, 1).toUpperCase()}
@@ -81,7 +81,7 @@ export default async function Search({
 
         {q && (
           <section>
-            <h2 className="font-serif text-xl font-medium mb-4">Stories</h2>
+            <h2 className="font-display text-xl font-medium mb-4">Stories</h2>
             {stories.length > 0 ? (
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {stories.map((s) => (

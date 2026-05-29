@@ -39,9 +39,9 @@ export default async function Library() {
     <>
       <AppHeader />
       <main className="max-w-3xl mx-auto px-6 py-10">
-        <h1 className="font-serif text-3xl font-medium mb-8">Your library</h1>
+        <h1 className="font-display text-3xl font-medium mb-8">Your library</h1>
 
-        <h2 className="font-serif text-xl font-medium mb-3">Continue reading</h2>
+        <h2 className="font-display text-xl font-medium mb-3">Continue reading</h2>
         {recentReads.length === 0 ? (
           <p className="text-ink-muted text-[14px] mb-10">
             Nothing yet. Stories you read show up here so you can pick up where you left off.
@@ -73,7 +73,7 @@ export default async function Library() {
           </div>
         )}
 
-        <h2 className="font-serif text-xl font-medium mb-3">Writers you follow</h2>
+        <h2 className="font-display text-xl font-medium mb-3">Writers you follow</h2>
         {following.length === 0 ? (
           <p className="text-ink-muted text-[14px] mb-10">
             Follow writers from their profile to keep up with their new chapters.
@@ -84,7 +84,7 @@ export default async function Library() {
               <Link
                 key={a.id}
                 href={`/u/${a.username}`}
-                className="flex items-center gap-2.5 border border-border-soft rounded-full pl-1.5 pr-4 py-1.5 bg-white"
+                className="flex items-center gap-2.5 border border-border-soft rounded-full pl-1.5 pr-4 py-1.5 bg-card"
               >
                 <div className="w-7 h-7 rounded-full bg-signal/10 text-signal flex items-center justify-center font-medium text-[12px]">
                   {(a.displayName ?? '?').slice(0, 1).toUpperCase()}
@@ -95,7 +95,7 @@ export default async function Library() {
           </div>
         )}
 
-        <h2 className="font-serif text-xl font-medium mb-3">Saved stories</h2>
+        <h2 className="font-display text-xl font-medium mb-3">Saved stories</h2>
         {saved.length === 0 ? (
           <p className="text-ink-muted text-[14px]">
             Tap &ldquo;Save story&rdquo; on any story page to keep it here.

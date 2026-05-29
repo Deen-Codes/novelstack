@@ -1,0 +1,654 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NovelStack — App-Native (mockup 2 of 3)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&display=swap" rel="stylesheet">
+  <style>
+    /* =====================================================
+       MOCKUP 2 — APP-NATIVE
+       Register: mirrors the iOS app 1:1
+       Type: Bricolage (display) + Newsreader (reader) + Inter (chrome)
+       Motion: gentle ambient — staggered fade, slow ember halo pulse
+       ===================================================== */
+
+    :root {
+      --paper: #14110F;
+      --paper-soft: #1C1714;
+      --card: #241E1A;
+      --card-hi: #2C2520;
+      --ink: #F2EADC;
+      --ink-muted: #A29685;
+      --ink-faint: #6F6459;
+      --signal: #C8414E;
+      --signal-deep: #8E2C38;
+      --signal-soft: #3A2025;
+      --cream: #F4ECDF;
+      --cream-ink: #15100E;
+      --border-soft: #332B25;
+      --border: #3F352D;
+      --paper-light: #F5EFE0;
+      --paper-light-soft: #EDE4CE;
+      --paper-light-ink: #2A2418;
+      --paper-light-muted: #7C6F58;
+      --paper-light-border: #E3D8BE;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      background: var(--paper);
+      color: var(--ink);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: inherit; text-decoration: none; }
+
+    /* ===== Animations ===== */
+    @keyframes ember-pulse {
+      0%, 100% { opacity: 0.55; transform: scale(1); }
+      50%      { opacity: 1;    transform: scale(1.05); }
+    }
+    @keyframes fade-up {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .fade-1, .fade-2, .fade-3, .fade-4 {
+      opacity: 0;
+      animation: fade-up 0.7s cubic-bezier(.22,1,.36,1) forwards;
+    }
+    .fade-1 { animation-delay: 0.05s; }
+    .fade-2 { animation-delay: 0.18s; }
+    .fade-3 { animation-delay: 0.30s; }
+    .fade-4 { animation-delay: 0.42s; }
+
+    /* ===== Top bar (translucent, blurred) ===== */
+    .topbar {
+      position: sticky; top: 0; z-index: 50;
+      background: rgba(20, 17, 15, 0.72);
+      backdrop-filter: blur(20px) saturate(140%);
+      -webkit-backdrop-filter: blur(20px) saturate(140%);
+      border-bottom: 1px solid var(--border-soft);
+    }
+    .topbar-inner {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 14px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .logo {
+      font-family: 'Bricolage Grotesque', system-ui, sans-serif;
+      font-weight: 800;
+      font-size: 24px;
+      letter-spacing: -0.02em;
+      color: var(--cream);
+    }
+    .logo .dot { color: var(--signal); }
+    .nav-links {
+      display: flex; gap: 26px;
+      font-size: 14px; color: var(--ink-muted);
+      font-weight: 500;
+    }
+    .nav-links a:hover { color: var(--ink); }
+    .nav-cta {
+      padding: 10px 18px;
+      border-radius: 999px;
+      background: var(--cream);
+      color: var(--cream-ink);
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    /* ===== Hero with ember halo (matches mobile splash) ===== */
+    .hero {
+      position: relative;
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 80px 32px 32px;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -100px; left: 50%;
+      transform: translateX(-50%);
+      width: 1000px; height: 600px;
+      background: radial-gradient(ellipse,
+        rgba(200, 65, 78, 0.18) 0%,
+        rgba(200, 65, 78, 0.06) 35%,
+        transparent 70%);
+      pointer-events: none;
+      animation: ember-pulse 6s ease-in-out infinite;
+    }
+    .hero-eyebrow {
+      position: relative;
+      font-size: 11px;
+      color: var(--signal);
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      font-weight: 700;
+      margin-bottom: 16px;
+    }
+    .hero-title {
+      position: relative;
+      font-family: 'Bricolage Grotesque', system-ui, sans-serif;
+      font-weight: 800;
+      font-size: 64px;
+      line-height: 1.0;
+      letter-spacing: -0.025em;
+      max-width: 880px;
+      margin-bottom: 18px;
+    }
+    .hero-title .ember { color: var(--signal); }
+    .hero-sub {
+      position: relative;
+      max-width: 540px;
+      font-size: 16px;
+      line-height: 1.55;
+      color: var(--ink-muted);
+    }
+
+    /* ===== Spotlight (mobile home equivalent) ===== */
+    .spotlight {
+      max-width: 1280px;
+      margin: 32px auto 64px;
+      padding: 0 32px;
+    }
+    .spotlight-card {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 40px;
+      padding: 32px;
+      background: var(--card);
+      border: 1px solid var(--border-soft);
+      border-radius: 16px;
+      position: relative;
+      overflow: hidden;
+    }
+    .spotlight-card::after {
+      content: '';
+      position: absolute;
+      top: 0; right: 0;
+      width: 50%; height: 100%;
+      background: radial-gradient(circle at 90% 30%,
+        rgba(200, 65, 78, 0.12) 0%, transparent 60%);
+      pointer-events: none;
+    }
+    .spotlight-cover {
+      aspect-ratio: 3/4;
+      background: linear-gradient(140deg, #5B2E1C 0%, #2A1810 100%);
+      border-radius: 10px;
+      display: flex; align-items: flex-end;
+      padding: 18px;
+      font-family: 'Bricolage Grotesque', system-ui, sans-serif;
+      font-weight: 700;
+      font-size: 16px;
+      line-height: 1.15;
+      color: rgba(255, 240, 220, 0.92);
+      box-shadow: 0 18px 50px -16px rgba(0,0,0,0.6);
+    }
+    .spotlight-tag {
+      display: inline-block;
+      background: var(--signal-soft);
+      color: var(--signal);
+      font-size: 10px; font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 5px 10px;
+      border-radius: 4px;
+      margin-bottom: 16px;
+    }
+    .spotlight-title {
+      font-family: 'Bricolage Grotesque', system-ui, sans-serif;
+      font-weight: 700;
+      font-size: 38px;
+      line-height: 1.05;
+      letter-spacing: -0.02em;
+      margin-bottom: 10px;
+    }
+    .spotlight-author {
+      color: var(--ink-muted);
+      font-size: 14px;
+      margin-bottom: 18px;
+      font-weight: 500;
+    }
+    .spotlight-desc {
+      font-family: 'Newsreader', Georgia, serif;
+      font-size: 17px;
+      line-height: 1.55;
+      color: var(--ink);
+      max-width: 500px;
+      margin-bottom: 24px;
+    }
+    .btn-cream {
+      display: inline-flex;
+      align-items: center; gap: 8px;
+      padding: 13px 24px;
+      background: var(--cream);
+      color: var(--cream-ink);
+      border-radius: 999px;
+      font-size: 14px;
+      font-weight: 700;
+      border: none;
+      cursor: pointer;
+      transition: transform .2s ease-out, box-shadow .2s ease-out;
+    }
+    .btn-cream:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 10px 28px -10px rgba(244, 236, 223, 0.4);
+    }
+    .btn-ember {
+      display: inline-flex;
+      align-items: center;
+      padding: 12px 20px;
+      color: var(--ink);
+      border: 1px solid var(--signal);
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      margin-left: 10px;
+      transition: background .18s ease-out;
+    }
+    .btn-ember:hover { background: var(--signal-soft); }
+
+    /* ===== Rails (matches mobile horizontal scroll, but grid on desktop) ===== */
+    .rail {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 0 32px 56px;
+    }
+    .rail-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    .rail-title {
+      font-family: 'Bricolage Grotesque', system-ui, sans-serif;
+      font-weight: 700;
+      font-size: 22px;
+      letter-spacing: -0.01em;
+      color: var(--ink);
+    }
+    .rail-more {
+      font-size: 13px;
+      color: var(--signal);
+      font-weight: 600;
+    }
+    .rail-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 20px;
+    }
+    .story {
+      cursor: pointer;
+    }
+    .story-cover {
+      aspect-ratio: 3/4;
+      border-radius: 10px;
+      margin-bottom: 12px;
+      box-shadow: 0 10px 28px -14px rgba(0,0,0,0.55);
+      transition: transform .22s cubic-bezier(.22,1,.36,1),
+                  box-shadow .22s cubic-bezier(.22,1,.36,1);
+      display: flex; align-items: flex-end;
+      padding: 14px;
+      font-family: 'Bricolage Grotesque', system-ui, sans-serif;
+      font-weight: 700;
+      font-size: 12px;
+      line-height: 1.2;
+      color: rgba(255, 240, 220, 0.9);
+    }
+    .story:hover .story-cover {
+      transform: translateY(-4px);
+      box-shadow: 0 0 28px -6px var(--signal-soft);
+    }
+    .story-title {
+      font-family: 'Bricolage Grotesque', system-ui, sans-serif;
+      font-weight: 700;
+      font-size: 15px;
+      line-height: 1.2;
+      letter-spacing: -0.005em;
+      margin-bottom: 3px;
+    }
+    .story-author {
+      color: var(--ink-muted);
+      font-size: 12px;
+      margin-bottom: 2px;
+      font-weight: 500;
+    }
+    .story-meta {
+      color: var(--ink-faint);
+      font-size: 11px;
+      font-weight: 500;
+    }
+
+    /* Cover gradients */
+    .cv-1 { background: linear-gradient(160deg, #5A2820 0%, #1F0F0A 100%); }
+    .cv-2 { background: linear-gradient(160deg, #2F3A4A 0%, #0F1418 100%); }
+    .cv-3 { background: linear-gradient(160deg, #6A4520 0%, #251806 100%); }
+    .cv-4 { background: linear-gradient(160deg, #4B3A55 0%, #1A0F22 100%); }
+    .cv-5 { background: linear-gradient(160deg, #2D4A36 0%, #0E1A12 100%); }
+    .cv-6 { background: linear-gradient(160deg, #6C2424 0%, #200A0A 100%); }
+    .cv-7 { background: linear-gradient(160deg, #3A3A52 0%, #11111E 100%); }
+    .cv-8 { background: linear-gradient(160deg, #7A5422 0%, #2A1A08 100%); }
+
+    /* ===== Reader preview ===== */
+    .reader-eyebrow {
+      max-width: 1280px;
+      margin: 24px auto 0;
+      padding: 0 32px;
+    }
+    .reader-eyebrow .lbl {
+      font-family: 'Bricolage Grotesque', system-ui, sans-serif;
+      font-weight: 700;
+      font-size: 11px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--ink-faint);
+    }
+
+    .reader-wrap {
+      background: var(--paper-light);
+      color: var(--paper-light-ink);
+      padding: 64px 32px 80px;
+      margin-top: 24px;
+      position: relative;
+    }
+    .reader-toggle {
+      position: absolute;
+      top: 24px; right: 32px;
+      display: flex;
+      gap: 4px;
+      padding: 4px;
+      background: var(--paper-light-soft);
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--paper-light-muted);
+      font-family: 'Bricolage Grotesque', system-ui, sans-serif;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .reader-toggle span {
+      padding: 7px 14px;
+      border-radius: 999px;
+    }
+    .reader-toggle .active {
+      background: var(--cream-ink);
+      color: var(--cream);
+    }
+    .reader-tools {
+      position: absolute;
+      top: 24px; left: 32px;
+      display: flex;
+      gap: 6px;
+    }
+    .reader-tools .tool {
+      width: 34px; height: 34px;
+      background: var(--paper-light-soft);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px;
+      color: var(--paper-light-muted);
+      font-weight: 700;
+    }
+
+    .resume-ribbon {
+      max-width: 68ch;
+      margin: 0 auto 40px;
+      padding: 16px 20px;
+      background: rgba(200, 65, 78, 0.08);
+      border-left: 3px solid var(--signal);
+      border-radius: 0 10px 10px 0;
+      font-size: 14px;
+      color: var(--paper-light-muted);
+      font-family: 'Inter', sans-serif;
+    }
+    .resume-ribbon b {
+      color: var(--paper-light-ink);
+      font-weight: 700;
+    }
+    .resume-quote {
+      font-family: 'Newsreader', Georgia, serif;
+      font-style: italic;
+      margin-top: 4px;
+      color: var(--paper-light-ink);
+      opacity: 0.85;
+      font-size: 15px;
+    }
+    .ch-eyebrow {
+      max-width: 68ch;
+      margin: 0 auto 8px;
+      font-family: 'Bricolage Grotesque', system-ui, sans-serif;
+      font-size: 11px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--signal);
+      font-weight: 700;
+    }
+    .ch-title {
+      max-width: 68ch;
+      margin: 0 auto 32px;
+      font-family: 'Bricolage Grotesque', system-ui, sans-serif;
+      font-weight: 800;
+      font-size: 42px;
+      line-height: 1.05;
+      letter-spacing: -0.025em;
+    }
+    .ch-prose {
+      max-width: 68ch;
+      margin: 0 auto;
+      font-family: 'Newsreader', Georgia, serif;
+      font-size: 19px;
+      line-height: 1.7;
+      color: var(--paper-light-ink);
+    }
+    .ch-prose p { margin-bottom: 1.2em; }
+    .ch-prose p:first-of-type::first-letter {
+      font-family: 'Bricolage Grotesque', system-ui, sans-serif;
+      font-weight: 800;
+      font-size: 3.6em;
+      float: left;
+      line-height: 0.92;
+      margin: 0.06em 0.12em 0 0;
+      color: var(--signal);
+    }
+
+    .ch-spine {
+      position: absolute;
+      right: 32px;
+      top: 50%;
+      transform: translateY(-50%);
+      display: flex; flex-direction: column;
+      gap: 14px;
+    }
+    .ch-spine .notch {
+      width: 2px; height: 20px;
+      background: var(--paper-light-border);
+      border-radius: 1px;
+    }
+    .ch-spine .notch.current {
+      background: var(--signal);
+      height: 30px;
+      box-shadow: 0 0 14px var(--signal);
+    }
+    .ch-spine .notch.cliff {
+      width: 0; height: 0;
+      border-left: 4px solid transparent;
+      border-right: 4px solid transparent;
+      border-top: 6px solid var(--paper-light-muted);
+      background: transparent;
+    }
+
+    /* ===== Footer ===== */
+    .footer {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 48px 32px;
+      border-top: 1px solid var(--border-soft);
+      color: var(--ink-faint);
+      font-size: 13px;
+      display: flex;
+      justify-content: space-between;
+      font-weight: 500;
+    }
+
+    /* ===== Mobile ===== */
+    @media (max-width: 480px) {
+      .nav-links { display: none; }
+      .topbar-inner { padding: 12px 20px; }
+      .logo { font-size: 22px; }
+      .hero { padding: 48px 20px 24px; }
+      .hero-title { font-size: 38px; }
+      .hero-sub { font-size: 15px; }
+      .spotlight { padding: 0 20px; margin-bottom: 40px; }
+      .spotlight-card {
+        grid-template-columns: 1fr;
+        gap: 20px;
+        padding: 20px;
+      }
+      .spotlight-cover { max-width: 200px; }
+      .spotlight-title { font-size: 28px; }
+      .spotlight-desc { font-size: 16px; }
+      .rail { padding: 0 20px 40px; }
+      .rail-grid { grid-template-columns: repeat(3, 1fr); gap: 12px; }
+      .story-title { font-size: 13px; }
+      .reader-wrap { padding: 48px 20px 56px; }
+      .reader-toggle { top: 16px; right: 20px; font-size: 10px; }
+      .reader-toggle span { padding: 6px 10px; }
+      .reader-tools { display: none; }
+      .ch-title { font-size: 30px; }
+      .ch-prose { font-size: 17px; }
+      .ch-spine { display: none; }
+      .footer { padding: 32px 20px; flex-direction: column; gap: 10px; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav class="topbar">
+    <div class="topbar-inner">
+      <div class="logo">novelstack<span class="dot">.</span></div>
+      <div class="nav-links">
+        <a>Home</a>
+        <a>Library</a>
+        <a>Write</a>
+        <a>Community</a>
+      </div>
+      <a class="nav-cta">Sign in</a>
+    </div>
+  </nav>
+
+  <section class="hero">
+    <div class="hero-eyebrow fade-1">For you · Tuesday</div>
+    <h1 class="hero-title fade-2">Stories worth <span class="ember">following.</span></h1>
+    <p class="hero-sub fade-3">A reading room for serialised fiction. Free with ads, $6.99/mo all-access, writers keep 70%.</p>
+  </section>
+
+  <section class="spotlight">
+    <div class="spotlight-card fade-4">
+      <div class="spotlight-cover cv-1">The Salt-Wind Almanac</div>
+      <div>
+        <div class="spotlight-tag">Spotlight · 92% read-through</div>
+        <h2 class="spotlight-title">The Salt-Wind Almanac</h2>
+        <div class="spotlight-author">Marin Aydelotte · 24 chapters · ongoing</div>
+        <p class="spotlight-desc">An archivist in a drowned city catalogues the things the tide brings back. A slow-burn literary novel about memory and what the sea forgets to keep.</p>
+        <a class="btn-cream">Continue reading →</a>
+        <a class="btn-ember">Save</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="rail">
+    <div class="rail-head">
+      <div class="rail-title">Continue reading</div>
+      <a class="rail-more">All in library →</a>
+    </div>
+    <div class="rail-grid">
+      <div class="story"><div class="story-cover cv-2">A Map of Quiet Rooms</div><div class="story-title">A Map of Quiet Rooms</div><div class="story-author">Lior Vance</div><div class="story-meta">Ch. 11 · 4 left</div></div>
+      <div class="story"><div class="story-cover cv-3">Bright Hollow</div><div class="story-title">Bright Hollow</div><div class="story-author">Imogen Park</div><div class="story-meta">Ch. 7 · 12 left</div></div>
+      <div class="story"><div class="story-cover cv-4">No Lighthouse Tonight</div><div class="story-title">No Lighthouse Tonight</div><div class="story-author">Sasha Eddings</div><div class="story-meta">Ch. 2 · 6 left</div></div>
+      <div class="story"><div class="story-cover cv-5">The Long Green Year</div><div class="story-title">The Long Green Year</div><div class="story-author">Jenna Okafor</div><div class="story-meta">Ch. 19 · complete</div></div>
+      <div class="story"><div class="story-cover cv-6">A Theory of Bells</div><div class="story-title">A Theory of Bells</div><div class="story-author">Dax Verlaine</div><div class="story-meta">Ch. 4 · 11 left</div></div>
+    </div>
+  </section>
+
+  <section class="rail">
+    <div class="rail-head">
+      <div class="rail-title">Trending — by read-through</div>
+      <a class="rail-more">All trending →</a>
+    </div>
+    <div class="rail-grid">
+      <div class="story"><div class="story-cover cv-6">A Theory of Bells</div><div class="story-title">A Theory of Bells</div><div class="story-author">Dax Verlaine</div><div class="story-meta">88% · 4.2k reads</div></div>
+      <div class="story"><div class="story-cover cv-7">Halve the Sky</div><div class="story-title">Halve the Sky</div><div class="story-author">Esther Roan</div><div class="story-meta">84% · 6.9k reads</div></div>
+      <div class="story"><div class="story-cover cv-8">Notes from the Far Coast</div><div class="story-title">Notes from the Far Coast</div><div class="story-author">Talin Brooks</div><div class="story-meta">82% · 3.1k reads</div></div>
+      <div class="story"><div class="story-cover cv-1">Saltwater Almanac</div><div class="story-title">Saltwater Almanac</div><div class="story-author">Marin Aydelotte</div><div class="story-meta">92% · 8.4k reads</div></div>
+      <div class="story"><div class="story-cover cv-3">Bright Hollow</div><div class="story-title">Bright Hollow</div><div class="story-author">Imogen Park</div><div class="story-meta">79% · 5.5k reads</div></div>
+    </div>
+  </section>
+
+  <section class="rail">
+    <div class="rail-head">
+      <div class="rail-title">For tonight — cosy</div>
+      <a class="rail-more">Browse by mood →</a>
+    </div>
+    <div class="rail-grid">
+      <div class="story"><div class="story-cover cv-3">The Knitting Room</div><div class="story-title">The Knitting Room</div><div class="story-author">Roxie Ahern</div><div class="story-meta">Cosy · slow-burn</div></div>
+      <div class="story"><div class="story-cover cv-5">Light On in the Kitchen</div><div class="story-title">Light On in the Kitchen</div><div class="story-author">Niamh Coyle</div><div class="story-meta">Cosy · hopeful</div></div>
+      <div class="story"><div class="story-cover cv-2">A Bookshop in October</div><div class="story-title">A Bookshop in October</div><div class="story-author">Theo Mercer</div><div class="story-meta">Cosy · romance</div></div>
+      <div class="story"><div class="story-cover cv-8">Sundays at the Lighthouse</div><div class="story-title">Sundays at the Lighthouse</div><div class="story-author">Felix North</div><div class="story-meta">Cosy · slow-burn</div></div>
+      <div class="story"><div class="story-cover cv-4">The Garden Letters</div><div class="story-title">The Garden Letters</div><div class="story-author">Marlowe Quinn</div><div class="story-meta">Cosy · letters</div></div>
+    </div>
+  </section>
+
+  <div class="reader-eyebrow">
+    <span class="lbl">Reader preview — paper mode</span>
+  </div>
+
+  <section class="reader-wrap">
+    <div class="reader-tools">
+      <div class="tool">Aa</div>
+      <div class="tool">▶</div>
+    </div>
+    <div class="reader-toggle">
+      <span class="active">Paper</span>
+      <span>Dark</span>
+    </div>
+
+    <div class="ch-spine">
+      <div class="notch"></div>
+      <div class="notch cliff"></div>
+      <div class="notch"></div>
+      <div class="notch current"></div>
+      <div class="notch"></div>
+      <div class="notch cliff"></div>
+      <div class="notch"></div>
+      <div class="notch"></div>
+    </div>
+
+    <div class="resume-ribbon">
+      <b>You left here on Tuesday.</b>
+      <div class="resume-quote">…and she finally understood. The door was already open. She had been standing in front of it the whole time.</div>
+    </div>
+
+    <div class="ch-eyebrow">Chapter 12 · The Salt-Wind Almanac</div>
+    <h2 class="ch-title">A small song for the harbour</h2>
+
+    <div class="ch-prose">
+      <p>The first time the tide brought back a letter, Marin filed it under <em>Correspondence, unanswered, salt-damaged</em>. The second time, she made a new drawer for it. By the seventh, she had stopped pretending the archive was for anyone but herself.</p>
+      <p>The harbour was quieter that winter. Boats stayed in. Children did not come down to the wall. Even the gulls had begun to favour the cathedral roof over the dock, which Marin took personally — she had been feeding them since before her mother had stopped writing back.</p>
+      <p>She found the box on a Thursday, half-buried where the slipway met the wall. It was older than her, older than the dock, older possibly than the cathedral, and it was, in a way she did not yet have the words for, addressed to her.</p>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div>novelstack · stories worth following</div>
+    <div>About · Writers · Privacy · Terms</div>
+  </footer>
+
+</body>
+</html>

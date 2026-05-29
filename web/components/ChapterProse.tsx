@@ -62,7 +62,8 @@ const IMAGE = /^!\[([^\]]*)\]\(([^)]+)\)$/;
 
 export function ChapterProse({ body, fontSize, soft }: Props) {
   const blocks = (body ?? '').replace(/\r\n/g, '\n').split(/\n{2,}/);
-  const proseFont = 'var(--font-serif)';
+  // Newsreader serif inside the reader — set in layout.tsx as a Next/font var.
+  const proseFont = 'var(--font-display-newsreader), Charter, Georgia, serif';
 
   return (
     <div style={{ fontFamily: proseFont, fontSize, lineHeight: 1.75 }}>

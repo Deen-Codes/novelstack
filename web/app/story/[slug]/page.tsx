@@ -120,7 +120,7 @@ export default async function StoryPage({ params }: { params: Promise<{ slug: st
               </span>
             )}
           </div>
-          <h1 className="font-serif text-3xl font-medium mt-1">{story.title}</h1>
+          <h1 className="font-display text-3xl font-medium mt-1">{story.title}</h1>
           <p className="text-[14px] text-ink-muted mt-1">
             by{' '}
             {story.author?.username ? (
@@ -145,7 +145,7 @@ export default async function StoryPage({ params }: { params: Promise<{ slug: st
         </div>
       </div>
 
-      <h2 className="font-serif text-xl font-medium mt-10 mb-3">Chapters</h2>
+      <h2 className="font-display text-xl font-medium mt-10 mb-3">Chapters</h2>
       <div className="divide-y divide-border-soft border-y border-border-soft">
         {chapters.map((ch) => (
           <Link

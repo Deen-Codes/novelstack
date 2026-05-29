@@ -1,28 +1,42 @@
 import Link from 'next/link';
 import { getSessionUser } from '@/lib/auth';
 
-// Shared top nav for app pages. Shows different links for signed-in users.
+// Top nav — translucent, blurred (mirrors the mobile TopBar). Sticky at top.
+// Logo uses Bricolage Grotesque to match the mobile splash mark.
 export async function AppHeader() {
   const user = await getSessionUser();
 
   return (
-    <nav className="border-b border-ink/10 bg-paper/90 backdrop-blur sticky top-0 z-50">
-      <div className="max-w-6xl mx-auto px-6 py-3.5 flex items-center justify-between">
-        <Link href="/" className="text-[20px] font-medium tracking-tight">
+    <nav
+      className="sticky top-0 z-50 border-b border-border-soft"
+      style={{
+        background: 'rgba(20, 17, 15, 0.72)',
+        backdropFilter: 'blur(20px) saturate(140%)',
+        WebkitBackdropFilter: 'blur(20px) saturate(140%)',
+      }}
+    >
+      <div className="max-w-6xl mx-auto px-5 md:px-8 py-3.5 flex items-center justify-between">
+        <Link
+          href="/"
+          className="font-display text-[22px] md:text-[24px] font-extrabold tracking-tight text-cream"
+        >
           novelstack<span className="text-signal">.</span>
         </Link>
-        {/* On mobile, primary navigation lives in the bottom tab bar
-            (MobileTabBar), so the header keeps just the wordmark and a
-            sign-in affordance for logged-out visitors. Full links at md+. */}
         <div className="flex items-center gap-5 text-sm text-ink-muted">
-          <Link href="/" className="hidden md:inline hover:text-ink">Home</Link>
+          <Link href="/browse" className="hidden md:inline hover:text-ink transition-colors">
+            Browse
+          </Link>
           {user ? (
             <>
-              <Link href="/write" className="hidden md:inline hover:text-ink">Write</Link>
-              <Link href="/library" className="hidden md:inline hover:text-ink">Library</Link>
+              <Link href="/write" className="hidden md:inline hover:text-ink transition-colors">
+                Write
+              </Link>
+              <Link href="/library" className="hidden md:inline hover:text-ink transition-colors">
+                Library
+              </Link>
               <Link
                 href="/settings"
-                className="hidden md:inline bg-ink text-paper px-4 py-2 rounded-full font-medium"
+                className="bg-cream text-cream-ink px-4 py-2 rounded-full font-semibold text-[13px]"
               >
                 Account
               </Link>
@@ -30,7 +44,7 @@ export async function AppHeader() {
           ) : (
             <Link
               href="/signin"
-              className="bg-ink text-paper px-4 py-2 rounded-full font-medium"
+              className="bg-cream text-cream-ink px-4 py-2 rounded-full font-semibold text-[13px]"
             >
               Sign in
             </Link>

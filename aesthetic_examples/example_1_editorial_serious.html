@@ -1,0 +1,570 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NovelStack — Editorial / Serious (mockup 1 of 3)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&display=swap" rel="stylesheet">
+  <style>
+    /* =====================================================
+       MOCKUP 1 — EDITORIAL / SERIOUS
+       Register: Substack / NYT / Stripe Press
+       Type: Inter Display (chrome) + Source Serif 4 (reader)
+       Motion: maximally still
+       ===================================================== */
+
+    :root {
+      --paper: #14110F;
+      --paper-soft: #1C1714;
+      --card: #241E1A;
+      --card-hi: #2C2520;
+      --ink: #F2EADC;
+      --ink-muted: #A29685;
+      --ink-faint: #6F6459;
+      --signal: #C8414E;
+      --signal-soft: #3A2025;
+      --cream: #F4ECDF;
+      --cream-ink: #15100E;
+      --border-soft: #332B25;
+      --border: #3F352D;
+      --paper-light: #F5EFE0;
+      --paper-light-ink: #2A2418;
+      --paper-light-muted: #7C6F58;
+      --paper-light-border: #E3D8BE;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      background: var(--paper);
+      color: var(--ink);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    a { color: inherit; text-decoration: none; }
+
+    /* ===== Nav ===== */
+    .nav {
+      position: sticky; top: 0; z-index: 50;
+      background: rgba(20, 17, 15, 0.85);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-soft);
+    }
+    .nav-inner {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 18px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .logo {
+      font-family: 'Source Serif 4', Georgia, serif;
+      font-weight: 600;
+      font-size: 22px;
+      letter-spacing: -0.01em;
+    }
+    .logo .dot { color: var(--signal); }
+    .nav-links {
+      display: flex; gap: 28px;
+      font-size: 14px; color: var(--ink-muted);
+      font-weight: 500;
+    }
+    .nav-links a:hover { color: var(--ink); }
+    .nav-cta {
+      padding: 9px 18px;
+      border-radius: 999px;
+      background: var(--cream);
+      color: var(--cream-ink);
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    /* ===== Hero ===== */
+    .hero {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 72px 32px 56px;
+    }
+    .hero-eyebrow {
+      font-size: 11px;
+      color: var(--signal);
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      font-weight: 600;
+      margin-bottom: 20px;
+    }
+    .hero-title {
+      font-family: 'Source Serif 4', Georgia, serif;
+      font-weight: 500;
+      font-size: 56px;
+      line-height: 1.05;
+      letter-spacing: -0.02em;
+      max-width: 720px;
+      margin-bottom: 18px;
+    }
+    .hero-title em {
+      font-style: italic;
+      color: var(--ink-muted);
+    }
+    .hero-sub {
+      max-width: 560px;
+      font-size: 17px;
+      line-height: 1.55;
+      color: var(--ink-muted);
+      font-family: 'Source Serif 4', Georgia, serif;
+    }
+
+    /* ===== Spotlight ===== */
+    .spotlight {
+      max-width: 1280px;
+      margin: 0 auto 56px;
+      padding: 0 32px;
+    }
+    .spotlight-card {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 56px;
+      align-items: center;
+      padding: 48px;
+      background: var(--paper-soft);
+      border: 1px solid var(--border-soft);
+      border-radius: 4px;
+      position: relative;
+      overflow: hidden;
+    }
+    .spotlight-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 80% 20%,
+        rgba(200, 65, 78, 0.10) 0%, transparent 50%);
+      pointer-events: none;
+    }
+    .spotlight-cover {
+      aspect-ratio: 3/4;
+      background: linear-gradient(140deg, #5B2E1C 0%, #2A1810 100%);
+      border-radius: 2px;
+      display: flex; align-items: flex-end;
+      padding: 24px;
+      font-family: 'Source Serif 4', Georgia, serif;
+      font-size: 18px;
+      line-height: 1.2;
+      color: rgba(255, 240, 220, 0.92);
+      position: relative;
+      box-shadow: 0 20px 60px -20px rgba(0,0,0,0.6);
+    }
+    .spotlight-meta {
+      position: relative;
+    }
+    .spotlight-tag {
+      font-size: 11px; color: var(--ink-faint);
+      text-transform: uppercase; letter-spacing: 0.12em;
+      font-weight: 600;
+      margin-bottom: 14px;
+    }
+    .spotlight-title {
+      font-family: 'Source Serif 4', Georgia, serif;
+      font-weight: 600;
+      font-size: 36px;
+      line-height: 1.1;
+      letter-spacing: -0.015em;
+      margin-bottom: 12px;
+    }
+    .spotlight-author {
+      color: var(--ink-muted);
+      font-size: 14px;
+      margin-bottom: 20px;
+    }
+    .spotlight-desc {
+      font-family: 'Source Serif 4', Georgia, serif;
+      font-size: 17px;
+      line-height: 1.55;
+      color: var(--ink);
+      max-width: 520px;
+      margin-bottom: 28px;
+    }
+    .btn-cream {
+      display: inline-block;
+      padding: 12px 22px;
+      background: var(--cream);
+      color: var(--cream-ink);
+      border-radius: 999px;
+      font-size: 14px;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+    }
+    .btn-ghost {
+      display: inline-block;
+      padding: 12px 18px;
+      color: var(--ink);
+      font-size: 14px;
+      font-weight: 500;
+      margin-left: 8px;
+    }
+
+    /* ===== Rails ===== */
+    .rail {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 0 32px 56px;
+    }
+    .rail-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-bottom: 24px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--border-soft);
+    }
+    .rail-title {
+      font-size: 12px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      font-weight: 600;
+      color: var(--ink-muted);
+    }
+    .rail-more {
+      font-size: 13px;
+      color: var(--ink-faint);
+    }
+    .rail-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 32px;
+    }
+    .story {
+      cursor: pointer;
+    }
+    .story-cover {
+      aspect-ratio: 3/4;
+      border-radius: 2px;
+      margin-bottom: 16px;
+      box-shadow: 0 8px 24px -12px rgba(0,0,0,0.5);
+      transition: transform 220ms cubic-bezier(.22,1,.36,1);
+      display: flex; align-items: flex-end;
+      padding: 18px;
+      font-family: 'Source Serif 4', Georgia, serif;
+      font-size: 13px;
+      line-height: 1.2;
+      color: rgba(255, 240, 220, 0.88);
+    }
+    .story:hover .story-cover { transform: translateY(-4px); }
+    .story-title {
+      font-family: 'Source Serif 4', Georgia, serif;
+      font-weight: 500;
+      font-size: 18px;
+      line-height: 1.25;
+      letter-spacing: -0.01em;
+      margin-bottom: 4px;
+    }
+    .story-author {
+      color: var(--ink-muted);
+      font-size: 13px;
+      margin-bottom: 4px;
+    }
+    .story-meta {
+      color: var(--ink-faint);
+      font-size: 12px;
+    }
+
+    /* Cover gradients (stand-ins) */
+    .cv-1 { background: linear-gradient(160deg, #4A2820 0%, #1F0F0A 100%); }
+    .cv-2 { background: linear-gradient(160deg, #2F3A4A 0%, #0F1418 100%); }
+    .cv-3 { background: linear-gradient(160deg, #5A3D20 0%, #251806 100%); }
+    .cv-4 { background: linear-gradient(160deg, #4B3A55 0%, #1A0F22 100%); }
+    .cv-5 { background: linear-gradient(160deg, #2D4A36 0%, #0E1A12 100%); }
+    .cv-6 { background: linear-gradient(160deg, #5C2424 0%, #200A0A 100%); }
+    .cv-7 { background: linear-gradient(160deg, #3A3A52 0%, #11111E 100%); }
+    .cv-8 { background: linear-gradient(160deg, #6A4A22 0%, #2A1A08 100%); }
+
+    /* ===== Reader preview ===== */
+    .reader-divider {
+      max-width: 1280px;
+      margin: 32px auto 0;
+      padding: 0 32px;
+    }
+    .reader-divider hr {
+      border: none;
+      border-top: 1px solid var(--border-soft);
+      margin: 0;
+    }
+    .reader-eyebrow {
+      max-width: 1280px;
+      margin: 56px auto 0;
+      padding: 0 32px;
+    }
+    .reader-eyebrow .lbl {
+      font-size: 11px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--ink-faint);
+      font-weight: 600;
+    }
+
+    .reader-wrap {
+      background: var(--paper-light);
+      color: var(--paper-light-ink);
+      padding: 64px 32px 80px;
+      margin-top: 28px;
+      position: relative;
+    }
+    .reader-toggle {
+      position: absolute;
+      top: 24px; right: 32px;
+      display: flex;
+      gap: 4px;
+      padding: 4px;
+      background: var(--paper-light-border);
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--paper-light-muted);
+    }
+    .reader-toggle span {
+      padding: 6px 12px;
+      border-radius: 999px;
+    }
+    .reader-toggle .active {
+      background: var(--paper-light);
+      color: var(--paper-light-ink);
+    }
+    .resume-ribbon {
+      max-width: 68ch;
+      margin: 0 auto 40px;
+      padding: 16px 20px;
+      background: rgba(200, 65, 78, 0.06);
+      border-left: 3px solid var(--signal);
+      border-radius: 0 6px 6px 0;
+      font-size: 14px;
+      color: var(--paper-light-muted);
+      font-family: 'Inter', sans-serif;
+    }
+    .resume-ribbon b {
+      color: var(--paper-light-ink);
+      font-weight: 600;
+    }
+    .resume-quote {
+      font-family: 'Source Serif 4', Georgia, serif;
+      font-style: italic;
+      margin-top: 4px;
+      color: var(--paper-light-ink);
+      opacity: 0.85;
+    }
+    .ch-eyebrow {
+      max-width: 68ch;
+      margin: 0 auto 8px;
+      font-size: 11px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--signal);
+      font-weight: 600;
+    }
+    .ch-title {
+      max-width: 68ch;
+      margin: 0 auto 32px;
+      font-family: 'Source Serif 4', Georgia, serif;
+      font-weight: 600;
+      font-size: 38px;
+      line-height: 1.1;
+      letter-spacing: -0.015em;
+    }
+    .ch-prose {
+      max-width: 68ch;
+      margin: 0 auto;
+      font-family: 'Source Serif 4', Georgia, serif;
+      font-size: 19px;
+      line-height: 1.65;
+      color: var(--paper-light-ink);
+    }
+    .ch-prose p { margin-bottom: 1.4em; }
+    .ch-prose p:first-of-type::first-letter {
+      font-family: 'Source Serif 4', Georgia, serif;
+      font-weight: 700;
+      font-size: 4.4em;
+      float: left;
+      line-height: 0.92;
+      margin: 0.06em 0.14em 0 0;
+      color: var(--signal);
+    }
+
+    /* Chapter spine on the right */
+    .ch-spine {
+      position: absolute;
+      right: 32px;
+      top: 50%;
+      transform: translateY(-50%);
+      display: flex; flex-direction: column;
+      gap: 12px;
+    }
+    .ch-spine .notch {
+      width: 2px; height: 18px;
+      background: var(--paper-light-border);
+      border-radius: 1px;
+    }
+    .ch-spine .notch.current {
+      background: var(--signal);
+      height: 28px;
+      box-shadow: 0 0 14px var(--signal);
+    }
+
+    /* ===== Footer ===== */
+    .footer {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 56px 32px;
+      border-top: 1px solid var(--border-soft);
+      color: var(--ink-faint);
+      font-size: 13px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    /* ===== Mobile ===== */
+    @media (max-width: 480px) {
+      .nav-links { display: none; }
+      .nav-inner { padding: 14px 20px; }
+      .hero { padding: 40px 20px 32px; }
+      .hero-title { font-size: 34px; }
+      .hero-sub { font-size: 16px; }
+      .spotlight { padding: 0 20px; margin-bottom: 40px; }
+      .spotlight-card {
+        grid-template-columns: 1fr;
+        gap: 24px;
+        padding: 24px;
+      }
+      .spotlight-cover { max-width: 200px; }
+      .spotlight-title { font-size: 26px; }
+      .rail { padding: 0 20px 40px; }
+      .rail-grid { grid-template-columns: repeat(2, 1fr); gap: 20px; }
+      .reader-wrap { padding: 40px 20px 56px; }
+      .reader-toggle { display: none; }
+      .ch-title { font-size: 28px; }
+      .ch-prose { font-size: 17px; }
+      .ch-spine { display: none; }
+      .footer { padding: 32px 20px; flex-direction: column; gap: 12px; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav class="nav">
+    <div class="nav-inner">
+      <div class="logo">novelstack<span class="dot">.</span></div>
+      <div class="nav-links">
+        <a>Home</a>
+        <a>Browse</a>
+        <a>Writers</a>
+        <a>About</a>
+      </div>
+      <a class="nav-cta">Sign in</a>
+    </div>
+  </nav>
+
+  <section class="hero">
+    <div class="hero-eyebrow">For you · Tuesday</div>
+    <h1 class="hero-title">Stories that <em>actually</em> finish.<br>From writers paid to write them.</h1>
+    <p class="hero-sub">A reading room for serialised fiction. Free to start, $6.99/month for all-access, writers keep 70% of every dollar.</p>
+  </section>
+
+  <section class="spotlight">
+    <div class="spotlight-card">
+      <div class="spotlight-cover cv-1">The Salt-Wind Almanac</div>
+      <div class="spotlight-meta">
+        <div class="spotlight-tag">SPOTLIGHT — 92% READ-THROUGH</div>
+        <h2 class="spotlight-title">The Salt-Wind Almanac</h2>
+        <div class="spotlight-author">Marin Aydelotte · 24 chapters · ongoing</div>
+        <p class="spotlight-desc">An archivist in a drowned city catalogues the things the tide brings back. A slow-burn literary novel about memory and what the sea forgets to keep.</p>
+        <a class="btn-cream">Continue reading</a>
+        <a class="btn-ghost">Save</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="rail">
+    <div class="rail-head">
+      <div class="rail-title">Continue reading</div>
+      <a class="rail-more">All in library →</a>
+    </div>
+    <div class="rail-grid">
+      <div class="story"><div class="story-cover cv-2">A Map of Quiet Rooms</div><div class="story-title">A Map of Quiet Rooms</div><div class="story-author">Lior Vance</div><div class="story-meta">Ch. 11 · 4 left</div></div>
+      <div class="story"><div class="story-cover cv-3">Bright Hollow</div><div class="story-title">Bright Hollow</div><div class="story-author">Imogen Park</div><div class="story-meta">Ch. 7 · 12 left</div></div>
+      <div class="story"><div class="story-cover cv-4">No Lighthouse Tonight</div><div class="story-title">No Lighthouse Tonight</div><div class="story-author">Sasha Eddings</div><div class="story-meta">Ch. 2 · 6 left</div></div>
+      <div class="story"><div class="story-cover cv-5">The Long Green Year</div><div class="story-title">The Long Green Year</div><div class="story-author">Jenna Okafor</div><div class="story-meta">Ch. 19 · complete</div></div>
+    </div>
+  </section>
+
+  <section class="rail">
+    <div class="rail-head">
+      <div class="rail-title">Trending — by read-through</div>
+      <a class="rail-more">All trending →</a>
+    </div>
+    <div class="rail-grid">
+      <div class="story"><div class="story-cover cv-6">A Theory of Bells</div><div class="story-title">A Theory of Bells</div><div class="story-author">Dax Verlaine</div><div class="story-meta">88% finish · 4,210 reads</div></div>
+      <div class="story"><div class="story-cover cv-7">Halve the Sky</div><div class="story-title">Halve the Sky</div><div class="story-author">Esther Roan</div><div class="story-meta">84% finish · 6,902 reads</div></div>
+      <div class="story"><div class="story-cover cv-8">Notes from the Far Coast</div><div class="story-title">Notes from the Far Coast</div><div class="story-author">Talin Brooks</div><div class="story-meta">82% finish · 3,118 reads</div></div>
+      <div class="story"><div class="story-cover cv-1">Saltwater Almanac</div><div class="story-title">Saltwater Almanac</div><div class="story-author">Marin Aydelotte</div><div class="story-meta">92% finish · 8,440 reads</div></div>
+    </div>
+  </section>
+
+  <section class="rail">
+    <div class="rail-head">
+      <div class="rail-title">For tonight — a cosy one</div>
+      <a class="rail-more">Browse by mood →</a>
+    </div>
+    <div class="rail-grid">
+      <div class="story"><div class="story-cover cv-3">The Knitting Room</div><div class="story-title">The Knitting Room</div><div class="story-author">Roxie Ahern</div><div class="story-meta">Cosy · slow-burn</div></div>
+      <div class="story"><div class="story-cover cv-5">Light On in the Kitchen</div><div class="story-title">Light On in the Kitchen</div><div class="story-author">Niamh Coyle</div><div class="story-meta">Cosy · hopeful</div></div>
+      <div class="story"><div class="story-cover cv-2">A Bookshop in October</div><div class="story-title">A Bookshop in October</div><div class="story-author">Theo Mercer</div><div class="story-meta">Cosy · romance</div></div>
+      <div class="story"><div class="story-cover cv-8">Sundays at the Lighthouse</div><div class="story-title">Sundays at the Lighthouse</div><div class="story-author">Felix North</div><div class="story-meta">Cosy · slow-burn</div></div>
+    </div>
+  </section>
+
+  <div class="reader-divider"><hr></div>
+
+  <div class="reader-eyebrow">
+    <span class="lbl">Reader preview — paper mode</span>
+  </div>
+
+  <section class="reader-wrap">
+    <div class="reader-toggle">
+      <span class="active">Paper</span>
+      <span>Dark</span>
+    </div>
+
+    <div class="ch-spine">
+      <div class="notch"></div>
+      <div class="notch"></div>
+      <div class="notch current"></div>
+      <div class="notch"></div>
+      <div class="notch"></div>
+      <div class="notch"></div>
+      <div class="notch"></div>
+    </div>
+
+    <div class="resume-ribbon">
+      <b>You left here on Tuesday.</b>
+      <div class="resume-quote">…and she finally understood. The door was already open. She had been standing in front of it the whole time.</div>
+    </div>
+
+    <div class="ch-eyebrow">Chapter 12 · The Salt-Wind Almanac</div>
+    <h2 class="ch-title">A small song for the harbour</h2>
+
+    <div class="ch-prose">
+      <p>The first time the tide brought back a letter, Marin filed it under <em>Correspondence, unanswered, salt-damaged</em>. The second time, she made a new drawer for it. By the seventh, she had stopped pretending the archive was for anyone but herself.</p>
+      <p>The harbour was quieter that winter. Boats stayed in. Children did not come down to the wall. Even the gulls had begun to favour the cathedral roof over the dock, which Marin took personally — she had been feeding them since before her mother had stopped writing back.</p>
+      <p>She found the box on a Thursday, half-buried where the slipway met the wall. It was older than her, older than the dock, older possibly than the cathedral, and it was, in a way she did not yet have the words for, addressed to her.</p>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div>novelstack · stories worth following</div>
+    <div>About · Writers · Privacy · Terms</div>
+  </footer>
+
+</body>
+</html>

@@ -38,14 +38,14 @@ export default async function ChapterEditor({
           <input
             name="title"
             defaultValue={chapter.title}
-            className="w-full font-serif text-2xl font-medium border-0 border-b border-border-soft bg-transparent pb-2 focus:outline-none"
+            className="w-full font-display text-2xl font-medium border-0 border-b border-border-soft bg-transparent pb-2 focus:outline-none"
           />
           <textarea
             name="body"
             defaultValue={body}
             rows={22}
             placeholder="Write your chapter…"
-            className="w-full font-serif text-[17px] leading-[1.7] border border-border-soft rounded-lg px-4 py-3 bg-white"
+            className="w-full font-display text-[17px] leading-[1.7] border border-border-soft rounded-lg px-4 py-3 bg-card"
           />
           <div className="flex gap-3">
             <button
@@ -62,7 +62,7 @@ export default async function ChapterEditor({
           <input type="hidden" name="storyId" value={storyId} />
           <button
             type="submit"
-            className="bg-signal text-paper px-5 py-2.5 rounded-full font-medium text-sm"
+            className="bg-signal text-cream px-5 py-2.5 rounded-full font-medium text-sm"
           >
             {chapter.publishedAt ? 'Re-publish' : 'Publish chapter'}
           </button>

@@ -12,7 +12,7 @@ export default function PayoutsRefreshPage() {
   return (
     <main className="min-h-screen bg-paper">
       <div className="max-w-md mx-auto px-6 py-24 text-center">
-        <h1 className="font-serif text-3xl text-ink">This link expired</h1>
+        <h1 className="font-display text-3xl text-ink">This link expired</h1>
         <p className="text-[15px] text-ink-muted leading-relaxed mt-3">
           Payout setup links are only valid for a short time. To carry on, reopen
           the NovelStack app, go to your Earnings screen, and tap{' '}

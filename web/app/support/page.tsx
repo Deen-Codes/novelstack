@@ -37,12 +37,12 @@ export default function SupportPage() {
         <Link href="/" className="text-sm text-ink-muted">
           ‹ NovelStack
         </Link>
-        <h1 className="font-serif text-3xl text-ink mt-4">Help &amp; Support</h1>
+        <h1 className="font-display text-3xl text-ink mt-4">Help &amp; Support</h1>
         <p className="text-[15px] text-ink-muted mt-2 mb-8">
           Answers to common questions, and how to reach us.
         </p>
 
-        <h2 className="font-serif text-xl text-ink mt-4 mb-3">Frequently asked questions</h2>
+        <h2 className="font-display text-xl text-ink mt-4 mb-3">Frequently asked questions</h2>
         <div className="space-y-5">
           {FAQ.map((item) => (
             <div key={item.q}>
@@ -52,7 +52,7 @@ export default function SupportPage() {
           ))}
         </div>
 
-        <h2 className="font-serif text-xl text-ink mt-10 mb-2">Contact us</h2>
+        <h2 className="font-display text-xl text-ink mt-10 mb-2">Contact us</h2>
         <p className="text-[15px] text-ink-muted leading-relaxed">
           Still need help? Email{' '}
           <a className="text-signal" href="mailto:support@novelstack.app">

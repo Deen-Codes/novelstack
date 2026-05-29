@@ -19,7 +19,8 @@ const HIDE_ON = ['/signin'];
 const HIDE_PREFIX = ['/auth', '/read'];
 
 function Icon({ name, active }: { name: string; active: boolean }) {
-  const stroke = active ? '#E54B2A' : '#8A7659';
+  // Ember when active, dim ink-faint when idle — matches mobile tab bar.
+  const stroke = active ? '#C8414E' : '#6F6459';
   const common = {
     width: 22,
     height: 22,
@@ -77,7 +78,14 @@ export function MobileTabBar() {
   if (HIDE_PREFIX.some((p) => pathname.startsWith(p))) return null;
 
   return (
-    <nav className="md:hidden fixed bottom-0 inset-x-0 z-50 bg-paper/95 backdrop-blur border-t border-ink/10">
+    <nav
+      className="md:hidden fixed bottom-0 inset-x-0 z-50 border-t border-border-soft"
+      style={{
+        background: 'rgba(20, 17, 15, 0.85)',
+        backdropFilter: 'blur(20px) saturate(140%)',
+        WebkitBackdropFilter: 'blur(20px) saturate(140%)',
+      }}
+    >
       <div className="flex items-stretch justify-around">
         {TABS.map((tab) => {
           const active =

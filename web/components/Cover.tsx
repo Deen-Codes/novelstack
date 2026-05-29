@@ -25,16 +25,23 @@ export function Cover({
         />
       ) : (
         <div
-          className="w-full h-full flex items-end"
-          style={{ background: coverColor ?? '#D85A30' }}
+          className="w-full h-full flex items-end relative"
+          style={{
+            background: coverColor
+              ? `linear-gradient(160deg, ${coverColor} 0%, rgba(0,0,0,0.45) 100%)`
+              : 'linear-gradient(160deg, #5B2E1C 0%, #1F0F0A 100%)',
+          }}
         >
-          <div className="font-serif text-[11px] leading-tight text-white/90 p-2 line-clamp-3">
+          <div
+            className="font-display font-bold text-[12px] leading-tight text-cream/90 p-3 line-clamp-3"
+            style={{ textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}
+          >
             {title}
           </div>
         </div>
       )}
       {mature && (
-        <span className="absolute top-1 right-1 bg-black/75 text-white text-[9px] font-medium px-1.5 py-0.5 rounded">
+        <span className="absolute top-1.5 right-1.5 bg-black/80 text-cream text-[9px] font-bold px-1.5 py-0.5 rounded">
           18+
         </span>
       )}

@@ -33,12 +33,12 @@ export default async function ManageStory({
       <AppHeader />
       <main className="max-w-3xl mx-auto px-6 py-10">
         <Link href="/write" className="text-[13px] text-signal">‹ Your stories</Link>
-        <h1 className="font-serif text-3xl font-medium mt-3">{story.title}</h1>
+        <h1 className="font-display text-3xl font-medium mt-3">{story.title}</h1>
         <p className="text-[13px] text-ink-faint capitalize mt-1">
           {story.genre} · {story.status}
         </p>
 
-        <div className="mt-8 border border-border-soft rounded-xl bg-white p-4">
+        <div className="mt-8 border border-border-soft rounded-xl bg-card p-4">
           <CoverUploader
             storyId={story.id}
             title={story.title}
@@ -48,9 +48,9 @@ export default async function ManageStory({
         </div>
 
         <div className="flex justify-between items-center mt-8 mb-3">
-          <h2 className="font-serif text-xl font-medium">Chapters</h2>
+          <h2 className="font-display text-xl font-medium">Chapters</h2>
           <form action={createChapter.bind(null, story.id)}>
-            <button className="bg-signal text-paper px-4 py-2 rounded-full text-sm font-medium">
+            <button className="bg-signal text-cream px-4 py-2 rounded-full text-sm font-medium">
               Add chapter
             </button>
           </form>

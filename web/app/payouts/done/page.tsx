@@ -12,7 +12,7 @@ export default function PayoutsDonePage() {
   return (
     <main className="min-h-screen bg-paper">
       <div className="max-w-md mx-auto px-6 py-24 text-center">
-        <h1 className="font-serif text-3xl text-ink">You&apos;re all set</h1>
+        <h1 className="font-display text-3xl text-ink">You&apos;re all set</h1>
         <p className="text-[15px] text-ink-muted leading-relaxed mt-3">
           Your payout details have been submitted to Stripe. Once Stripe finishes
           verifying them, your NovelStack earnings will be paid out automatically

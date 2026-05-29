@@ -28,7 +28,7 @@ export default async function AdminPayouts() {
     <>
       <AppHeader />
       <main className="max-w-2xl mx-auto px-6 py-10">
-        <h1 className="font-serif text-3xl font-medium mb-2">Admin payouts</h1>
+        <h1 className="font-display text-3xl font-medium mb-2">Admin payouts</h1>
         <p className="text-[14px] text-ink-muted mb-7">
           Reconcile pending ad unlocks against the real AdMob payout window.
           All pending unlocks created in the date range will be stamped with

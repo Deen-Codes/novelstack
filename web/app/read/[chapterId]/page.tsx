@@ -75,6 +75,8 @@ export default async function ReadChapter({
   const idx = sibs.findIndex((c) => c.id === chapter.id);
   if (idx > 0) prevId = sibs[idx - 1].id;
   if (idx >= 0 && idx < sibs.length - 1) nextId = sibs[idx + 1].id;
+  const chapterCount = sibs.length;
+  const currentIndex = idx;
 
   const jsonLd = {
     '@context': 'https://schema.org',
@@ -102,11 +104,15 @@ export default async function ReadChapter({
         excerpt={chapter.excerpt}
         prevId={prevId}
         nextId={nextId}
+        chapterCount={chapterCount}
+        currentIndex={currentIndex}
         showAd={showAd}
         signedIn={!!user}
       />
-      <section className="bg-paper border-t border-border-soft">
-        <div className="max-w-[640px] mx-auto px-6 py-12">
+      {/* Comments live below the reader — dark surface so the paper-mode
+          ends cleanly at the bottom of the reading column. */}
+      <section className="bg-paper text-ink border-t border-border-soft">
+        <div className="max-w-[68ch] mx-auto px-6 py-12">
           <div className="flex justify-end mb-6">
             <ReportButton targetType="chapter" targetId={chapter.id} signedIn={!!user} />
           </div>

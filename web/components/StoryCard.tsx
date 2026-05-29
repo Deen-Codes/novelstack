@@ -13,10 +13,10 @@ export function StoryCard({ story }: { story: Story }) {
           className="absolute inset-0 w-full h-full"
         />
         <div className="absolute inset-0 p-4 flex flex-col justify-end">
-          <span className="self-start mb-auto text-[11px] text-white/90 bg-black/25 px-2 py-0.5 rounded-full capitalize">
+          <span className="self-start mb-auto text-[11px] text-cream/90 bg-black/25 px-2 py-0.5 rounded-full capitalize">
             {story.genre}
           </span>
-          <div className="font-serif text-[17px] font-medium text-white leading-tight">
+          <div className="font-display text-[17px] font-medium text-cream leading-tight">
             {story.title}
           </div>
         </div>

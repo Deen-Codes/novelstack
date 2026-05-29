@@ -37,7 +37,7 @@ export function BookmarkButton({
         startTransition(() => toggleBookmark(storyId, slug, current));
       }}
       className={`text-[13px] rounded-full px-4 py-2 font-medium disabled:opacity-60 ${
-        bookmarked ? 'bg-signal text-paper' : 'border border-border-soft text-ink'
+        bookmarked ? 'bg-signal text-cream' : 'border border-border-soft text-ink'
       }`}
     >
       {bookmarked ? 'Saved ✓' : 'Save story'}

@@ -71,7 +71,7 @@ export default async function AdminReports() {
     <>
       <AppHeader />
       <main className="max-w-3xl mx-auto px-6 py-10">
-        <h1 className="font-serif text-3xl font-medium mb-1">Moderation queue</h1>
+        <h1 className="font-display text-3xl font-medium mb-1">Moderation queue</h1>
         <p className="text-[13px] text-ink-muted mb-7">
           {rows.length === 0 ? 'No reports yet.' : `${rows.length} report${rows.length === 1 ? '' : 's'}.`}
         </p>
@@ -90,7 +90,7 @@ export default async function AdminReports() {
               return (
                 <div
                   key={r.id}
-                  className="border border-border-soft bg-white rounded-xl p-4 space-y-3"
+                  className="border border-border-soft bg-card rounded-xl p-4 space-y-3"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">

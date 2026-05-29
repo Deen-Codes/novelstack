@@ -48,7 +48,7 @@ export function Comments({ chapterId }: { chapterId: string }) {
         {liked ? '♥' : '♡'} {likeCount} like{likeCount === 1 ? '' : 's'}
       </button>
 
-      <h2 className="font-serif text-xl font-medium mb-3">
+      <h2 className="font-display text-xl font-medium mb-3">
         {comments.length} comment{comments.length === 1 ? '' : 's'}
       </h2>
 
@@ -59,11 +59,11 @@ export function Comments({ chapterId }: { chapterId: string }) {
             onChange={(e) => setText(e.target.value)}
             rows={3}
             placeholder="Share what you thought…"
-            className="w-full border border-border-soft rounded-lg px-3.5 py-2.5 text-[14px] bg-white"
+            className="w-full border border-border-soft rounded-lg px-3.5 py-2.5 text-[14px] bg-card"
           />
           <button
             onClick={post}
-            className="mt-2 bg-signal text-paper px-4 py-2 rounded-full text-sm font-medium"
+            className="mt-2 bg-signal text-cream px-4 py-2 rounded-full text-sm font-medium"
           >
             Post comment
           </button>

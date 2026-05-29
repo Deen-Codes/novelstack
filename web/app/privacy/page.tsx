@@ -14,7 +14,7 @@ export default function PrivacyPage() {
         <Link href="/" className="text-sm text-ink-muted">
           ‹ NovelStack
         </Link>
-        <h1 className="font-serif text-3xl text-ink mt-4">Privacy Policy</h1>
+        <h1 className="font-display text-3xl text-ink mt-4">Privacy Policy</h1>
         <p className="text-sm text-ink-faint mt-1 mb-8">Last updated 25 May 2026</p>
 
         <div className="text-[15px] text-ink-muted leading-relaxed space-y-3">
@@ -24,7 +24,7 @@ export default function PrivacyPage() {
             how we use it.
           </p>
 
-          <h2 className="font-serif text-xl text-ink mt-8">Information you provide</h2>
+          <h2 className="font-display text-xl text-ink mt-8">Information you provide</h2>
           <p>
             When you create an account we collect your email address, and the username,
             display name, date of birth, profile photo and biography you choose to add. When
@@ -32,21 +32,21 @@ export default function PrivacyPage() {
             you create.
           </p>
 
-          <h2 className="font-serif text-xl text-ink mt-8">Information collected automatically</h2>
+          <h2 className="font-display text-xl text-ink mt-8">Information collected automatically</h2>
           <p>
             We collect reading activity (the chapters you open and your progress through
             them), the stories and writers you follow, device and app information, a device
             identifier, approximate region, and diagnostic data such as crash reports.
           </p>
 
-          <h2 className="font-serif text-xl text-ink mt-8">How we use information</h2>
+          <h2 className="font-display text-xl text-ink mt-8">How we use information</h2>
           <p>
             We use it to provide and improve NovelStack, to recommend stories, to send the
             notifications you have enabled, to process NovelStack+ subscriptions, to display
             advertising, and to keep the platform safe.
           </p>
 
-          <h2 className="font-serif text-xl text-ink mt-8">Advertising and tracking</h2>
+          <h2 className="font-display text-xl text-ink mt-8">Advertising and tracking</h2>
           <p>
             Free reading on NovelStack is supported by advertising provided by Google AdMob.
             AdMob may use a device identifier to show and measure ads. On iOS we ask for your
@@ -55,7 +55,7 @@ export default function PrivacyPage() {
             members do not see ads.
           </p>
 
-          <h2 className="font-serif text-xl text-ink mt-8">Service providers</h2>
+          <h2 className="font-display text-xl text-ink mt-8">Service providers</h2>
           <p>
             We share data only with the providers that run NovelStack: Render (hosting and
             database), Cloudflare R2 (image storage), Resend (email delivery), Apple and
@@ -63,7 +63,7 @@ export default function PrivacyPage() {
             notifications). We do not sell your personal information.
           </p>
 
-          <h2 className="font-serif text-xl text-ink mt-8">Data retention and deletion</h2>
+          <h2 className="font-display text-xl text-ink mt-8">Data retention and deletion</h2>
           <p>
             We keep your information while your account is active. You may delete your
             account at any time from within the app, or by emailing us. Deletion removes your
@@ -71,25 +71,25 @@ export default function PrivacyPage() {
             to meet legal obligations.
           </p>
 
-          <h2 className="font-serif text-xl text-ink mt-8">Children</h2>
+          <h2 className="font-display text-xl text-ink mt-8">Children</h2>
           <p>
             NovelStack is not intended for children under 13. Stories marked mature are gated
             behind an age confirmation.
           </p>
 
-          <h2 className="font-serif text-xl text-ink mt-8">Your choices</h2>
+          <h2 className="font-display text-xl text-ink mt-8">Your choices</h2>
           <p>
             You may access and correct your information in the app, control notification
             settings, and delete your account. For any other request, contact us.
           </p>
 
-          <h2 className="font-serif text-xl text-ink mt-8">Changes</h2>
+          <h2 className="font-display text-xl text-ink mt-8">Changes</h2>
           <p>
             We may update this policy from time to time; the date above reflects the latest
             version.
           </p>
 
-          <h2 className="font-serif text-xl text-ink mt-8">Contact</h2>
+          <h2 className="font-display text-xl text-ink mt-8">Contact</h2>
           <p>
             Questions about privacy:{' '}
             <a className="text-signal" href="mailto:privacy@novelstack.app">

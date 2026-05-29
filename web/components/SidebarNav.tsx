@@ -77,7 +77,7 @@ export function SidebarNav({
   return (
     <nav className="px-3 pb-8">
       <form action="/" className="px-1 mb-1">
-        <div className="flex items-center gap-2 bg-white border border-border-soft rounded-lg px-2.5 py-1.5">
+        <div className="flex items-center gap-2 bg-card border border-border-soft rounded-lg px-2.5 py-1.5">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-ink-faint shrink-0">
             <circle cx="11" cy="11" r="8" />
             <line x1="21" y1="21" x2="16.65" y2="16.65" />
@@ -121,7 +121,7 @@ export function SidebarNav({
           <NavItem href="/?view=following" active={view === 'following'} label="Following" icon={ic.users} />
           <Link
             href="/write/new"
-            className="mt-3 flex items-center justify-center gap-1.5 bg-signal text-paper text-[13px] font-medium rounded-lg py-2 mx-1"
+            className="mt-3 flex items-center justify-center gap-1.5 bg-signal text-cream text-[13px] font-medium rounded-lg py-2 mx-1"
           >
             + New story
           </Link>

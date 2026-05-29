@@ -43,7 +43,7 @@ export default async function ProfilePage({
             {profile.displayName.slice(0, 1).toUpperCase()}
           </div>
           <div className="flex-1">
-            <h1 className="font-serif text-2xl font-medium">
+            <h1 className="font-display text-2xl font-medium">
               {profile.displayName}
               {profile.isVerified && <span className="text-signal text-base"> ✓</span>}
             </h1>
@@ -58,7 +58,7 @@ export default async function ProfilePage({
                 className={`text-[13px] px-4 py-2 rounded-full font-medium ${
                   following
                     ? 'border border-border-soft text-ink-muted'
-                    : 'bg-signal text-paper'
+                    : 'bg-signal text-cream'
                 }`}
               >
                 {following ? 'Following' : 'Follow'}
@@ -91,7 +91,7 @@ export default async function ProfilePage({
 
         {stories.length > 0 ? (
           <section className="mt-10">
-            <h2 className="font-serif text-xl font-medium mb-4">Stories</h2>
+            <h2 className="font-display text-xl font-medium mb-4">Stories</h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {stories.map((s) => (
                 <StoryCard key={s.id} story={{ ...s, author: profile }} />

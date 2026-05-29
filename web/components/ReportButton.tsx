@@ -51,13 +51,13 @@ export function ReportButton({
     <form
       action={submitReport}
       onSubmit={() => setDone(true)}
-      className="border border-border-soft rounded-lg p-3 mt-2 bg-white max-w-sm"
+      className="border border-border-soft rounded-lg p-3 mt-2 bg-card max-w-sm"
     >
       <input type="hidden" name="targetType" value={targetType} />
       <input type="hidden" name="targetId" value={targetId} />
       <select
         name="reason"
-        className="w-full border border-border-soft rounded-md px-2 py-1.5 text-[13px] bg-white mb-2"
+        className="w-full border border-border-soft rounded-md px-2 py-1.5 text-[13px] bg-card mb-2"
       >
         {REASONS.map((r) => (
           <option key={r.v} value={r.v}>{r.l}</option>
@@ -67,12 +67,12 @@ export function ReportButton({
         name="detail"
         rows={2}
         placeholder="Anything else? (optional)"
-        className="w-full border border-border-soft rounded-md px-2 py-1.5 text-[13px] bg-white"
+        className="w-full border border-border-soft rounded-md px-2 py-1.5 text-[13px] bg-card"
       />
       <div className="flex gap-2 mt-2">
         <button
           type="submit"
-          className="bg-signal text-paper text-[12px] px-3 py-1.5 rounded-full font-medium"
+          className="bg-signal text-cream text-[12px] px-3 py-1.5 rounded-full font-medium"
         >
           Submit report
         </button>
