@@ -43,34 +43,43 @@ export async function POST(req: NextRequest) {
 
   // We only care about Connect account events right now. Logging happens
   // through Render's request logs — there's no app-level event log yet.
-  switch (event.type) {
-    case 'account.updated': {
-      // No DB write needed today — the earnings endpoint reads live status
-      // from Stripe on every request. The webhook exists as the hook point
-      // we'll extend when we add (a) push notifications to the writer when
-      // verification status changes, and (b) a cached `payouts_enabled`
-      // flag on the users row to skip the per-request Stripe call.
-      const account = event.data.object as Stripe.Account;
-      console.log(
-        `[stripe webhook] account.updated id=${account.id} ` +
-          `payouts_enabled=${account.payouts_enabled} ` +
-          `details_submitted=${account.details_submitted}`,
-      );
-      break;
-    }
-    case 'transfer.created':
-    case 'transfer.updated':
-    case 'transfer.reversed': {
-      // Hook point for the future payout-confirmation flow — when we move
-      // from manual monthly transfers to automated, we'll mark the matching
-      // payouts row as paid/failed here using the transfer's metadata.
-      console.log(`[stripe webhook] ${event.type}`);
-      break;
-    }
-    default:
-      // Ignore everything else but still ack so Stripe stops retrying.
-      break;
+  //
+  // Stripe has migrated account events from v1 (`account.updated`) to the
+  // v2 router (`v2.core.account.updated` and per-configuration capability
+  // events). We handle both — `v2.core.*` for new destinations set up
+  // today, plus the legacy `account.updated` for older destinations that
+  // haven't been re-pointed. We compare as a string because the Stripe
+  // SDK's union of known event names hasn't caught up with the v2
+  // additions yet, so `switch` on `event.type` would fail to type-check.
+  const t = event.type as string;
+  const isAccountUpdate =
+    t === 'account.updated' ||
+    t === 'v2.core.account.updated' ||
+    t.startsWith('v2.core.account[') && t.endsWith('updated');
+  const isTransferEvent =
+    t === 'transfer.created' || t === 'transfer.updated' || t === 'transfer.reversed';
+
+  if (isAccountUpdate) {
+    // No DB write needed today — the earnings endpoint reads live status
+    // from Stripe on every request. The webhook exists as the hook point
+    // we'll extend when we add (a) push notifications to the writer when
+    // verification status changes, and (b) a cached `payouts_enabled`
+    // flag on the users row to skip the per-request Stripe call.
+    //
+    // The event shape differs between v1 and v2 — v1 carries a full
+    // Account object; v2 carries a thin event whose payload has to be
+    // fetched. For logging we just note the type and id.
+    const obj = event.data.object as { id?: string; account?: string };
+    const id = obj?.id ?? obj?.account ?? 'unknown';
+    console.log(`[stripe webhook] ${t} id=${id}`);
+  } else if (isTransferEvent) {
+    // Hook point for the future payout-confirmation flow — when we move
+    // from manual monthly transfers to automated, we'll mark the matching
+    // payouts row as paid/failed here using the transfer's metadata.
+    console.log(`[stripe webhook] ${t}`);
   }
+  // Anything else: ack 200 (handled by the return below) so Stripe stops
+  // retrying. We don't act on unknown events.
 
   return NextResponse.json({ ok: true });
 }
