@@ -17,6 +17,7 @@ import { apiGet, apiGetCached } from '@/lib/api';
 import { Cover } from '@/components/Cover';
 import { TopBar } from '@/components/TopBar';
 import { useTabScroll } from '@/lib/useTabScroll';
+import { useReadingWidth, useGridItemWidth } from '@/components/PageContainer';
 import { AmbientGlow } from '@/components/AmbientGlow';
 import type { Story } from '@/lib/types';
 
@@ -109,13 +110,15 @@ export default function Search() {
 
   const hasQuery = q.trim().length > 0;
   const { scrollRef, scrollY, topPad, onScroll } = useTabScroll();
+  const ipadPad = useReadingWidth();
+  const cellWidth = useGridItemWidth({ phone: 3, tablet: 5, tabletWide: 6 });
 
   return (
     <SafeAreaView style={styles.safe} edges={[]}>
       <AmbientGlow />
       <Animated.ScrollView
         ref={scrollRef}
-        contentContainerStyle={[styles.scroll, { paddingTop: topPad }]}
+        contentContainerStyle={[styles.scroll, { paddingTop: topPad }, ipadPad]}
         keyboardShouldPersistTaps="never"
         keyboardDismissMode="on-drag"
         scrollEventThrottle={16}
@@ -196,7 +199,7 @@ export default function Search() {
                   {recList.slice(0, 12).map((s) => (
                     <Pressable
                       key={s.id}
-                      style={styles.gridItem}
+                      style={[styles.gridItem, { width: cellWidth as `${number}%` }]}
                       onPress={() => router.push(`/story/${s.slug}`)}
                     >
                       <Cover
@@ -222,7 +225,7 @@ export default function Search() {
                   {results.map((s) => (
                     <Pressable
                       key={s.id}
-                      style={styles.gridItem}
+                      style={[styles.gridItem, { width: cellWidth as `${number}%` }]}
                       onPress={() => router.push(`/story/${s.slug}`)}
                     >
                       <Cover

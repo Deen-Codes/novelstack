@@ -19,6 +19,7 @@ import { getCurrentUser } from '@/lib/auth';
 import { genreLabel } from '@/lib/genres';
 import { Cover } from '@/components/Cover';
 import { Avatar } from '@/components/Avatar';
+import { useReadingWidth } from '@/components/PageContainer';
 import { DobField } from '@/components/DobField';
 import { BottomSheet } from '@/components/BottomSheet';
 import { purchaseTip, loadTipPriceLabels, TIP_TIERS, type TipTier, type TipProductId } from '@/lib/iap';
@@ -151,6 +152,7 @@ export default function StoryScreen() {
   const [reviewsOpen, setReviewsOpen] = useState(false);
 
   const userId = user?.id ?? null;
+  const ipadPad = useReadingWidth();
 
   // Fetch reviews payload and seed the summary used by the cover-side stars.
   // Called from load() once the story is known, and again after submitReview
@@ -422,7 +424,7 @@ export default function StoryScreen() {
         style={styles.ambient}
         pointerEvents="none"
       />
-      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={[styles.scroll, ipadPad]} keyboardShouldPersistTaps="handled">
         <View style={styles.topRow}>
           <Pressable style={styles.circleBtn} onPress={() => router.back()} hitSlop={8}>
             <Ionicons name="chevron-back" size={20} color={colors.ink} />

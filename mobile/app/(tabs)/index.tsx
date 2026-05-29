@@ -19,6 +19,7 @@ import { apiGetCached, apiSend } from '@/lib/api';
 import { Cover } from '@/components/Cover';
 import { TopBar } from '@/components/TopBar';
 import { useTabScroll } from '@/lib/useTabScroll';
+import { useReadingWidth } from '@/components/PageContainer';
 import type { FeedStory, HomeExtras, Shelf } from '@/lib/types';
 
 // hex → rgba, used to derive the ambient glow from a book's cover colour.
@@ -44,6 +45,9 @@ export default function Home() {
   // Shared tab-scroll plumbing: scrollY for the TopBar shrink, scroll-to-top
   // on focus, and the matching topPad so content lands below the bar.
   const { scrollRef, scrollY, topPad, onScroll } = useTabScroll();
+  // Caps content width on iPad so the feed reads as a column instead of
+  // sprawling across a 12.9" screen. No-op on iPhone.
+  const ipadPad = useReadingWidth();
 
   const load = useCallback(async () => {
     const [f, e, sh] = await Promise.allSettled([
@@ -167,7 +171,7 @@ export default function Home() {
 
       <Animated.ScrollView
         ref={scrollRef}
-        contentContainerStyle={[styles.scroll, { paddingTop: topPad }]}
+        contentContainerStyle={[styles.scroll, { paddingTop: topPad }, ipadPad]}
         showsVerticalScrollIndicator={false}
         scrollEventThrottle={16}
         onScroll={onScroll}

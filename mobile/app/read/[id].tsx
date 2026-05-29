@@ -18,6 +18,7 @@ import { AdBanner } from '@/components/AdBanner';
 import { apiGet, apiGetCached, apiSend } from '@/lib/api';
 import { getCurrentUser } from '@/lib/auth';
 import { MarkdownText } from '@/components/MarkdownText';
+import { useReadingWidth } from '@/components/PageContainer';
 import type { ChapterDetail, StoryDetail } from '@/lib/types';
 
 // Strips the fiction-Markdown down to clean prose for text-to-speech, so the
@@ -42,6 +43,8 @@ export default function Reader() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [chapter, setChapter] = useState<ChapterDetail | null>(null);
   const [loading, setLoading] = useState(true);
+  // Cap line length on iPad — fiction past ~70ch is fatiguing.
+  const ipadPad = useReadingWidth();
   const [prevId, setPrevId] = useState<string | null>(null);
   const [nextId, setNextId] = useState<string | null>(null);
   // True when the next chapter is a paid chapter — reading on costs an ad.
@@ -324,7 +327,7 @@ export default function Reader() {
 
       {/* Body */}
       <ScrollView
-        contentContainerStyle={styles.scroll}
+        contentContainerStyle={[styles.scroll, ipadPad]}
         onScroll={onScroll}
         scrollEventThrottle={32}
       >

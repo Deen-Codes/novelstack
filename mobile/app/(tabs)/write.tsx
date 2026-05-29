@@ -22,6 +22,7 @@ import { AmbientGlow } from '@/components/AmbientGlow';
 import { SignInPitch } from '@/components/SignInPitch';
 import { TopBar } from '@/components/TopBar';
 import { useTabScroll } from '@/lib/useTabScroll';
+import { useReadingWidth, useGridItemWidth } from '@/components/PageContainer';
 import { Typewriter } from '@/components/Typewriter';
 import type { Shelf, Story } from '@/lib/types';
 
@@ -114,6 +115,8 @@ export default function Write() {
   }
 
   const { scrollRef, scrollY, topPad, onScroll } = useTabScroll();
+  const ipadPad = useReadingWidth();
+  const storyCellWidth = useGridItemWidth({ phone: 3, tablet: 5, tabletWide: 6 });
 
   // Wizard innards — shared by the centred wizard layout. Just the form,
   // not the framing card; the card lives in the layout that calls this.
@@ -339,7 +342,7 @@ export default function Write() {
       <AmbientGlow />
       <Animated.ScrollView
         ref={scrollRef}
-        contentContainerStyle={[styles.scroll, { paddingTop: topPad }]}
+        contentContainerStyle={[styles.scroll, { paddingTop: topPad }, ipadPad]}
         keyboardShouldPersistTaps="handled"
         scrollEventThrottle={16}
         onScroll={onScroll}
@@ -377,7 +380,7 @@ export default function Write() {
             {stories.map((s) => (
               <Pressable
                 key={s.id}
-                style={styles.storyGridItem}
+                style={[styles.storyGridItem, { width: storyCellWidth as `${number}%` }]}
                 onPress={() => router.push(`/write/${s.id}`)}
               >
                 <Cover

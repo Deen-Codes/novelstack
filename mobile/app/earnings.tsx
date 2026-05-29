@@ -15,6 +15,7 @@ import { colors, spacing, radius, fonts } from '@/theme/tokens';
 import { apiGet, apiSend, getSessionToken } from '@/lib/api';
 import { AmbientGlow } from '@/components/AmbientGlow';
 import { SignInPitch } from '@/components/SignInPitch';
+import { useReadingWidth } from '@/components/PageContainer';
 import type { Earnings } from '@/lib/types';
 
 // Cents → "$1,234.56".
@@ -46,6 +47,9 @@ export default function EarningsScreen() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
+  // Centres the dashboard on iPad so the balance/breakdown cards don't
+  // sprawl across a 12.9" screen.
+  const ipadPad = useReadingWidth();
 
   const load = useCallback(async () => {
     const token = await getSessionToken();
@@ -138,7 +142,7 @@ export default function EarningsScreen() {
     return (
       <SafeAreaView style={styles.safe} edges={['top']}>
         <AmbientGlow />
-        <ScrollView contentContainerStyle={styles.scroll}>
+        <ScrollView contentContainerStyle={[styles.scroll, ipadPad]}>
           <Pressable style={styles.back} onPress={() => router.back()} hitSlop={8}>
             <Ionicons name="chevron-back" size={22} color={colors.ink} />
             <Text style={styles.backText}>Profile</Text>
@@ -172,7 +176,7 @@ export default function EarningsScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <AmbientGlow />
-      <ScrollView contentContainerStyle={styles.scroll}>
+      <ScrollView contentContainerStyle={[styles.scroll, ipadPad]}>
         <Pressable style={styles.back} onPress={() => router.back()} hitSlop={8}>
           <Ionicons name="chevron-back" size={22} color={colors.ink} />
           <Text style={styles.backText}>Profile</Text>

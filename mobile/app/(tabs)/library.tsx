@@ -16,6 +16,7 @@ import { apiGetCached, apiSend, getSessionToken } from '@/lib/api';
 import { getCurrentUser } from '@/lib/auth';
 import { TopBar } from '@/components/TopBar';
 import { useTabScroll } from '@/lib/useTabScroll';
+import { useReadingWidth, useGridItemWidth } from '@/components/PageContainer';
 import { Cover } from '@/components/Cover';
 import { SignInPitch } from '@/components/SignInPitch';
 import { AmbientGlow } from '@/components/AmbientGlow';
@@ -91,7 +92,7 @@ export default function Library() {
     const done = p?.completed ?? 0;
     const pct = total > 0 ? Math.max(3, Math.round((done / total) * 100)) : 0;
     return (
-      <StaggerIn key={s.id} index={index} style={styles.gridItem}>
+      <StaggerIn key={s.id} index={index} style={[styles.gridItem, { width: cellWidth as `${number}%` }]}>
         <Pressable onPress={() => router.push(`/story/${s.slug}`)}>
           <Cover
             coverUrl={s.coverUrl}
@@ -132,6 +133,9 @@ export default function Library() {
 
   const { scrollRef, scrollY, topPad, onScroll } = useTabScroll();
   const insets = useSafeAreaInsets();
+  const ipadPad = useReadingWidth();
+  // 3 covers per row on phone, 5 on iPad portrait, 6 on iPad landscape.
+  const cellWidth = useGridItemWidth({ phone: 3, tablet: 5, tabletWide: 6 });
 
   if (loading) {
     return (
@@ -202,6 +206,7 @@ export default function Library() {
         contentContainerStyle={[
           isEmpty ? styles.scrollEmpty : styles.scroll,
           { paddingTop: topPad },
+          ipadPad,
         ]}
         scrollEventThrottle={16}
         onScroll={onScroll}

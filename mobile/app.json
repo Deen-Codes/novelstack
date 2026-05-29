@@ -13,7 +13,7 @@
       "resizeMode": "cover"
     },
     "ios": {
-      "supportsTablet": false,
+      "supportsTablet": true,
       "bundleIdentifier": "app.novelstack",
       "buildNumber": "6",
       "icon": {

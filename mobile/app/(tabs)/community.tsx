@@ -19,6 +19,7 @@ import { genreLabel } from '@/lib/genres';
 import { Cover } from '@/components/Cover';
 import { TopBar } from '@/components/TopBar';
 import { useTabScroll } from '@/lib/useTabScroll';
+import { useReadingWidth } from '@/components/PageContainer';
 import { SignInPitch } from '@/components/SignInPitch';
 import { AmbientGlow } from '@/components/AmbientGlow';
 import { StaggerIn } from '@/components/StaggerIn';
@@ -230,13 +231,14 @@ export default function Community() {
   }, [posts, suggestedWriters, following.length, justFollowed]);
 
   const { scrollRef, scrollY, topPad, onScroll } = useTabScroll();
+  const ipadPad = useReadingWidth();
 
   return (
     <SafeAreaView style={styles.safe} edges={[]}>
       <AmbientGlow />
       <Animated.ScrollView
         ref={scrollRef}
-        contentContainerStyle={[styles.scroll, { paddingTop: topPad }]}
+        contentContainerStyle={[styles.scroll, { paddingTop: topPad }, ipadPad]}
         showsVerticalScrollIndicator={false}
         scrollEventThrottle={16}
         onScroll={onScroll}

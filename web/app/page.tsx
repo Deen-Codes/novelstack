@@ -74,14 +74,14 @@ export default async function Home({
           <ContinueRail current={continueReading} more={feed.filter((s) => s.id !== continueReading.storyId).slice(0, 4)} />
         )}
 
-        <Rail title="Trending — by read-through" href="/browse?sort=trending" stories={trending} />
+        <Rail title="Trending — by read-through" href="/search" stories={trending} />
 
         {follows.length > 0 && (
           <Rail title="From writers you follow" href="/?view=following" stories={follows} />
         )}
 
         {cosy.length > 0 && (
-          <Rail title="For tonight — a cosy one" href="/browse?genre=romance" stories={cosy} />
+          <Rail title="For tonight — a cosy one" href="/?genre=romance" stories={cosy} />
         )}
 
         {feed.length === 0 && (
