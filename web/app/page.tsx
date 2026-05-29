@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { AppHeader } from '@/components/AppHeader';
-import { Cover } from '@/components/Cover';
+import { Cover, hasUploadedCover } from '@/components/Cover';
 import { getSessionUser } from '@/lib/auth';
 import {
   getFeed,
@@ -123,9 +123,12 @@ function Spotlight({
       >
         <Link href={`/story/${story.slug}`} className="cover-lift block">
           <Cover
+            storyId={story.id}
             coverUrl={story.coverUrl}
             coverColor={story.coverColor}
             title={story.title}
+            genre={story.genre}
+            authorName={story.author?.displayName}
             mature={story.isMature}
             className="aspect-[3/4] rounded-xl overflow-hidden shadow-[0_18px_50px_-16px_rgba(0,0,0,0.6)]"
           />
@@ -219,14 +222,17 @@ function ContinueRail({
           className="block cover-lift group"
         >
           <Cover
+            storyId={current.storyId}
             coverUrl={current.coverUrl}
             coverColor={current.coverColor}
             title={current.storyTitle}
             className="aspect-[3/4] rounded-[10px] overflow-hidden shadow-[0_10px_28px_-14px_rgba(0,0,0,0.55)] mb-3"
           />
-          <div className="font-display font-bold text-[14px] md:text-[15px] leading-[1.2] text-ink line-clamp-2 mb-1">
-            {current.storyTitle}
-          </div>
+          {hasUploadedCover(current.coverUrl) && (
+            <div className="font-display font-bold text-[14px] md:text-[15px] leading-[1.2] text-ink line-clamp-2 mb-1">
+              {current.storyTitle}
+            </div>
+          )}
           <div className="text-[12px] text-signal font-medium">
             Resume Ch. {current.chapterNumber} →
           </div>
@@ -240,18 +246,24 @@ function ContinueRail({
 }
 
 function StoryCard({ story }: { story: FeedStory }) {
+  const showTitle = hasUploadedCover(story.coverUrl);
   return (
     <Link href={`/story/${story.slug}`} className="block cover-lift group">
       <Cover
+        storyId={story.id}
         coverUrl={story.coverUrl}
         coverColor={story.coverColor}
         title={story.title}
+        genre={story.genre}
+        authorName={story.author?.displayName}
         mature={story.isMature}
         className="aspect-[3/4] rounded-[10px] overflow-hidden shadow-[0_10px_28px_-14px_rgba(0,0,0,0.55)] mb-3"
       />
-      <div className="font-display font-bold text-[14px] md:text-[15px] leading-[1.2] text-ink line-clamp-2 mb-1">
-        {story.title}
-      </div>
+      {showTitle && (
+        <div className="font-display font-bold text-[14px] md:text-[15px] leading-[1.2] text-ink line-clamp-2 mb-1">
+          {story.title}
+        </div>
+      )}
       <div className="text-[12px] text-ink-muted font-medium line-clamp-1">
         {story.author?.displayName ?? 'A writer'}
       </div>

@@ -234,6 +234,229 @@ html, body {
 }
 
 /* ============================================================
+   Default cover variants — used by <DefaultCover>.
+   10 (layout × colour × modern font) tuples. The title is the design;
+   parents must NOT render the title text again underneath the cover.
+   ============================================================ */
+
+.cv-base {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border-radius: inherit;
+  display: block;
+}
+.cv-base .cv-title,
+.cv-base .cv-genre,
+.cv-base .cv-below,
+.cv-base .cv-vol,
+.cv-base .cv-head,
+.cv-base .cv-corner-tx { display: block; }
+
+/* 1 — Brick · Bricolage 800 · Ember */
+.cv-1 { background: #C8414E; }
+.cv-1 .cv-corner { position: absolute; top: 9%; left: 8%; width: 10px; height: 10px; border-radius: 50%; background: #F4ECDF; }
+.cv-1 .cv-title {
+  position: absolute; bottom: 9%; left: 8%; right: 8%;
+  font-family: var(--font-display-bricolage), system-ui, sans-serif;
+  font-weight: 800; line-height: 0.92; letter-spacing: -0.03em;
+  color: #F4ECDF;
+  font-size: clamp(14px, 16cqw, 64px);
+}
+
+/* 2 — Wrapped · Inter Tight 900 · Plum */
+.cv-2 { background: #5C2A55; }
+.cv-2 .cv-genre {
+  position: absolute; top: 9%; right: 8%;
+  font-family: var(--font-cv-inter-tight), system-ui, sans-serif;
+  font-weight: 900; font-size: clamp(7px, 2.5cqw, 11px);
+  letter-spacing: 0.18em; text-transform: uppercase;
+  color: rgba(244, 236, 223, 0.65);
+}
+.cv-2 .cv-title {
+  position: absolute; bottom: 9%; left: 8%; right: 8%;
+  font-family: var(--font-cv-inter-tight), system-ui, sans-serif;
+  font-weight: 900; line-height: 0.95; letter-spacing: -0.04em;
+  color: #F8EFDE;
+  font-size: clamp(14px, 14cqw, 52px);
+}
+
+/* 3 — Editorial · Fraunces 700 · Burgundy */
+.cv-3 { background: #7A2434; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 10%; text-align: center; }
+.cv-3 .cv-rule { width: 18%; height: 1.5px; background: rgba(244, 236, 223, 0.55); margin-bottom: 5%; }
+.cv-3 .cv-title {
+  font-family: var(--font-cv-fraunces), Georgia, serif;
+  font-weight: 700; line-height: 1.0; letter-spacing: -0.02em;
+  color: #F4ECDF;
+  font-size: clamp(12px, 12cqw, 44px);
+}
+.cv-3 .cv-below {
+  margin-top: 5%;
+  font-family: var(--font-cv-fraunces), Georgia, serif;
+  font-weight: 700; font-size: clamp(7px, 2.5cqw, 11px);
+  letter-spacing: 0.18em; text-transform: uppercase;
+  color: rgba(244, 236, 223, 0.55);
+}
+
+/* 4 — Stack · Manrope 800 · Forest */
+.cv-4 { background: #2E4E3F; display: flex; flex-direction: column; justify-content: flex-end; padding: 8%; }
+.cv-4 .cv-corner-tx {
+  position: absolute; top: 9%; left: 8%;
+  font-family: var(--font-cv-manrope), system-ui, sans-serif;
+  font-weight: 800; font-size: clamp(7px, 2.5cqw, 11px);
+  letter-spacing: 0.14em; text-transform: uppercase;
+  color: rgba(244, 236, 223, 0.5);
+}
+.cv-4 .cv-title {
+  font-family: var(--font-cv-manrope), system-ui, sans-serif;
+  font-weight: 800; line-height: 1.05; letter-spacing: -0.025em;
+  color: #F4ECDF;
+  font-size: clamp(13px, 12cqw, 42px);
+}
+.cv-4 .cv-title .cv-row { display: block; }
+.cv-4 .cv-title .cv-row:nth-child(even) { color: rgba(244, 236, 223, 0.6); }
+
+/* 5 — Index · Sora 700 · Sand */
+.cv-5 { background: #A87142; }
+.cv-5 .cv-head {
+  position: absolute; top: 9%; left: 8%; right: 8%;
+  font-family: var(--font-cv-sora), system-ui, sans-serif;
+  font-weight: 700; font-size: clamp(7px, 2.5cqw, 11px);
+  letter-spacing: 0.20em; text-transform: uppercase;
+  color: rgba(255, 240, 220, 0.7);
+  display: flex; justify-content: space-between;
+}
+.cv-5 .cv-vol {
+  position: absolute; top: 50%; left: 8%; transform: translateY(-50%);
+  font-family: var(--font-cv-sora), system-ui, sans-serif;
+  font-weight: 700; line-height: 0.9; letter-spacing: -0.04em;
+  color: rgba(255, 240, 220, 0.18);
+  font-size: clamp(28px, 28cqw, 120px);
+}
+.cv-5 .cv-title {
+  position: absolute; bottom: 10%; left: 8%; right: 8%;
+  font-family: var(--font-cv-sora), system-ui, sans-serif;
+  font-weight: 700; line-height: 1.05; letter-spacing: -0.025em;
+  color: #FFF1DA;
+  font-size: clamp(12px, 11cqw, 40px);
+}
+
+/* 6 — Field · Outfit 800 · Midnight */
+.cv-6 { background: #1E2A4A; display: flex; flex-direction: column; justify-content: center; align-items: flex-start; padding: 8%; }
+.cv-6 .cv-title {
+  font-family: var(--font-cv-outfit), system-ui, sans-serif;
+  font-weight: 800; line-height: 1.0; letter-spacing: -0.045em;
+  color: #E9DDF7; text-transform: lowercase;
+  font-size: clamp(15px, 14cqw, 52px);
+}
+.cv-6 .cv-below {
+  margin-top: 5%;
+  font-family: var(--font-cv-outfit), system-ui, sans-serif;
+  font-weight: 800; font-size: clamp(7px, 2.5cqw, 11px);
+  letter-spacing: 0.16em; text-transform: uppercase;
+  color: rgba(233, 221, 247, 0.5);
+}
+
+/* 7 — Spine · Space Grotesk 700 · Sage */
+.cv-7 { background: #5A6F4F; }
+.cv-7 .cv-title {
+  position: absolute; left: 11%; top: 9%; bottom: 9%;
+  writing-mode: vertical-rl; transform: rotate(180deg);
+  font-family: var(--font-cv-space-grotesk), system-ui, sans-serif;
+  font-weight: 700; line-height: 1.1; letter-spacing: -0.015em;
+  color: #F4ECDF;
+  font-size: clamp(11px, 9cqw, 32px);
+}
+.cv-7 .cv-meta-band { position: absolute; right: 8%; bottom: 9%; text-align: right; font-family: var(--font-cv-space-grotesk), system-ui, sans-serif; }
+.cv-7 .cv-meta-band .cv-label { font-weight: 700; font-size: clamp(7px, 2.5cqw, 11px); letter-spacing: 0.16em; text-transform: uppercase; color: rgba(244, 236, 223, 0.55); display: block; }
+.cv-7 .cv-meta-band .cv-num { font-weight: 700; line-height: 1; letter-spacing: -0.02em; color: #F4ECDF; margin-top: 4%; font-size: clamp(14px, 8cqw, 32px); }
+
+/* 8 — Band · DM Sans 700 · Cream / Charcoal */
+.cv-8 { background: #1A1714; }
+.cv-8 .cv-band {
+  position: absolute; left: 0; right: 0; top: 30%; bottom: 30%;
+  background: #F4ECDF; display: flex; align-items: center; padding: 0 8%;
+}
+.cv-8 .cv-band .cv-title {
+  font-family: var(--font-cv-dm-sans), system-ui, sans-serif;
+  font-weight: 700; line-height: 1.0; letter-spacing: -0.025em;
+  color: #1A1714;
+  font-size: clamp(11px, 11cqw, 36px);
+}
+.cv-8 .cv-top {
+  position: absolute; top: 9%; left: 8%;
+  font-family: var(--font-cv-dm-sans), system-ui, sans-serif;
+  font-weight: 700; font-size: clamp(7px, 2.5cqw, 11px);
+  letter-spacing: 0.16em; text-transform: uppercase;
+  color: rgba(244, 236, 223, 0.55);
+}
+.cv-8 .cv-bot {
+  position: absolute; bottom: 9%; left: 8%; right: 8%;
+  font-family: var(--font-cv-dm-sans), system-ui, sans-serif;
+  font-weight: 500; font-size: clamp(7px, 2.5cqw, 11px);
+  letter-spacing: 0.16em; text-transform: uppercase;
+  color: rgba(244, 236, 223, 0.55); text-align: right;
+}
+
+/* 9 — Mosaic · Plus Jakarta Sans 800 · Dusty rose */
+.cv-9 { background: #A2516B; }
+.cv-9 .cv-grid {
+  position: absolute; inset: 0;
+  display: grid; grid-template-columns: 1fr 1fr; align-content: end;
+  padding: 8%; gap: 4px 6%;
+  font-family: var(--font-cv-plus-jakarta), system-ui, sans-serif;
+  font-weight: 800; line-height: 0.95; letter-spacing: -0.025em;
+  color: #FFF1DA;
+  font-size: clamp(11px, 10cqw, 36px);
+}
+.cv-9 .cv-grid span { display: block; }
+.cv-9 .cv-grid span:nth-child(even) { text-align: right; color: rgba(255, 241, 218, 0.65); }
+.cv-9 .cv-top {
+  position: absolute; top: 9%; right: 8%;
+  width: clamp(12px, 5cqw, 26px); height: clamp(12px, 5cqw, 26px);
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 241, 218, 0.55);
+}
+
+/* 10 — Mono · IBM Plex Mono 700 · Slate */
+.cv-10 { background: #3F4956; }
+.cv-10 .cv-bracket-tl,
+.cv-10 .cv-bracket-tr,
+.cv-10 .cv-bracket-bl,
+.cv-10 .cv-bracket-br {
+  position: absolute;
+  width: clamp(6px, 3cqw, 16px); height: clamp(6px, 3cqw, 16px);
+  border-color: rgba(244, 236, 223, 0.55); border-style: solid;
+}
+.cv-10 .cv-bracket-tl { top: 6%; left: 7%; border-width: 2px 0 0 2px; }
+.cv-10 .cv-bracket-tr { top: 6%; right: 7%; border-width: 2px 2px 0 0; }
+.cv-10 .cv-bracket-bl { bottom: 6%; left: 7%; border-width: 0 0 2px 2px; }
+.cv-10 .cv-bracket-br { bottom: 6%; right: 7%; border-width: 0 2px 2px 0; }
+.cv-10 .cv-title {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  padding: 12%; text-align: center;
+  font-family: var(--font-cv-ibm-plex-mono), monospace;
+  font-weight: 700; line-height: 1.15; letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: #F4ECDF;
+  font-size: clamp(9px, 7cqw, 26px);
+}
+.cv-10 .cv-below {
+  position: absolute; bottom: 8%; left: 0; right: 0; text-align: center;
+  font-family: var(--font-cv-ibm-plex-mono), monospace;
+  font-weight: 500; font-size: clamp(7px, 2.5cqw, 10px);
+  letter-spacing: 0.16em; text-transform: uppercase;
+  color: rgba(244, 236, 223, 0.55);
+}
+
+/* Container queries so the variants scale cleanly from a 60px thumbnail
+   up to a 320px hero — the type sizes above use `cqw` (container-query
+   width %) to read the cover's own width, not the viewport's. */
+.cv-base { container-type: inline-size; }
+
+/* ============================================================
    Animations
    ============================================================ */
 

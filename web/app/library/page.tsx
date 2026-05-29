@@ -6,7 +6,7 @@ import { reads, chapters, stories } from '@/db/schema';
 import { getSessionUser } from '@/lib/auth';
 import { getFollowing, getSavedStories } from '@/lib/queries';
 import { AppHeader } from '@/components/AppHeader';
-import { Cover } from '@/components/Cover';
+import { Cover, hasUploadedCover } from '@/components/Cover';
 
 export const metadata = { title: 'Your library — NovelStack' };
 
@@ -78,6 +78,7 @@ export default async function Library() {
               {progress.map((r) => (
                 <Link key={r.storyId} href={`/read/${r.chapterId}`} className="block cover-lift group">
                   <Cover
+                    storyId={r.storyId}
                     coverUrl={r.coverUrl}
                     coverColor={r.coverColor}
                     title={r.storyTitle}
@@ -85,9 +86,11 @@ export default async function Library() {
                     className="aspect-[3/4] rounded-[10px] overflow-hidden shadow-[0_10px_28px_-14px_rgba(0,0,0,0.55)]"
                   />
                   <div className="mt-3">
-                    <div className="font-display font-bold text-[14px] md:text-[15px] leading-[1.2] text-ink line-clamp-2">
-                      {r.storyTitle}
-                    </div>
+                    {hasUploadedCover(r.coverUrl) && (
+                      <div className="font-display font-bold text-[14px] md:text-[15px] leading-[1.2] text-ink line-clamp-2">
+                        {r.storyTitle}
+                      </div>
+                    )}
                     <div className="text-[12px] text-signal font-semibold mt-1">
                       Resume Ch. {r.chapterNumber} →
                     </div>
@@ -106,17 +109,20 @@ export default async function Library() {
               {saved.map((s) => (
                 <Link key={s.id} href={`/story/${s.slug}`} className="block cover-lift group">
                   <Cover
+                    storyId={s.id}
                     coverUrl={s.coverUrl}
                     coverColor={s.coverColor}
                     title={s.title}
                     mature={s.isMature}
                     className="aspect-[3/4] rounded-[10px] overflow-hidden shadow-[0_10px_28px_-14px_rgba(0,0,0,0.55)]"
                   />
-                  <div className="mt-3">
-                    <div className="font-display font-bold text-[14px] md:text-[15px] leading-[1.2] text-ink line-clamp-2">
-                      {s.title}
+                  {hasUploadedCover(s.coverUrl) && (
+                    <div className="mt-3">
+                      <div className="font-display font-bold text-[14px] md:text-[15px] leading-[1.2] text-ink line-clamp-2">
+                        {s.title}
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </Link>
               ))}
             </CoverGrid>

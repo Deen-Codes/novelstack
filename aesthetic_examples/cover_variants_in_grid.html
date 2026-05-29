@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>NovelStack — 10 default cover variants (live preview)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700;800&family=Inter+Tight:wght@800;900&family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Manrope:wght@700;800&family=Sora:wght@600;700&family=Outfit:wght@700;800&family=Space+Grotesk:wght@600;700&family=DM+Sans:wght@500;700&family=Plus+Jakarta+Sans:wght@700;800&family=IBM+Plex+Mono:wght@500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    /* Mirror the live globals.css cover variants exactly so this preview
+       matches what ships. Keep these in sync if the live styles change. */
+    :root {
+      --font-display-bricolage: 'Bricolage Grotesque', sans-serif;
+      --font-cv-inter-tight: 'Inter Tight', sans-serif;
+      --font-cv-fraunces: 'Fraunces', serif;
+      --font-cv-manrope: 'Manrope', sans-serif;
+      --font-cv-sora: 'Sora', sans-serif;
+      --font-cv-outfit: 'Outfit', sans-serif;
+      --font-cv-space-grotesk: 'Space Grotesk', sans-serif;
+      --font-cv-dm-sans: 'DM Sans', sans-serif;
+      --font-cv-plus-jakarta: 'Plus Jakarta Sans', sans-serif;
+      --font-cv-ibm-plex-mono: 'IBM Plex Mono', monospace;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #14110F;
+      color: #F2EADC;
+      font-family: 'Inter', system-ui, sans-serif;
+      padding: 40px;
+      -webkit-font-smoothing: antialiased;
+    }
+    h1 {
+      font-family: 'Bricolage Grotesque', sans-serif;
+      font-weight: 800;
+      font-size: 36px;
+      letter-spacing: -0.025em;
+      color: #F4ECDF;
+      margin-bottom: 8px;
+    }
+    .lede { color: #A29685; font-size: 14px; max-width: 720px; margin-bottom: 36px; line-height: 1.5; }
+    .rail-title {
+      font-family: 'Bricolage Grotesque', sans-serif;
+      font-weight: 700;
+      font-size: 18px;
+      color: #F2EADC;
+      margin: 28px 0 14px;
+    }
+    /* Two rail rows of 5 covers each */
+    .rail {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 18px;
+      max-width: 1380px;
+    }
+    .tile {
+      cursor: pointer;
+    }
+    .cover {
+      aspect-ratio: 3/4;
+      border-radius: 10px;
+      overflow: hidden;
+      position: relative;
+      box-shadow: 0 10px 28px -14px rgba(0,0,0,0.55);
+      container-type: inline-size;
+    }
+    .author {
+      font-family: 'Inter', sans-serif;
+      font-weight: 500;
+      font-size: 13px;
+      color: #A29685;
+      margin-top: 10px;
+    }
+    .reads {
+      font-size: 11px;
+      color: #6F6459;
+      margin-top: 2px;
+    }
+
+    /* === Variant styles copied 1:1 from globals.css === */
+    .cv-base { position: relative; width: 100%; height: 100%; overflow: hidden; border-radius: inherit; display: block; container-type: inline-size; }
+    .cv-1 { background: #C8414E; }
+    .cv-1 .cv-corner { position: absolute; top: 9%; left: 8%; width: 10px; height: 10px; border-radius: 50%; background: #F4ECDF; }
+    .cv-1 .cv-title { position: absolute; bottom: 9%; left: 8%; right: 8%; font-family: var(--font-display-bricolage); font-weight: 800; line-height: 0.92; letter-spacing: -0.03em; color: #F4ECDF; font-size: clamp(14px, 16cqw, 64px); }
+    .cv-2 { background: #5C2A55; }
+    .cv-2 .cv-genre { position: absolute; top: 9%; right: 8%; font-family: var(--font-cv-inter-tight); font-weight: 900; font-size: clamp(7px, 2.5cqw, 11px); letter-spacing: 0.18em; text-transform: uppercase; color: rgba(244, 236, 223, 0.65); }
+    .cv-2 .cv-title { position: absolute; bottom: 9%; left: 8%; right: 8%; font-family: var(--font-cv-inter-tight); font-weight: 900; line-height: 0.95; letter-spacing: -0.04em; color: #F8EFDE; font-size: clamp(14px, 14cqw, 52px); }
+    .cv-3 { background: #7A2434; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 10%; text-align: center; }
+    .cv-3 .cv-rule { width: 18%; height: 1.5px; background: rgba(244, 236, 223, 0.55); margin-bottom: 5%; }
+    .cv-3 .cv-title { font-family: var(--font-cv-fraunces); font-weight: 700; line-height: 1.0; letter-spacing: -0.02em; color: #F4ECDF; font-size: clamp(12px, 12cqw, 44px); }
+    .cv-3 .cv-below { margin-top: 5%; font-family: var(--font-cv-fraunces); font-weight: 700; font-size: clamp(7px, 2.5cqw, 11px); letter-spacing: 0.18em; text-transform: uppercase; color: rgba(244, 236, 223, 0.55); }
+    .cv-4 { background: #2E4E3F; display: flex; flex-direction: column; justify-content: flex-end; padding: 8%; }
+    .cv-4 .cv-corner-tx { position: absolute; top: 9%; left: 8%; font-family: var(--font-cv-manrope); font-weight: 800; font-size: clamp(7px, 2.5cqw, 11px); letter-spacing: 0.14em; text-transform: uppercase; color: rgba(244, 236, 223, 0.5); }
+    .cv-4 .cv-title { font-family: var(--font-cv-manrope); font-weight: 800; line-height: 1.05; letter-spacing: -0.025em; color: #F4ECDF; font-size: clamp(13px, 12cqw, 42px); }
+    .cv-4 .cv-title .cv-row { display: block; }
+    .cv-4 .cv-title .cv-row:nth-child(even) { color: rgba(244, 236, 223, 0.6); }
+    .cv-5 { background: #A87142; }
+    .cv-5 .cv-head { position: absolute; top: 9%; left: 8%; right: 8%; font-family: var(--font-cv-sora); font-weight: 700; font-size: clamp(7px, 2.5cqw, 11px); letter-spacing: 0.20em; text-transform: uppercase; color: rgba(255, 240, 220, 0.7); display: flex; justify-content: space-between; }
+    .cv-5 .cv-vol { position: absolute; top: 50%; left: 8%; transform: translateY(-50%); font-family: var(--font-cv-sora); font-weight: 700; line-height: 0.9; letter-spacing: -0.04em; color: rgba(255, 240, 220, 0.18); font-size: clamp(28px, 28cqw, 120px); }
+    .cv-5 .cv-title { position: absolute; bottom: 10%; left: 8%; right: 8%; font-family: var(--font-cv-sora); font-weight: 700; line-height: 1.05; letter-spacing: -0.025em; color: #FFF1DA; font-size: clamp(12px, 11cqw, 40px); }
+    .cv-6 { background: #1E2A4A; display: flex; flex-direction: column; justify-content: center; align-items: flex-start; padding: 8%; }
+    .cv-6 .cv-title { font-family: var(--font-cv-outfit); font-weight: 800; line-height: 1.0; letter-spacing: -0.045em; color: #E9DDF7; text-transform: lowercase; font-size: clamp(15px, 14cqw, 52px); }
+    .cv-6 .cv-below { margin-top: 5%; font-family: var(--font-cv-outfit); font-weight: 800; font-size: clamp(7px, 2.5cqw, 11px); letter-spacing: 0.16em; text-transform: uppercase; color: rgba(233, 221, 247, 0.5); }
+    .cv-7 { background: #5A6F4F; }
+    .cv-7 .cv-title { position: absolute; left: 11%; top: 9%; bottom: 9%; writing-mode: vertical-rl; transform: rotate(180deg); font-family: var(--font-cv-space-grotesk); font-weight: 700; line-height: 1.1; letter-spacing: -0.015em; color: #F4ECDF; font-size: clamp(11px, 9cqw, 32px); }
+    .cv-7 .cv-meta-band { position: absolute; right: 8%; bottom: 9%; text-align: right; font-family: var(--font-cv-space-grotesk); }
+    .cv-7 .cv-meta-band .cv-label { font-weight: 700; font-size: clamp(7px, 2.5cqw, 11px); letter-spacing: 0.16em; text-transform: uppercase; color: rgba(244, 236, 223, 0.55); display: block; }
+    .cv-7 .cv-meta-band .cv-num { font-weight: 700; line-height: 1; letter-spacing: -0.02em; color: #F4ECDF; margin-top: 4%; font-size: clamp(14px, 8cqw, 32px); }
+    .cv-8 { background: #1A1714; }
+    .cv-8 .cv-band { position: absolute; left: 0; right: 0; top: 30%; bottom: 30%; background: #F4ECDF; display: flex; align-items: center; padding: 0 8%; }
+    .cv-8 .cv-band .cv-title { font-family: var(--font-cv-dm-sans); font-weight: 700; line-height: 1.0; letter-spacing: -0.025em; color: #1A1714; font-size: clamp(11px, 11cqw, 36px); }
+    .cv-8 .cv-top { position: absolute; top: 9%; left: 8%; font-family: var(--font-cv-dm-sans); font-weight: 700; font-size: clamp(7px, 2.5cqw, 11px); letter-spacing: 0.16em; text-transform: uppercase; color: rgba(244, 236, 223, 0.55); }
+    .cv-8 .cv-bot { position: absolute; bottom: 9%; left: 8%; right: 8%; font-family: var(--font-cv-dm-sans); font-weight: 500; font-size: clamp(7px, 2.5cqw, 11px); letter-spacing: 0.16em; text-transform: uppercase; color: rgba(244, 236, 223, 0.55); text-align: right; }
+    .cv-9 { background: #A2516B; }
+    .cv-9 .cv-grid { position: absolute; inset: 0; display: grid; grid-template-columns: 1fr 1fr; align-content: end; padding: 8%; gap: 4px 6%; font-family: var(--font-cv-plus-jakarta); font-weight: 800; line-height: 0.95; letter-spacing: -0.025em; color: #FFF1DA; font-size: clamp(11px, 10cqw, 36px); }
+    .cv-9 .cv-grid span { display: block; }
+    .cv-9 .cv-grid span:nth-child(even) { text-align: right; color: rgba(255, 241, 218, 0.65); }
+    .cv-9 .cv-top { position: absolute; top: 9%; right: 8%; width: clamp(12px, 5cqw, 26px); height: clamp(12px, 5cqw, 26px); border-radius: 50%; border: 1.5px solid rgba(255, 241, 218, 0.55); }
+    .cv-10 { background: #3F4956; }
+    .cv-10 .cv-bracket-tl, .cv-10 .cv-bracket-tr, .cv-10 .cv-bracket-bl, .cv-10 .cv-bracket-br { position: absolute; width: clamp(6px, 3cqw, 16px); height: clamp(6px, 3cqw, 16px); border-color: rgba(244, 236, 223, 0.55); border-style: solid; }
+    .cv-10 .cv-bracket-tl { top: 6%; left: 7%; border-width: 2px 0 0 2px; }
+    .cv-10 .cv-bracket-tr { top: 6%; right: 7%; border-width: 2px 2px 0 0; }
+    .cv-10 .cv-bracket-bl { bottom: 6%; left: 7%; border-width: 0 0 2px 2px; }
+    .cv-10 .cv-bracket-br { bottom: 6%; right: 7%; border-width: 0 2px 2px 0; }
+    .cv-10 .cv-title { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 12%; text-align: center; font-family: var(--font-cv-ibm-plex-mono); font-weight: 700; line-height: 1.15; letter-spacing: 0.02em; text-transform: uppercase; color: #F4ECDF; font-size: clamp(9px, 7cqw, 26px); }
+    .cv-10 .cv-below { position: absolute; bottom: 8%; left: 0; right: 0; text-align: center; font-family: var(--font-cv-ibm-plex-mono); font-weight: 500; font-size: clamp(7px, 2.5cqw, 10px); letter-spacing: 0.16em; text-transform: uppercase; color: rgba(244, 236, 223, 0.55); }
+  </style>
+</head>
+<body>
+  <h1>Default covers — live in a 5-up rail</h1>
+  <p class="lede">
+    Same data as a real Home rail row. Title is baked into the cover (no duplicate
+    label underneath). Variant is picked deterministically by hash(story.id) so a
+    given story always looks the same.
+  </p>
+
+  <div class="rail-title">Trending — by read-through</div>
+  <div class="rail">
+    <div class="tile"><div class="cover"><div class="cv-base cv-1"><span class="cv-corner"></span><div class="cv-title">The Salt-Wind Almanac</div></div></div><div class="author">Marin Aydelotte</div><div class="reads">8,440 reads</div></div>
+    <div class="tile"><div class="cover"><div class="cv-base cv-2"><div class="cv-genre">Romance</div><div class="cv-title">A Map of Quiet Rooms</div></div></div><div class="author">Lior Vance</div><div class="reads">6,902 reads</div></div>
+    <div class="tile"><div class="cover"><div class="cv-base cv-3"><div class="cv-rule"></div><div class="cv-title">No Lighthouse Tonight</div><div class="cv-below">A novel</div></div></div><div class="author">Sasha Eddings</div><div class="reads">5,210 reads</div></div>
+    <div class="tile"><div class="cover"><div class="cv-base cv-4"><span class="cv-corner-tx">Vol I</span><div class="cv-title"><span class="cv-row">The Long</span><span class="cv-row">Green Year</span></div></div></div><div class="author">Jenna Okafor</div><div class="reads">4,902 reads</div></div>
+    <div class="tile"><div class="cover"><div class="cv-base cv-5"><div class="cv-head"><span>Bright Hollow</span><span>NS·05</span></div><div class="cv-vol">01</div><div class="cv-title">Bright Hollow</div></div></div><div class="author">Imogen Park</div><div class="reads">4,210 reads</div></div>
+  </div>
+
+  <div class="rail-title">For tonight — cosy</div>
+  <div class="rail">
+    <div class="tile"><div class="cover"><div class="cv-base cv-6"><div class="cv-title">a theory of bells</div><div class="cv-below">By Dax Verlaine</div></div></div><div class="author">Dax Verlaine</div><div class="reads">3,118 reads</div></div>
+    <div class="tile"><div class="cover"><div class="cv-base cv-7"><div class="cv-title">Notes from the Far Coast</div><div class="cv-meta-band"><span class="cv-label">A story by</span><span class="cv-num">TB</span></div></div></div><div class="author">Talin Brooks</div><div class="reads">2,902 reads</div></div>
+    <div class="tile"><div class="cover"><div class="cv-base cv-8"><div class="cv-top">NovelStack</div><div class="cv-band"><div class="cv-title">Halve the Sky</div></div><div class="cv-bot">Esther Roan</div></div></div><div class="author">Esther Roan</div><div class="reads">2,440 reads</div></div>
+    <div class="tile"><div class="cover"><div class="cv-base cv-9"><span class="cv-top"></span><div class="cv-grid"><span>The</span><span>Knitting</span><span>Room</span><span>·</span></div></div></div><div class="author">Roxie Ahern</div><div class="reads">1,800 reads</div></div>
+    <div class="tile"><div class="cover"><div class="cv-base cv-10"><span class="cv-bracket-tl"></span><span class="cv-bracket-tr"></span><span class="cv-bracket-bl"></span><span class="cv-bracket-br"></span><div class="cv-title">A Bookshop in October</div><div class="cv-below">NSK · 010</div></div></div><div class="author">Theo Mercer</div><div class="reads">1,210 reads</div></div>
+  </div>
+</body>
+</html>

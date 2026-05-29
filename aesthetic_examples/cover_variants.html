@@ -1,0 +1,541 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>NovelStack — 10 default cover variants</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700;800&family=Inter+Tight:wght@800;900&family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Manrope:wght@700;800&family=Sora:wght@600;700&family=Outfit:wght@700;800&family=Space+Grotesk:wght@600;700&family=DM+Sans:wght@500;700&family=Plus+Jakarta+Sans:wght@700;800&family=IBM+Plex+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #0B0907;
+      color: #F2EADC;
+      font-family: 'Inter Tight', system-ui, sans-serif;
+      padding: 48px;
+      -webkit-font-smoothing: antialiased;
+    }
+    h1 {
+      font-family: 'Bricolage Grotesque', sans-serif;
+      font-weight: 800;
+      font-size: 36px;
+      letter-spacing: -0.025em;
+      color: #F4ECDF;
+      margin-bottom: 6px;
+    }
+    .lede {
+      color: #A29685;
+      font-size: 15px;
+      max-width: 720px;
+      margin-bottom: 40px;
+      line-height: 1.5;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 28px;
+      max-width: 1700px;
+    }
+    .cell { display: flex; flex-direction: column; }
+    .cover {
+      aspect-ratio: 3/4;
+      border-radius: 12px;
+      overflow: hidden;
+      position: relative;
+      box-shadow: 0 18px 50px -20px rgba(0,0,0,0.65);
+    }
+    .meta {
+      margin-top: 14px;
+    }
+    .meta .name {
+      font-family: 'Bricolage Grotesque', sans-serif;
+      font-weight: 700;
+      font-size: 13px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: #F2EADC;
+    }
+    .meta .pair {
+      color: #6F6459;
+      font-size: 12px;
+      margin-top: 3px;
+    }
+
+    /* ============================================================
+       1. BRICK — Bricolage Grotesque 800 on ember red
+       Title fills the card, bottom-left flush.
+       ============================================================ */
+    .v1 { background: #C8414E; }
+    .v1 .title {
+      position: absolute;
+      bottom: 24px; left: 22px; right: 22px;
+      font-family: 'Bricolage Grotesque', sans-serif;
+      font-weight: 800;
+      font-size: 56px;
+      line-height: 0.92;
+      letter-spacing: -0.03em;
+      color: #F4ECDF;
+    }
+    .v1 .corner {
+      position: absolute;
+      top: 22px; left: 22px;
+      width: 18px; height: 18px;
+      border-radius: 50%;
+      background: #F4ECDF;
+    }
+
+    /* ============================================================
+       2. WRAPPED — Inter Tight 900 on plum, genre tag top-right
+       Spotify-Wrapped style — single colour block, asymmetric type.
+       ============================================================ */
+    .v2 { background: #5C2A55; }
+    .v2 .genre {
+      position: absolute;
+      top: 22px; right: 22px;
+      font-family: 'Inter Tight', sans-serif;
+      font-weight: 900;
+      font-size: 10px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: rgba(244, 236, 223, 0.65);
+    }
+    .v2 .title {
+      position: absolute;
+      bottom: 24px; left: 22px; right: 22px;
+      font-family: 'Inter Tight', sans-serif;
+      font-weight: 900;
+      font-size: 48px;
+      line-height: 0.95;
+      letter-spacing: -0.04em;
+      color: #F8EFDE;
+    }
+
+    /* ============================================================
+       3. EDITORIAL — Fraunces 700 on burgundy, centred serif
+       Penguin Modern Classics register. Hairline rule above title.
+       ============================================================ */
+    .v3 { background: #7A2434; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 28px; text-align: center; }
+    .v3 .rule {
+      width: 36px; height: 2px;
+      background: rgba(244, 236, 223, 0.55);
+      margin-bottom: 18px;
+    }
+    .v3 .title {
+      font-family: 'Fraunces', Georgia, serif;
+      font-weight: 700;
+      font-variation-settings: 'opsz' 100;
+      font-size: 40px;
+      line-height: 1.0;
+      letter-spacing: -0.02em;
+      color: #F4ECDF;
+    }
+    .v3 .below {
+      margin-top: 14px;
+      font-family: 'Inter Tight', sans-serif;
+      font-weight: 600;
+      font-size: 10px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: rgba(244, 236, 223, 0.55);
+    }
+
+    /* ============================================================
+       4. STACK — Manrope 800 on forest green, lines stacked left
+       ============================================================ */
+    .v4 { background: #2E4E3F; display: flex; flex-direction: column; justify-content: flex-end; padding: 22px; }
+    .v4 .title {
+      font-family: 'Manrope', sans-serif;
+      font-weight: 800;
+      font-size: 38px;
+      line-height: 1.05;
+      letter-spacing: -0.025em;
+      color: #F4ECDF;
+    }
+    .v4 .title .row { display: block; }
+    .v4 .title .row:nth-child(even) { color: rgba(244, 236, 223, 0.6); }
+    .v4 .corner {
+      position: absolute;
+      top: 22px; left: 22px;
+      font-family: 'Manrope', sans-serif;
+      font-weight: 700;
+      font-size: 11px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: rgba(244, 236, 223, 0.5);
+    }
+
+    /* ============================================================
+       5. INDEX — Sora 700 on sand, "VOL 01" style
+       ============================================================ */
+    .v5 { background: #A87142; }
+    .v5 .head {
+      position: absolute;
+      top: 24px; left: 22px; right: 22px;
+      font-family: 'Sora', sans-serif;
+      font-weight: 600;
+      font-size: 11px;
+      letter-spacing: 0.20em;
+      text-transform: uppercase;
+      color: rgba(255, 240, 220, 0.7);
+      display: flex;
+      justify-content: space-between;
+    }
+    .v5 .title {
+      position: absolute;
+      bottom: 28px; left: 22px; right: 22px;
+      font-family: 'Sora', sans-serif;
+      font-weight: 700;
+      font-size: 36px;
+      line-height: 1.05;
+      letter-spacing: -0.025em;
+      color: #FFF1DA;
+    }
+    .v5 .vol {
+      position: absolute;
+      top: 50%; left: 22px;
+      transform: translateY(-50%);
+      font-family: 'Sora', sans-serif;
+      font-weight: 700;
+      font-size: 96px;
+      line-height: 0.9;
+      letter-spacing: -0.04em;
+      color: rgba(255, 240, 220, 0.18);
+    }
+
+    /* ============================================================
+       6. FIELD — Outfit 800 on midnight blue, lowercase, single line
+       Tight tracking, centred vertically.
+       ============================================================ */
+    .v6 { background: #1E2A4A; display: flex; flex-direction: column; justify-content: center; align-items: flex-start; padding: 22px; }
+    .v6 .title {
+      font-family: 'Outfit', sans-serif;
+      font-weight: 800;
+      font-size: 46px;
+      line-height: 1.0;
+      letter-spacing: -0.045em;
+      color: #E9DDF7;
+      text-transform: lowercase;
+    }
+    .v6 .below {
+      margin-top: 14px;
+      font-family: 'Outfit', sans-serif;
+      font-weight: 600;
+      font-size: 11px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: rgba(233, 221, 247, 0.5);
+    }
+
+    /* ============================================================
+       7. SPINE — Space Grotesk 700 on sage, vertical title left
+       ============================================================ */
+    .v7 { background: #5A6F4F; }
+    .v7 .title {
+      position: absolute;
+      left: 28px; top: 22px; bottom: 22px;
+      writing-mode: vertical-rl;
+      transform: rotate(180deg);
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 30px;
+      line-height: 1.1;
+      letter-spacing: -0.015em;
+      color: #F4ECDF;
+    }
+    .v7 .meta-band {
+      position: absolute;
+      right: 22px; bottom: 22px;
+      text-align: right;
+      font-family: 'Space Grotesk', sans-serif;
+    }
+    .v7 .meta-band .label {
+      font-weight: 700;
+      font-size: 11px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: rgba(244, 236, 223, 0.55);
+      display: block;
+    }
+    .v7 .meta-band .num {
+      font-weight: 700;
+      font-size: 32px;
+      line-height: 1;
+      letter-spacing: -0.02em;
+      color: #F4ECDF;
+      margin-top: 6px;
+    }
+
+    /* ============================================================
+       8. BAND — DM Sans 700 cream-on-charcoal, two-tone card
+       Color band runs across the middle.
+       ============================================================ */
+    .v8 { background: #1A1714; }
+    .v8 .band {
+      position: absolute;
+      left: 0; right: 0;
+      top: 30%; bottom: 30%;
+      background: #F4ECDF;
+      display: flex;
+      align-items: center;
+      padding: 0 22px;
+    }
+    .v8 .band .title {
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 700;
+      font-size: 30px;
+      line-height: 1.0;
+      letter-spacing: -0.025em;
+      color: #1A1714;
+    }
+    .v8 .top {
+      position: absolute;
+      top: 22px; left: 22px;
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 700;
+      font-size: 11px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: rgba(244, 236, 223, 0.55);
+    }
+    .v8 .bot {
+      position: absolute;
+      bottom: 22px; left: 22px; right: 22px;
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 500;
+      font-size: 11px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: rgba(244, 236, 223, 0.55);
+      text-align: right;
+    }
+
+    /* ============================================================
+       9. MOSAIC — Plus Jakarta Sans 800 on dusty rose,
+       title broken into a 2-col grid
+       ============================================================ */
+    .v9 { background: #A2516B; }
+    .v9 .grid-title {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      align-content: end;
+      padding: 22px;
+      gap: 4px 12px;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-weight: 800;
+      font-size: 34px;
+      line-height: 0.95;
+      letter-spacing: -0.025em;
+      color: #FFF1DA;
+    }
+    .v9 .grid-title span { display: block; }
+    .v9 .grid-title span:nth-child(even) { text-align: right; color: rgba(255, 241, 218, 0.65); }
+    .v9 .top {
+      position: absolute;
+      top: 22px; right: 22px;
+      width: 26px; height: 26px;
+      border-radius: 50%;
+      border: 2px solid rgba(255, 241, 218, 0.55);
+    }
+
+    /* ============================================================
+       10. MONO — IBM Plex Mono on slate, technical brackets
+       ============================================================ */
+    .v10 { background: #3F4956; }
+    .v10 .bracket-tl, .v10 .bracket-tr, .v10 .bracket-bl, .v10 .bracket-br {
+      position: absolute;
+      width: 16px; height: 16px;
+      border-color: rgba(244, 236, 223, 0.55);
+      border-style: solid;
+    }
+    .v10 .bracket-tl { top: 16px; left: 16px; border-width: 2px 0 0 2px; }
+    .v10 .bracket-tr { top: 16px; right: 16px; border-width: 2px 2px 0 0; }
+    .v10 .bracket-bl { bottom: 16px; left: 16px; border-width: 0 0 2px 2px; }
+    .v10 .bracket-br { bottom: 16px; right: 16px; border-width: 0 2px 2px 0; }
+    .v10 .title {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 32px;
+      text-align: center;
+      font-family: 'IBM Plex Mono', monospace;
+      font-weight: 700;
+      font-size: 22px;
+      line-height: 1.15;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      color: #F4ECDF;
+    }
+    .v10 .below {
+      position: absolute;
+      bottom: 22px; left: 0; right: 0;
+      text-align: center;
+      font-family: 'IBM Plex Mono', monospace;
+      font-weight: 500;
+      font-size: 10px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: rgba(244, 236, 223, 0.55);
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Default cover variants — 10 directions</h1>
+  <p class="lede">
+    Each is one (layout × colour × modern font) tuple. The title <em>is</em> the design —
+    no duplicate title text underneath. Stories without an uploaded cover get one of these
+    assigned deterministically by hash(story.id), so a given story always looks the same
+    but the catalogue feels varied.
+  </p>
+
+  <div class="grid">
+
+    <!-- 1 BRICK -->
+    <div class="cell">
+      <div class="cover v1">
+        <div class="corner"></div>
+        <div class="title">The Salt-Wind Almanac</div>
+      </div>
+      <div class="meta">
+        <div class="name">01 · Brick</div>
+        <div class="pair">Bricolage Grotesque 800 · Ember</div>
+      </div>
+    </div>
+
+    <!-- 2 WRAPPED -->
+    <div class="cell">
+      <div class="cover v2">
+        <div class="genre">Romance</div>
+        <div class="title">A Map of Quiet Rooms</div>
+      </div>
+      <div class="meta">
+        <div class="name">02 · Wrapped</div>
+        <div class="pair">Inter Tight 900 · Plum</div>
+      </div>
+    </div>
+
+    <!-- 3 EDITORIAL -->
+    <div class="cell">
+      <div class="cover v3">
+        <div class="rule"></div>
+        <div class="title">No Lighthouse Tonight</div>
+        <div class="below">A novel</div>
+      </div>
+      <div class="meta">
+        <div class="name">03 · Editorial</div>
+        <div class="pair">Fraunces 700 · Burgundy</div>
+      </div>
+    </div>
+
+    <!-- 4 STACK -->
+    <div class="cell">
+      <div class="cover v4">
+        <div class="corner">Vol I</div>
+        <div class="title">
+          <span class="row">The Long</span>
+          <span class="row">Green Year</span>
+        </div>
+      </div>
+      <div class="meta">
+        <div class="name">04 · Stack</div>
+        <div class="pair">Manrope 800 · Forest</div>
+      </div>
+    </div>
+
+    <!-- 5 INDEX -->
+    <div class="cell">
+      <div class="cover v5">
+        <div class="head">
+          <span>Bright Hollow</span>
+          <span>NS·05</span>
+        </div>
+        <div class="vol">01</div>
+        <div class="title">Bright Hollow</div>
+      </div>
+      <div class="meta">
+        <div class="name">05 · Index</div>
+        <div class="pair">Sora 700 · Sand</div>
+      </div>
+    </div>
+
+    <!-- 6 FIELD -->
+    <div class="cell">
+      <div class="cover v6">
+        <div class="title">a theory of bells</div>
+        <div class="below">By Dax Verlaine</div>
+      </div>
+      <div class="meta">
+        <div class="name">06 · Field</div>
+        <div class="pair">Outfit 800 · Midnight</div>
+      </div>
+    </div>
+
+    <!-- 7 SPINE -->
+    <div class="cell">
+      <div class="cover v7">
+        <div class="title">Notes from the Far Coast</div>
+        <div class="meta-band">
+          <span class="label">A story by</span>
+          <span class="num">TB</span>
+        </div>
+      </div>
+      <div class="meta">
+        <div class="name">07 · Spine</div>
+        <div class="pair">Space Grotesk 700 · Sage</div>
+      </div>
+    </div>
+
+    <!-- 8 BAND -->
+    <div class="cell">
+      <div class="cover v8">
+        <div class="top">NovelStack</div>
+        <div class="band">
+          <div class="title">Halve the Sky</div>
+        </div>
+        <div class="bot">Esther Roan</div>
+      </div>
+      <div class="meta">
+        <div class="name">08 · Band</div>
+        <div class="pair">DM Sans 700 · Cream / Charcoal</div>
+      </div>
+    </div>
+
+    <!-- 9 MOSAIC -->
+    <div class="cell">
+      <div class="cover v9">
+        <div class="top"></div>
+        <div class="grid-title">
+          <span>The</span><span>Knitting</span>
+          <span>Room</span><span>·</span>
+        </div>
+      </div>
+      <div class="meta">
+        <div class="name">09 · Mosaic</div>
+        <div class="pair">Plus Jakarta Sans 800 · Dusty rose</div>
+      </div>
+    </div>
+
+    <!-- 10 MONO -->
+    <div class="cell">
+      <div class="cover v10">
+        <span class="bracket-tl"></span>
+        <span class="bracket-tr"></span>
+        <span class="bracket-bl"></span>
+        <span class="bracket-br"></span>
+        <div class="title">A Bookshop in October</div>
+        <div class="below">NSK · 010</div>
+      </div>
+      <div class="meta">
+        <div class="name">10 · Mono</div>
+        <div class="pair">IBM Plex Mono 700 · Slate</div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 import { getSessionUser } from '@/lib/auth';
 import { getMyStories } from '@/lib/queries';
 import { AppHeader } from '@/components/AppHeader';
-import { Cover } from '@/components/Cover';
+import { Cover, hasUploadedCover } from '@/components/Cover';
 
 export const metadata = { title: 'Your stories — NovelStack' };
 
@@ -50,9 +50,11 @@ export default async function WriterDashboard() {
               <Link key={s.id} href={`/write/${s.id}`} className="block cover-lift group">
                 <div className="relative">
                   <Cover
+                    storyId={s.id}
                     coverUrl={s.coverUrl}
                     coverColor={s.coverColor}
                     title={s.title}
+                    genre={s.genre}
                     mature={s.isMature}
                     className="aspect-[3/4] rounded-[10px] overflow-hidden shadow-[0_10px_28px_-14px_rgba(0,0,0,0.55)]"
                   />
@@ -72,9 +74,11 @@ export default async function WriterDashboard() {
                   </span>
                 </div>
                 <div className="mt-3">
-                  <div className="font-display font-bold text-[14px] md:text-[15px] leading-[1.2] text-ink line-clamp-2">
-                    {s.title}
-                  </div>
+                  {hasUploadedCover(s.coverUrl) && (
+                    <div className="font-display font-bold text-[14px] md:text-[15px] leading-[1.2] text-ink line-clamp-2">
+                      {s.title}
+                    </div>
+                  )}
                   <div className="text-[11px] text-ink-faint mt-1 capitalize">
                     {s.genre} · {(s.totalReads ?? 0).toLocaleString()} reads
                   </div>

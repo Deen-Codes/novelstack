@@ -1,16 +1,28 @@
-// Renders a story cover: the uploaded image when one exists, otherwise the
-// solid colour block with the title typeset on it. Server-safe, dependency-free.
-// `mature` overlays an "18+" badge so readers can see a story is mature.
+import { DefaultCover } from './DefaultCover';
+
+// Renders a story cover.
+//   - If `coverUrl` exists: render that uploaded image.
+//   - Otherwise: render one of 10 typographic default variants (chosen
+//     deterministically by hashing `storyId`). The title IS the design,
+//     so parents that use the default variant should NOT render the title
+//     text again underneath the cover.
+// `mature` overlays an "18+" badge on top either way.
 export function Cover({
+  storyId,
   coverUrl,
-  coverColor,
+  coverColor: _coverColor,
   title,
+  genre,
+  authorName,
   className,
   mature,
 }: {
+  storyId?: string;
   coverUrl?: string | null;
   coverColor?: string | null;
   title: string;
+  genre?: string | null;
+  authorName?: string | null;
   className?: string;
   mature?: boolean;
 }) {
@@ -24,21 +36,13 @@ export function Cover({
           style={{ objectFit: 'cover' }}
         />
       ) : (
-        <div
-          className="w-full h-full flex items-end relative"
-          style={{
-            background: coverColor
-              ? `linear-gradient(160deg, ${coverColor} 0%, rgba(0,0,0,0.45) 100%)`
-              : 'linear-gradient(160deg, #5B2E1C 0%, #1F0F0A 100%)',
-          }}
-        >
-          <div
-            className="font-display font-bold text-[12px] leading-tight text-cream/90 p-3 line-clamp-3"
-            style={{ textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}
-          >
-            {title}
-          </div>
-        </div>
+        <DefaultCover
+          storyId={storyId ?? title}
+          title={title}
+          genre={genre}
+          authorName={authorName}
+          className="w-full h-full"
+        />
       )}
       {mature && (
         <span className="absolute top-1.5 right-1.5 bg-black/80 text-cream text-[9px] font-bold px-1.5 py-0.5 rounded">
@@ -47,4 +51,11 @@ export function Cover({
       )}
     </div>
   );
+}
+
+// Helper used by parent UIs to decide whether to render the title text
+// underneath a cover. When using a default variant the title is already
+// baked into the cover, so the label would duplicate.
+export function hasUploadedCover(coverUrl?: string | null): boolean {
+  return typeof coverUrl === 'string' && coverUrl.length > 0;
 }
