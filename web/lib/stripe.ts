@@ -99,6 +99,33 @@ export async function createDashboardLink(accountId: string): Promise<string | n
   }
 }
 
+// Triggers an actual money transfer from the NovelStack platform balance to
+// the writer's connected Stripe account. amountCents is the writer share
+// (already net of platform cuts). Returns the Stripe transfer id which the
+// caller should stamp onto the payouts.stripe_payout_id column.
+//
+// Throws if Stripe isn't configured, if the connected account doesn't have
+// payouts enabled, or if Stripe rejects the transfer (e.g. insufficient
+// platform balance, account capability missing).
+export async function createTransfer(
+  accountId: string,
+  amountCents: number,
+  metadata?: Record<string, string>,
+): Promise<string> {
+  if (!stripe) throw new Error('Payouts are not available yet.');
+  if (!Number.isFinite(amountCents) || amountCents <= 0) {
+    throw new Error('Transfer amount must be a positive number of cents.');
+  }
+  const transfer = await stripe.transfers.create({
+    amount: Math.round(amountCents),
+    currency: 'usd',
+    destination: accountId,
+    description: 'NovelStack writer earnings payout',
+    metadata: { platform: 'novelstack', ...(metadata ?? {}) },
+  });
+  return transfer.id;
+}
+
 // The current onboarding / payout-eligibility state of a Connect account.
 export async function getConnectStatus(accountId: string | null): Promise<ConnectStatus> {
   if (!accountId || !stripe) return DISABLED;

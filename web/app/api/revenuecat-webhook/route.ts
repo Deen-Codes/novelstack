@@ -10,13 +10,16 @@ import { subscriptions, users } from '@/db/schema';
 // arrive. NovelStack+ entitlement checks elsewhere read `status = 'active'`.
 const WEBHOOK_SECRET = process.env.REVENUECAT_WEBHOOK_SECRET ?? '';
 
-// Events that mean the membership is currently good.
+// Events that mean the NovelStack+ membership is currently good.
+// IMPORTANT: NON_RENEWING_PURCHASE is intentionally NOT in this set. RC fires
+// that event for our tip products (non-renewing consumables) — handling them
+// here would create false subscription rows on every tip purchase. Tips are
+// handled by the direct /api/tips/iap-credit call from the mobile app.
 const GRANTS = new Set([
   'INITIAL_PURCHASE',
   'RENEWAL',
   'UNCANCELLATION',
   'PRODUCT_CHANGE',
-  'NON_RENEWING_PURCHASE',
 ]);
 
 type RCEvent = {

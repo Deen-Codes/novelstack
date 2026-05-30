@@ -16,6 +16,7 @@ import {
   numeric,
   date,
   timestamp,
+  bigint,
   primaryKey,
   index,
   uniqueIndex,
@@ -320,12 +321,62 @@ export const blocks = pgTable(
 // ============================================================
 // PAYOUTS
 // ============================================================
+// Audit trail of one monthly pool computation. Written by
+// scripts/run-monthly-payout.mjs. One row per period_month — uniqueness
+// prevents accidental double-runs from creating duplicate pools. Every
+// `payouts` row written by the same job links back here via
+// `payouts.payout_period_id` so a writer asking "where did this number
+// come from" has a full breakdown they (or support) can inspect.
+export const payoutPeriods = pgTable('payout_periods', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  periodMonth: date('period_month').notNull().unique(),
+  // What readers paid in this period (sum of active NS+ subscriptions × $6.99).
+  grossRevenueCents: bigint('gross_revenue_cents', { mode: 'number' }).notNull(),
+  // 15% Apple cut on small-dev rate; doubles to 30% above $1M lifetime.
+  appleFeesCents: bigint('apple_fees_cents', { mode: 'number' }).notNull(),
+  appleNetCents: bigint('apple_net_cents', { mode: 'number' }).notNull(),
+  // NovelStack platform cut (30% of apple_net).
+  platformCutCents: bigint('platform_cut_cents', { mode: 'number' }).notNull(),
+  // The distributable pool: what's left after Apple + platform cuts.
+  distributableCents: bigint('distributable_cents', { mode: 'number' }).notNull(),
+  // Sum of subscriber-minutes-read across all paid chapters in the period.
+  totalSubscriberMinutes: bigint('total_subscriber_minutes', { mode: 'number' }).notNull(),
+  // distributable_cents / total_subscriber_minutes. Stored at 6dp so the
+  // dashboard can show "$0.0084 per minute this month" type detail.
+  naturalRateCentsPerMin: numeric('natural_rate_cents_per_min', { precision: 14, scale: 6 }).notNull(),
+  // Snapshot of the cap at run time so historical runs are reproducible even
+  // if the env var changes later.
+  capCentsPerMin: integer('cap_cents_per_min').notNull(),
+  // The actual rate used = min(natural, cap).
+  perMinuteRateCentsPerMin: numeric('per_minute_rate_cents_per_min', { precision: 14, scale: 6 }).notNull(),
+  // Sum of all writer payouts (subscriber portion only — tips + ads tracked
+  // separately on the per-writer rows).
+  totalPaidCents: bigint('total_paid_cents', { mode: 'number' }).notNull(),
+  // distributable - total_paid. Zero when the cap doesn't bite; positive
+  // when natural_rate > cap and NovelStack retains the difference.
+  surplusCents: bigint('surplus_cents', { mode: 'number' }).notNull(),
+  // Confirmed AdMob revenue (per ad_unlocks.author_payout_cents) rolled into
+  // this period's writer payouts as a separate breakdown line.
+  adUnlocksConfirmedCents: bigint('ad_unlocks_confirmed_cents', { mode: 'number' }).notNull().default(0),
+  // calculated → disbursed once Stripe Connect transfers have fired.
+  status: text('status').notNull().default('calculated'),
+  calculatedAt: timestamp('calculated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const payouts = pgTable('payouts', {
   id: uuid('id').primaryKey().defaultRandom(),
   writerId: uuid('writer_id')
     .notNull()
     .references(() => users.id, { onDelete: 'cascade' }),
   periodMonth: date('period_month').notNull(),
+  // Optional: links to the payout_periods audit row that produced the
+  // subscription portion of this payout. Nullable for legacy payouts that
+  // pre-date the audit trail.
+  payoutPeriodId: uuid('payout_period_id').references(() => payoutPeriods.id, { onDelete: 'set null' }),
+  // The writer's subscriber-minutes for this period — the basis on which the
+  // subscriptionCents share was calculated. Surfaced to the writer so the
+  // payout is not a black box.
+  subscriberMinutes: bigint('subscriber_minutes', { mode: 'number' }).notNull().default(0),
   subscriptionCents: integer('subscription_cents').notNull().default(0),
   adCents: integer('ad_cents').notNull().default(0),
   tipCents: integer('tip_cents').notNull().default(0),

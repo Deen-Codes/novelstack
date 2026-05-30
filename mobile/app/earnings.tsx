@@ -116,6 +116,32 @@ export default function EarningsScreen() {
     setBusy(false);
   }
 
+  // Withdraws the writer's full available balance via Stripe Connect. The
+  // backend sweeps any unpaid tips + confirmed ad share into a fresh payout
+  // row, marks all pending payouts as 'paid', and fires the transfer.
+  async function withdraw() {
+    if (busy || !data) return;
+    if (data.availableCents <= 0) {
+      setMsg('No funds available to withdraw yet.');
+      return;
+    }
+    setBusy(true);
+    setMsg('');
+    try {
+      const result = await apiSend<{
+        ok: boolean;
+        transferId: string;
+        amountCents: number;
+      }>('/api/me/stripe/transfer', 'POST');
+      const dollars = (result.amountCents / 100).toFixed(2);
+      setMsg(`Transferred $${dollars}. It lands in your bank in 1-3 business days.`);
+      await load();
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : 'Withdrawal failed.');
+    }
+    setBusy(false);
+  }
+
   if (loading) {
     return (
       <SafeAreaView style={styles.safe} edges={['top']}>
@@ -261,9 +287,21 @@ export default function EarningsScreen() {
               <Text style={styles.cardTitle}>Payouts active</Text>
             </View>
             <Text style={styles.cardBody}>
-              Your Stripe account is connected. Earnings are paid out automatically
-              each month.
+              Your Stripe account is connected. Withdraw your available
+              balance any time — the funds land in your bank in 1-3 business
+              days.
             </Text>
+            {data.availableCents > 0 && (
+              <Pressable
+                style={[styles.primaryBtn, busy && { opacity: 0.6 }]}
+                onPress={withdraw}
+                disabled={busy}
+              >
+                <Text style={styles.primaryBtnText}>
+                  {busy ? 'Sending…' : `Withdraw ${money(data.availableCents)}`}
+                </Text>
+              </Pressable>
+            )}
             <Pressable
               style={[styles.outlineBtn, busy && { opacity: 0.6 }]}
               onPress={openDashboard}
@@ -330,14 +368,11 @@ export default function EarningsScreen() {
                   <Ionicons name="time-outline" size={17} color={colors.signal} />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.breakdownLabel}>Pending ad revenue</Text>
+                  <Text style={styles.breakdownLabel}>Awaiting AdMob reconciliation</Text>
                   <Text style={styles.pendingSub}>
-                    {data.pendingAdUnlocks} unlocks, settles in ~48h
+                    {data.pendingAdUnlocks} unlock{data.pendingAdUnlocks === 1 ? '' : 's'} · cents land on next monthly settlement
                   </Text>
                 </View>
-                <Text style={styles.pendingValue}>
-                  ~{money(data.pendingAdCentsEstimate)}
-                </Text>
               </View>
             </>
           )}

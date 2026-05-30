@@ -334,21 +334,33 @@ export async function unlockChapter(userId: string, chapterId: string) {
   return { ok: true };
 }
 
-// Bulk-confirms ad unlocks in a date range, stamping each pending row with
-// the per-unlock cents value the admin computed from the AdMob report.
+// Bulk-confirms ad unlocks in a date range. Input is the GROSS per-unlock
+// cents value from the AdMob report (i.e. what AdMob paid NovelStack for the
+// average unlock in this window). The function applies the platform/writer
+// split: NovelStack keeps `PLATFORM_CUT_PCT` (default 30%), the writer
+// receives the remainder. The 70% share is what gets stamped onto each
+// row's author_payout_cents. ad_revenue_cents records the gross for audit.
 // Returns the number of rows confirmed.
+const AD_PLATFORM_CUT_PCT = Number(process.env.PLATFORM_CUT_PCT ?? '0.30');
+
 export async function confirmAdUnlocks(opts: {
-  centsPerUnlock: number;
+  /** GROSS AdMob-paid cents per unlock (NOT the writer share). */
+  grossCentsPerUnlock: number;
   from: Date;
   to: Date;
 }): Promise<number> {
-  const cents = Number(opts.centsPerUnlock);
-  if (!Number.isFinite(cents) || cents < 0) {
-    throw new Error('Cents per unlock must be a non-negative number.');
+  const gross = Number(opts.grossCentsPerUnlock);
+  if (!Number.isFinite(gross) || gross < 0) {
+    throw new Error('Gross cents per unlock must be a non-negative number.');
   }
+  const writerCents = gross * (1 - AD_PLATFORM_CUT_PCT);
   const rows = await db
     .update(adUnlocks)
-    .set({ status: 'confirmed', authorPayoutCents: cents.toString() })
+    .set({
+      status: 'confirmed',
+      adRevenueCents: gross.toString(),
+      authorPayoutCents: writerCents.toString(),
+    })
     .where(
       and(
         eq(adUnlocks.status, 'pending'),

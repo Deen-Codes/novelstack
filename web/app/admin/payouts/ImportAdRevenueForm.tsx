@@ -30,10 +30,10 @@ export function ImportAdRevenueForm() {
 
       <label className="block">
         <span className="text-[12px] uppercase tracking-wide font-semibold text-ink-muted">
-          Cents per unlock
+          Gross cents per unlock (from AdMob)
         </span>
         <input
-          name="centsPerUnlock"
+          name="grossCentsPerUnlock"
           type="number"
           min="0"
           step="0.01"
@@ -41,6 +41,10 @@ export function ImportAdRevenueForm() {
           placeholder="e.g. 2"
           className="mt-1 w-full border border-border-soft rounded-lg px-3 py-2 text-[14px]"
         />
+        <span className="mt-1 block text-[11px] text-ink-faint">
+          Enter the gross AdMob-paid cents per unlock. The 70/30 platform/writer split is
+          applied automatically — writers receive 70%.
+        </span>
       </label>
 
       <div className="grid grid-cols-2 gap-3">

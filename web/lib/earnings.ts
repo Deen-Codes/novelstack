@@ -59,17 +59,15 @@ export type AuthorEarnings = {
   // Total already transferred to the author.
   paidOutCents: number;
   breakdown: { tipsCents: number; adCents: number; subscriptionCents: number };
-  // Ad unlocks awaiting reconciliation against the real AdMob payout. A rough
-  // estimate is surfaced alongside so authors see something is coming.
+  // Ad unlocks awaiting reconciliation against the real AdMob payout. Shown
+  // as a count only — NO dollar estimate. The real cents land when the
+  // monthly AdMob reconciliation script fills in author_payout_cents and
+  // flips the row to status='confirmed', at which point they're included
+  // in the confirmed totals above. See PAYOUTS_DESIGN.md Part 2 Source 3.
   pendingAdUnlocks: number;
-  pendingAdCentsEstimate: number;
   recentTips: EarningsTip[];
   payouts: EarningsPayout[];
 };
-
-// Placeholder per-unlock estimate (cents). Trivially conservative — replaced
-// with the real figure once the v1.1 AdMob Reporting API integration lands.
-const PENDING_AD_ESTIMATE_CENTS = 1;
 
 // The dedicated Apple App Review test account. When this account asks for its
 // earnings dashboard we serve a fully-populated mock so reviewers see a real,
@@ -149,7 +147,6 @@ export function reviewerEarnings(): AuthorEarnings {
       subscriptionCents: subCents + Math.round(thisMonthCents * 0.53),
     },
     pendingAdUnlocks: 0,
-    pendingAdCentsEstimate: 0,
     recentTips,
     payouts: payoutRows.reverse(), // most recent first
   };
@@ -222,7 +219,6 @@ export async function getAuthorEarnings(userId: string, isSeed: boolean): Promis
   const adCentsAll = Math.round(Number(adAll[0]?.cents ?? 0));
   const adCentsMonth = Math.round(Number(adMonth[0]?.cents ?? 0));
   const pendingAdUnlocks = Number(pendingCount[0]?.n ?? 0);
-  const pendingAdCentsEstimate = pendingAdUnlocks * PENDING_AD_ESTIMATE_CENTS;
 
   const subCentsAll = payoutRows.reduce((s, p) => s + p.subscriptionCents, 0);
   const payoutsTotalAll = payoutRows.reduce((s, p) => s + p.totalCents, 0);
@@ -246,7 +242,6 @@ export async function getAuthorEarnings(userId: string, isSeed: boolean): Promis
       subscriptionCents: subCentsAll,
     },
     pendingAdUnlocks,
-    pendingAdCentsEstimate,
     recentTips: recent.map((r) => ({
       id: r.id,
       amountCents: r.amountCents,
