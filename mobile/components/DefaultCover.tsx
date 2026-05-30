@@ -92,6 +92,8 @@ export function DefaultCover({
 
 // ============================================================
 // 01 — Brick · Bricolage 800 · Ember
+// Title anchored top-left so spotlight crop on Home doesn't eat the
+// bottom edge of the typography.
 // ============================================================
 function V1({ width, title, style }: { width: number; title: string; style?: StyleProp<ViewStyle> }) {
   return (
@@ -100,7 +102,7 @@ function V1({ width, title, style }: { width: number; title: string; style?: Sty
       <Text
         numberOfLines={4}
         style={[
-          styles.titleBottom,
+          styles.titleTopLeft,
           {
             fontFamily: 'BricolageGrotesque_800ExtraBold',
             fontSize: scale(width, 38, 72),
@@ -138,7 +140,7 @@ function V2({ width, title, style }: { width: number; title: string; style?: Sty
       <Text
         numberOfLines={4}
         style={[
-          styles.titleBottom,
+          styles.titleUpperBand,
           {
             fontFamily: 'InterTight_900Black',
             fontSize: scale(width, 32, 58),
@@ -198,7 +200,7 @@ function V4({ width, title, style }: { width: number; title: string; style?: Sty
   const [a, b] = splitHalves(title);
   const size = scale(width, 28, 50);
   return (
-    <View style={[styles.fill, { backgroundColor: '#2E4E3F', padding: width * 0.08, justifyContent: 'flex-end' }, style]}>
+    <View style={[styles.fill, { backgroundColor: '#2E4E3F', padding: width * 0.08, justifyContent: 'flex-start', paddingTop: width * 0.20 }, style]}>
       <Text style={[styles.cornerTopLeft, { fontFamily: 'Manrope_800ExtraBold', fontSize: scale(width, 9, 13), letterSpacing: 1.5, color: 'rgba(244,236,223,0.5)' }]}>
         VOL I
       </Text>
@@ -222,17 +224,36 @@ function V5({ width, title, style }: { width: number; title: string; style?: Sty
     <View style={[styles.fill, { backgroundColor: '#A87142' }, style]}>
       <View style={[styles.headRow, { paddingHorizontal: width * 0.08, paddingTop: width * 0.09 }]}>
         <Text style={{ fontFamily: 'Sora_700Bold', fontSize: scale(width, 9, 13), letterSpacing: 2, color: 'rgba(255,240,220,0.7)' }} numberOfLines={1}>
-          {title.toUpperCase().slice(0, 18)}
+          NSORIG
         </Text>
         <Text style={{ fontFamily: 'Sora_700Bold', fontSize: scale(width, 9, 13), letterSpacing: 2, color: 'rgba(255,240,220,0.7)' }}>
           NS
         </Text>
       </View>
+      {/* Title pulled up into the upper-middle band — index device "01" moves
+          into the lower third as decorative chrome instead of the title sitting
+          there itself. */}
+      <Text
+        numberOfLines={3}
+        style={{
+          position: 'absolute',
+          top: '22%',
+          left: width * 0.06,
+          right: width * 0.08,
+          fontFamily: 'Sora_700Bold',
+          fontSize: scale(width, 26, 44),
+          lineHeight: scale(width, 26, 44) * 1.05,
+          letterSpacing: -0.7,
+          color: '#FFF1DA',
+        }}
+      >
+        {title}
+      </Text>
       <Text
         style={{
           position: 'absolute',
-          left: width * 0.06,
-          top: '38%',
+          right: width * 0.06,
+          bottom: width * 0.05,
           fontFamily: 'Sora_700Bold',
           fontSize: scale(width, 80, 140),
           lineHeight: scale(width, 80, 140) * 0.9,
@@ -241,21 +262,6 @@ function V5({ width, title, style }: { width: number; title: string; style?: Sty
         }}
       >
         01
-      </Text>
-      <Text
-        numberOfLines={3}
-        style={[
-          styles.titleBottom,
-          {
-            fontFamily: 'Sora_700Bold',
-            fontSize: scale(width, 26, 44),
-            lineHeight: scale(width, 26, 44) * 1.05,
-            letterSpacing: -0.7,
-            color: '#FFF1DA',
-          },
-        ]}
-      >
-        {title}
       </Text>
     </View>
   );
@@ -279,45 +285,69 @@ function V6({ width, title, style }: { width: number; title: string; style?: Sty
 }
 
 // ============================================================
-// 07 — Spine · Space Grotesk 700 · Sage (rotated title)
+// 07 — Spine · Space Grotesk 700 · Sage
+// Title sits horizontal + readable. A thin vertical "spine" strip on the
+// far-left edge carries the brand mark — the spine motif without making
+// the title itself unreadable at thumbnail size.
 // ============================================================
 function V7({ width, title, authorName, style }: { width: number; title: string; authorName?: string | null; style?: StyleProp<ViewStyle> }) {
   return (
     <View style={[styles.fill, { backgroundColor: '#5A6F4F' }, style]}>
-      {/* Vertical title — rotated 90deg, anchored to the left edge. */}
-      <View
+      {/* Brand spine — narrow vertical strip on the left edge. */}
+      <View style={{
+        position: 'absolute',
+        left: 0, top: 0, bottom: 0,
+        width: width * 0.06,
+        backgroundColor: 'rgba(244,236,223,0.18)',
+        alignItems: 'center',
+        justifyContent: 'flex-end',
+        paddingBottom: width * 0.08,
+      }}>
+        <Text style={{
+          fontFamily: 'SpaceGrotesk_700Bold',
+          fontSize: scale(width, 8, 12),
+          color: 'rgba(244,236,223,0.7)',
+          letterSpacing: 2,
+          transform: [{ rotate: '-90deg' }],
+        }}>
+          NS
+        </Text>
+      </View>
+
+      {/* Author byline at top. */}
+      <Text
         style={{
           position: 'absolute',
-          left: width * 0.11,
-          top: 0,
-          bottom: 0,
-          width: width * 0.18,
-          justifyContent: 'center',
+          top: '10%',
+          left: width * 0.13,
+          right: width * 0.08,
+          fontFamily: 'SpaceGrotesk_700Bold',
+          fontSize: scale(width, 9, 13),
+          letterSpacing: 1.6,
+          color: 'rgba(244,236,223,0.55)',
         }}
       >
-        <Text
-          numberOfLines={2}
-          style={{
-            fontFamily: 'SpaceGrotesk_700Bold',
-            fontSize: scale(width, 22, 34),
-            lineHeight: scale(width, 22, 34) * 1.1,
-            color: CREAM,
-            transform: [{ rotate: '-90deg' }],
-            width: 200,
-          }}
-        >
-          {title}
-        </Text>
-      </View>
-      {/* Author initials bottom-right */}
-      <View style={{ position: 'absolute', right: width * 0.08, bottom: width * 0.08, alignItems: 'flex-end' }}>
-        <Text style={{ fontFamily: 'SpaceGrotesk_700Bold', fontSize: scale(width, 9, 13), letterSpacing: 1.6, color: 'rgba(244,236,223,0.55)' }}>
-          A STORY BY
-        </Text>
-        <Text style={{ fontFamily: 'SpaceGrotesk_700Bold', fontSize: scale(width, 22, 36), letterSpacing: -0.5, color: CREAM, marginTop: 4 }}>
-          {initials(authorName, title)}
-        </Text>
-      </View>
+        {(authorName ?? 'A NOVELSTACK WRITER').toUpperCase()}
+      </Text>
+
+      {/* Title — horizontal, upper-middle (was bottom 12%, moved up so
+          spotlight crop on Home doesn't clip it). */}
+      <Text
+        numberOfLines={4}
+        style={{
+          position: 'absolute',
+          top: '22%',
+          left: width * 0.13,
+          right: width * 0.08,
+          fontFamily: 'SpaceGrotesk_700Bold',
+          fontSize: scale(width, 28, 48),
+          lineHeight: scale(width, 28, 48) * 1.0,
+          letterSpacing: -1,
+          color: CREAM,
+        }}
+      >
+        {title}
+      </Text>
     </View>
   );
 }
@@ -391,7 +421,7 @@ function V9({ width, title, style }: { width: number; title: string; style?: Sty
           position: 'absolute',
           left: 0,
           right: 0,
-          bottom: 0,
+          top: width * 0.20,
           padding: width * 0.08,
           flexDirection: 'row',
           flexWrap: 'wrap',
@@ -478,7 +508,14 @@ const styles = StyleSheet.create({
   fill: { width: '100%', height: '100%', overflow: 'hidden' },
   center: { justifyContent: 'center', alignItems: 'center' },
   dot: { position: 'absolute', top: '9%', left: '8%', borderRadius: 999, backgroundColor: '#F4ECDF' },
+  // Legacy — kept for compatibility, no longer used by any variant.
   titleBottom: { position: 'absolute', bottom: '9%', left: '8%', right: '8%' } as TextStyle,
+  // Title anchored top-left (V1) — falls in the upper third of the cover so
+  // the spotlight crop on Home doesn't clip it.
+  titleTopLeft: { position: 'absolute', top: '20%', left: '8%', right: '8%' } as TextStyle,
+  // Title anchored to the upper-middle band (V2) — below the eyebrow but
+  // still inside the top 2/3 of the cover.
+  titleUpperBand: { position: 'absolute', top: '24%', left: '8%', right: '8%' } as TextStyle,
   titleCentered: { textAlign: 'center' } as TextStyle,
   eyebrowTopRight: { position: 'absolute', top: '9%', right: '8%' } as TextStyle,
   cornerTopLeft: { position: 'absolute', top: '9%', left: '8%' } as TextStyle,

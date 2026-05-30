@@ -54,8 +54,11 @@ export function useGridItemWidth(opts: {
     width > 1100 ? (opts.tabletWide ?? opts.tablet)
     : width > READING_MAX_WIDTH ? opts.tablet
     : opts.phone;
-  // Each item leaves a 12pt gap on its trailing edge — same as the existing
-  // `gap: 12` styling on the wraps. Translate that into a width pct.
-  const pct = Math.floor(96 / cols);
+  // Each row uses `gap: 10-12` between items, which eats a percent or two of
+  // the row's actual width. Translate that loss into a tighter per-item
+  // percentage so the row never overflows to a column less. (Without this,
+  // phone:3 returned 32% × 3 = 96% + 2 gaps which would overflow → wraps to
+  // 2 columns. 31% × 3 = 93% + gap fits cleanly.)
+  const pct = Math.floor(94 / cols);
   return `${pct}%`;
 }

@@ -1,0 +1,145 @@
+[
+  {
+    "file": "06_the_housekeepers_lie.md",
+    "persona": {
+      "username": "novelstackoriginals",
+      "email": "deenali3@outlook.com",
+      "displayName": "NovelStack Originals",
+      "bio": "House imprint — the marketing-hero books."
+    },
+    "coverColor": "#3F4956",
+    "compAuthor": "Colleen Hoover — Verity"
+  },
+  {
+    "file": "07_bound_by_the_don.md",
+    "persona": {
+      "username": "novelstackoriginals",
+      "email": "deenali3@outlook.com",
+      "displayName": "NovelStack Originals",
+      "bio": "House imprint — the marketing-hero books."
+    },
+    "coverColor": "#1A1714",
+    "compAuthor": "Penelope Douglas — Credence"
+  },
+  {
+    "file": "08_the_frostbound_court.md",
+    "persona": {
+      "username": "novelstackoriginals",
+      "email": "deenali3@outlook.com",
+      "displayName": "NovelStack Originals",
+      "bio": "House imprint — the marketing-hero books."
+    },
+    "coverColor": "#1F2A33",
+    "compAuthor": "Sarah J Maas — ACOTAR"
+  },
+  {
+    "file": "09_the_almost.md",
+    "persona": {
+      "username": "novelstackoriginals",
+      "email": "deenali3@outlook.com",
+      "displayName": "NovelStack Originals",
+      "bio": "House imprint — the marketing-hero books."
+    },
+    "coverColor": "#2C2722",
+    "compAuthor": "Emily Henry — Beach Read"
+  },
+  {
+    "file": "10_the_hollow_hour.md",
+    "persona": {
+      "username": "novelstackoriginals",
+      "email": "deenali3@outlook.com",
+      "displayName": "NovelStack Originals",
+      "bio": "House imprint — the marketing-hero books."
+    },
+    "coverColor": "#1B2A22",
+    "compAuthor": "Olivie Blake — Atlas Six"
+  },
+  {
+    "file": "11_the_daughter_they_kept.md",
+    "persona": {
+      "username": "hannahglass",
+      "email": "hannahglass+seed@novelstack.local",
+      "displayName": "Hannah Glass",
+      "bio": "Bristol-based crime writer. Domestic suspense and quiet-room thrillers."
+    },
+    "coverColor": "#2E3B33",
+    "compAuthor": "Colleen Hoover — Verity (Highland-set)"
+  },
+  {
+    "file": "17_the_brother_of_the_don.md",
+    "persona": {
+      "username": "romyhall",
+      "email": "romyhall+seed@novelstack.local",
+      "displayName": "Romy Hall",
+      "bio": "Dark romance. Mafia, kings, monsters with manners."
+    },
+    "coverColor": "#1A1714",
+    "compAuthor": "Penelope Douglas — Credence / Birthday Girl"
+  },
+  {
+    "file": "25_the_crown_of_hollow_years.md",
+    "persona": {
+      "username": "elenavasse",
+      "email": "elenavasse+seed@novelstack.local",
+      "displayName": "Elena Vasse",
+      "bio": "Fae courts and cold rooms. Companion novels to the Frostbound world."
+    },
+    "coverColor": "#1F2A33",
+    "compAuthor": "Ava Reid — A Study in Drowning"
+  },
+  {
+    "file": "32_the_wedding_off_season.md",
+    "persona": {
+      "username": "callielowe",
+      "email": "callielowe+seed@novelstack.local",
+      "displayName": "Callie Lowe",
+      "bio": "Soft contemporary romance. Hotels, islands, the weather as a third character."
+    },
+    "coverColor": "#3F4956",
+    "compAuthor": "Emily Henry — People We Meet on Vacation"
+  },
+  {
+    "file": "39_the_forwards.md",
+    "persona": {
+      "username": "blakerivers",
+      "email": "blakerivers+seed@novelstack.local",
+      "displayName": "Blake Rivers",
+      "bio": "College sports romance. Hockey, hot drinks, two captains."
+    },
+    "coverColor": "#0E2236",
+    "compAuthor": "Hannah Grace — Icebreaker / Tessa Bailey"
+  },
+  {
+    "file": "43_the_library_at_vellichor.md",
+    "persona": {
+      "username": "blackwellpress",
+      "email": "blackwellpress+seed@novelstack.local",
+      "displayName": "Blackwell Press",
+      "bio": "Imprint pen-name. Dark academia, paranormal, the long shelf."
+    },
+    "coverColor": "#1B2A22",
+    "compAuthor": "Leigh Bardugo — Ninth House / Olivie Blake"
+  },
+  {
+    "file": "48_the_other_girl_in_the_photograph.md",
+    "persona": {
+      "username": "catrionafield",
+      "email": "catrionafield+seed@novelstack.local",
+      "displayName": "Catriona Field",
+      "bio": "Quiet domestic dramas. Wales, Cornwall, kitchens with photographs on the wall."
+    },
+    "coverColor": "#2C2722",
+    "compAuthor": "Liane Moriarty — Big Little Lies / Maggie O'Farrell"
+  },
+  {
+    "file": "52_the_beech_hill_reading_society.md",
+    "persona": {
+      "username": "hennegrover",
+      "email": "hennegrover+seed@novelstack.local",
+      "displayName": "Henne Grover",
+      "bio": "Village mysteries. Reading societies, fishing boats, a body or two."
+    },
+    "coverColor": "#23362F",
+    "compAuthor": "Richard Osman — Thursday Murder Club"
+  }
+]

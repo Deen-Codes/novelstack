@@ -1,0 +1,54 @@
+-- NovelStack Originals — v3 (catalogue expansion: 5 → 13 books, 1 → 9 personas)
+--
+-- v2 wiped Deen's @novelstackoriginals account and inserted the 5 commercial
+-- books (06–10). v3 does NOT wipe — it adds 8 NEW books to the catalogue,
+-- each under a NEW seed-author persona (see SEED_CATALOGUE_LOG.md for the
+-- editorial brief).
+--
+-- The new books are loaded by a Node script — NOT by raw SQL — because the
+-- chapter bodies live in `originals/11..52*.md` and the script reads them
+-- directly. Running it from inline SQL would mean duplicating ~24,000 words
+-- of prose into this file, which is unnecessary now that we have the
+-- markdown source of truth in the repo.
+--
+-- HOW TO RUN (from the Render shell, where DATABASE_URL is already set):
+--
+--   cd /opt/render/project/src
+--   node scripts/load-originals-v3.mjs
+--
+-- HOW TO RUN (from Deen's laptop, against the live db):
+--
+--   cd novelstack
+--   DATABASE_URL='postgres://…' node scripts/load-originals-v3.mjs
+--
+-- The script is idempotent — re-running it after a partial failure will
+-- skip personas/stories already inserted and complete any missing chapters.
+--
+-- WHAT THE SCRIPT DOES, IN ORDER:
+--
+--   1. Ensures 8 seed-author personas exist (is_seed=true, role=writer):
+--        @hannahglass   · @romyhall      · @elenavasse   · @callielowe
+--        @blakerivers   · @blackwellpress · @catrionafield · @hennegrover
+--
+--   2. Inserts 8 stories (one per persona):
+--        11. The Daughter They Kept           (Lane A · thriller)
+--        17. The Brother of the Don           (Lane B · romance, mature)
+--        25. The Crown of Hollow Years        (Lane C · fantasy)
+--        32. The Wedding Off-Season           (Lane D · romance)
+--        39. The Forwards                     (Lane E · romance)
+--        43. The Library at Vellichor         (Lane F · young_adult)
+--        48. The Other Girl in the Photograph (Lane G · drama)
+--        52. The Beech Hill Reading Society   (Lane H · mystery)
+--
+--   3. Inserts chapter 1 of each (full body) into chapters + chapter_content.
+--
+-- SAFETY NOTES:
+--   - Real reader accounts and non-NovelStack-Originals authors are untouched.
+--   - The existing 5 books under @novelstackoriginals (deenali3@outlook.com)
+--     are untouched.
+--   - If you ever want to wipe all v3 seed authors + their stories without
+--     touching the v2 catalogue, update SEED_WIPE.sql to delete users where
+--     is_seed = true AND username != 'novelstackoriginals'.
+
+-- (This file is intentionally documentation-only. The actual inserts happen
+--  in scripts/load-originals-v3.mjs.)

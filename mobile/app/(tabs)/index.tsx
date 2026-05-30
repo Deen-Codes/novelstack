@@ -17,6 +17,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { colors, spacing, radius, fonts } from '@/theme/tokens';
 import { apiGetCached, apiSend } from '@/lib/api';
 import { Cover } from '@/components/Cover';
+import { DefaultCover } from '@/components/DefaultCover';
 import { TopBar } from '@/components/TopBar';
 import { useTabScroll } from '@/lib/useTabScroll';
 import { useReadingWidth } from '@/components/PageContainer';
@@ -209,7 +210,19 @@ export default function Home() {
                     />
                     {spot.coverUrl ? (
                       <Image source={{ uri: spot.coverUrl }} style={styles.heroImg} resizeMode="cover" />
-                    ) : null}
+                    ) : (
+                      // No uploaded image — render the typographic default so the
+                      // hero shows the book identity instead of a flat gradient.
+                      <View style={styles.heroImg}>
+                        <DefaultCover
+                          storyId={spot.id}
+                          title={spot.title}
+                          genre={spot.genre}
+                          authorName={spot.author?.displayName}
+                          width={420}
+                        />
+                      </View>
+                    )}
                     <LinearGradient
                       colors={['transparent', 'rgba(16,13,12,0.97)']}
                       locations={[0.32, 1]}
@@ -219,9 +232,16 @@ export default function Home() {
                       <View style={styles.tag}>
                         <Text style={styles.tagText}>{spot._reason}</Text>
                       </View>
-                      <Text style={styles.heroTitle} numberOfLines={3}>
-                        {spot.title}
-                      </Text>
+                      {/* The DefaultCover variants already render the title
+                          typographically. Showing the heroTitle below it on
+                          those covers double-renders the title. Only show
+                          the text overlay when there's a real uploaded image
+                          that doesn't itself carry typography. */}
+                      {spot.coverUrl && (
+                        <Text style={styles.heroTitle} numberOfLines={3}>
+                          {spot.title}
+                        </Text>
+                      )}
                       <Text style={styles.heroMeta} numberOfLines={1}>
                         {spot.author?.displayName ?? 'A NovelStack writer'} ·{' '}
                         {(spot.totalReads ?? 0).toLocaleString()} reads

@@ -6,7 +6,6 @@ import {
   Pressable,
   ActivityIndicator,
   Alert,
-  Modal,
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
@@ -170,11 +169,9 @@ function EditorBody({ data }: { data: Loaded }) {
   // story-manage Chapters page. We carry the chapter's existing value so an
   // edit-save round-trip doesn't clobber it.
   const isFree = data.isFree;
-  const [review, setReview] = useState(false);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState('');
   const [imageBusy, setImageBusy] = useState(false);
-  const [words, setWords] = useState(0);
 
   // The rich-text editor — created once with the chapter's content already
   // converted to HTML, themed to the app via baked-in CSS.
@@ -234,19 +231,10 @@ function EditorBody({ data }: { data: Loaded }) {
     setImageBusy(false);
   }
 
-  // Counts words off the plain text, then opens the publish/save sheet.
-  async function openReview() {
-    try {
-      const text = await editor.getText();
-      const trimmed = text.trim();
-      setWords(trimmed ? trimmed.split(/\s+/).length : 0);
-    } catch {
-      setWords(0);
-    }
-    setReview(true);
-  }
-
   // Saves the chapter — the editor's HTML is converted back to Markdown.
+  // Called directly from the Publish/Save button; no confirmation sheet
+  // (the button itself is the affirmative action — adding a second one was
+  // double-tapping the same intent).
   async function commit() {
     if (busy) return;
     setBusy(true);
@@ -263,7 +251,6 @@ function EditorBody({ data }: { data: Loaded }) {
       } else {
         await apiSend<Chapter>(`/api/me/chapters/${chapterId}`, 'PATCH', payload);
       }
-      setReview(false);
       router.back();
     } catch (e) {
       setStatus(e instanceof Error ? e.message : 'Could not save.');
@@ -306,8 +293,6 @@ function EditorBody({ data }: { data: Loaded }) {
     ]);
   }
 
-  const readMinutes = Math.max(1, Math.round(words / 220));
-
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       {/* Minimal top bar — the tab bar is gone; this is all the chrome. */}
@@ -332,11 +317,12 @@ function EditorBody({ data }: { data: Loaded }) {
             </Pressable>
           )}
           <Pressable
-            style={[styles.publishBtn, !dirty && !isNew && styles.publishOff]}
-            onPress={openReview}
+            style={[styles.publishBtn, (!dirty && !isNew) || busy ? styles.publishOff : null]}
+            onPress={commit}
+            disabled={(!dirty && !isNew) || busy}
           >
             <Text style={[styles.publishText, !dirty && !isNew && styles.publishTextOff]}>
-              {isNew ? 'Publish' : 'Save'}
+              {busy ? (isNew ? 'Publishing…' : 'Saving…') : isNew ? 'Publish' : 'Save'}
             </Text>
           </Pressable>
         </View>
@@ -369,50 +355,8 @@ function EditorBody({ data }: { data: Loaded }) {
         <DarkEditorToolbar editor={editor} />
       </KeyboardAvoidingView>
 
-      {/* Publish / save review sheet */}
-      <Modal
-        visible={review}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setReview(false)}
-      >
-        <Pressable style={styles.backdrop} onPress={() => !busy && setReview(false)} />
-        <View style={styles.sheet}>
-          <View style={styles.sheetGrip} />
-          <Text style={styles.sheetTitle}>{isNew ? 'Ready to publish?' : 'Save changes?'}</Text>
-          <Text style={styles.sheetChapter} numberOfLines={2}>
-            {title || `Chapter ${number ?? ''}`}
-          </Text>
-          <View style={styles.sheetStats}>
-            <Text style={styles.sheetStat}>
-              {words.toLocaleString()} word{words === 1 ? '' : 's'}
-            </Text>
-            <Text style={styles.sheetDot}>·</Text>
-            <Text style={styles.sheetStat}>{readMinutes} min read</Text>
-          </View>
-
-          <Pressable
-            style={[styles.confirmBtn, busy && { opacity: 0.6 }]}
-            onPress={commit}
-            disabled={busy}
-          >
-            <Text style={styles.confirmText}>
-              {busy
-                ? isNew
-                  ? 'Publishing…'
-                  : 'Saving…'
-                : isNew
-                  ? 'Publish chapter'
-                  : 'Save changes'}
-            </Text>
-          </Pressable>
-          {isNew && (
-            <Text style={styles.sheetNote}>
-              Published chapters appear for readers right away. You can edit them anytime.
-            </Text>
-          )}
-        </View>
-      </Modal>
+      {/* Publish confirmation sheet removed — the topbar Publish/Save button
+          is now the affirmative action and the only one needed. */}
     </SafeAreaView>
   );
 }
@@ -471,29 +415,6 @@ const styles = StyleSheet.create({
   editorWrap: { flex: 1 },
   toolbarWrap: { position: 'absolute', left: 0, right: 0, bottom: 0 },
 
-  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)' },
-  sheet: {
-    backgroundColor: colors.paperSoft,
-    borderTopLeftRadius: radius.lg,
-    borderTopRightRadius: radius.lg,
-    padding: spacing.lg,
-    paddingBottom: spacing.xl + spacing.md,
-    gap: spacing.sm,
-  },
-  sheetGrip: {
-    width: 36,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: colors.border,
-    alignSelf: 'center',
-    marginBottom: spacing.sm,
-  },
-  sheetTitle: { fontFamily: fonts.display, fontSize: 20, color: colors.ink },
-  sheetChapter: { fontSize: 15, color: colors.inkMuted },
-  sheetStats: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: spacing.sm },
-  sheetStat: { fontSize: 12, color: colors.inkFaint },
-  sheetDot: { fontSize: 12, color: colors.inkFaint },
-
   freeRow: {
     flexDirection: 'row',
     gap: 12,
@@ -516,19 +437,4 @@ const styles = StyleSheet.create({
   freeLabel: { fontSize: 14, fontWeight: '600', color: colors.ink },
   freeHint: { fontSize: 12, color: colors.inkFaint, marginTop: 2, lineHeight: 16 },
 
-  confirmBtn: {
-    backgroundColor: colors.cream,
-    paddingVertical: 14,
-    borderRadius: radius.md,
-    alignItems: 'center',
-    marginTop: spacing.md,
-  },
-  confirmText: { color: colors.creamInk, fontSize: 15, fontWeight: '700' },
-  sheetNote: {
-    fontSize: 12,
-    color: colors.inkFaint,
-    textAlign: 'center',
-    marginTop: spacing.sm,
-    lineHeight: 16,
-  },
 });

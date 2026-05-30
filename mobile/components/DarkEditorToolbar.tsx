@@ -28,7 +28,18 @@ export function DarkEditorToolbar({ editor }: { editor: EditorBridge }) {
       <ToolButton
         label="H"
         bold
-        active={!!state.activeHeading}
+        // BridgeState exposes per-level heading flags (isHeading1Active /
+        // isHeading2Active / …) rather than a unified `activeHeading`. Treat
+        // the H button as "is any heading currently active" by OR-ing them.
+        active={
+          (state as unknown as {
+            isHeading1Active?: boolean;
+            isHeading2Active?: boolean;
+            isHeading3Active?: boolean;
+          }).isHeading1Active === true ||
+          (state as unknown as { isHeading2Active?: boolean }).isHeading2Active === true ||
+          (state as unknown as { isHeading3Active?: boolean }).isHeading3Active === true
+        }
         onPress={() => editor.toggleHeading(2)}
       />
       <ToolButton

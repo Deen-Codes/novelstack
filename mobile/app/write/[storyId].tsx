@@ -19,9 +19,15 @@ import { colors, spacing, radius, fonts } from '@/theme/tokens';
 import { apiGet, apiSend, apiUpload } from '@/lib/api';
 import { GENRES, genreLabel } from '@/lib/genres';
 import { Cover } from '@/components/Cover';
+import { CoverEditor, type CoverEditorHandle } from '@/components/CoverEditor';
+import { AppleMusicSwitcher } from '@/components/AppleMusicSwitcher';
 import type { Shelf, Story, Chapter, StoryDetail } from '@/lib/types';
 
-type Section = 'cover' | 'chapters' | 'details' | 'status';
+// Two-tab navigation — Cover hosts the whole book identity (title via the
+// CoverEditor, genre, description, mature toggle, cover image). Chapters
+// hosts the chapter list + Live/Draft and Ongoing/Complete book status.
+// A bottom Apple-Music-style switcher swaps between them.
+type Section = 'cover' | 'chapters';
 
 const SECTION_LABELS: Record<
   Section,
@@ -29,13 +35,7 @@ const SECTION_LABELS: Record<
 > = {
   cover: { label: 'Cover', icon: 'image-outline' },
   chapters: { label: 'Chapters', icon: 'list-outline' },
-  details: { label: 'Details', icon: 'create-outline' },
-  status: { label: 'Status', icon: 'pulse-outline' },
 };
-
-// Order in the fly-out (top of stack first). Cover is the most-used so it
-// sits closest to the thumb when the menu opens.
-const SECTION_ORDER: Section[] = ['cover', 'chapters', 'details', 'status'];
 
 export default function StoryWriter() {
   const { storyId } = useLocalSearchParams<{ storyId: string }>();
@@ -46,7 +46,16 @@ export default function StoryWriter() {
   const [status, setStatus] = useState('');
   const [coverBusy, setCoverBusy] = useState(false);
   const [coverError, setCoverError] = useState('');
+  // Smart default: land on Chapters if the story already has any (the
+  // writer is here to carry on writing), else Cover (it's a fresh story
+  // that hasn't been set up yet). Bumped from 'cover' to its real value
+  // inside `load()` once we know chapters.length.
   const [tab, setTab] = useState<Section>('cover');
+  const [tabExplicitlySet, setTabExplicitlySet] = useState(false);
+  // Local working copy of the title — flows into CoverEditor and back so the
+  // author can type a new title directly onto the cover.
+  const [coverTitleDraft, setCoverTitleDraft] = useState<string>('');
+  const coverEditorRef = useRef<CoverEditorHandle | null>(null);
 
   // Hamburger FAB state — open toggles a stack of action buttons that fly
   // out from the bottom-right where the thumb naturally lives.
@@ -103,16 +112,23 @@ export default function StoryWriter() {
     setDraftTitle(mine.title);
     setDraftDesc(mine.description ?? '');
     setDraftGenre(mine.genre);
+    setCoverTitleDraft(mine.title);
 
     // Chapters come from the public story-by-slug endpoint.
+    let loadedChapters: Chapter[] = [];
     try {
       const detail = await apiGet<StoryDetail>(`/api/stories/${mine.slug}`);
-      setChapters([...detail.chapters].sort((a, b) => a.number - b.number));
+      loadedChapters = [...detail.chapters].sort((a, b) => a.number - b.number);
+      setChapters(loadedChapters);
     } catch {
       setChapters([]);
     }
+    // Smart default — only fires the first time, never overrides a user pick.
+    if (!tabExplicitlySet) {
+      setTab(loadedChapters.length > 0 ? 'chapters' : 'cover');
+    }
     setLoading(false);
-  }, [storyId]);
+  }, [storyId, tabExplicitlySet]);
 
   useFocusEffect(
     useCallback(() => {
@@ -172,6 +188,39 @@ export default function StoryWriter() {
       setStory(updated);
     } catch (e) {
       setCoverError(e instanceof Error ? e.message : 'Could not upload cover.');
+    }
+    setCoverBusy(false);
+  }
+
+  // Captures the CoverEditor canvas (background + title overlay in the
+  // chosen font / position) and uploads the composite as the new cover.
+  // Also syncs the title that was typed on the cover back into story.title
+  // so the Details tab stays in sync with what the cover shows.
+  async function saveDesignedCover() {
+    if (coverBusy || !story || !coverEditorRef.current) return;
+    setCoverBusy(true);
+    setCoverError('');
+    try {
+      const uri = await coverEditorRef.current.captureToFile();
+      const { coverUrl } = await apiUpload<{ coverUrl: string }>('/api/me/cover', {
+        uri,
+        name: 'cover.png',
+        type: 'image/png',
+      });
+      const patch: { coverUrl: string; title?: string } = { coverUrl };
+      const nextTitle = (coverTitleDraft || '').trim();
+      if (nextTitle && nextTitle !== story.title) {
+        patch.title = nextTitle;
+        setDraftTitle(nextTitle); // keep Details tab in sync
+      }
+      const updated = await apiSend<Story>(
+        `/api/me/stories/${storyId}`,
+        'PATCH',
+        patch,
+      );
+      setStory(updated);
+    } catch (e) {
+      setCoverError(e instanceof Error ? e.message : 'Could not save designed cover.');
     }
     setCoverBusy(false);
   }
@@ -339,7 +388,22 @@ export default function StoryWriter() {
             busy={coverBusy}
             error={coverError}
             onPick={pickCover}
-            onGoChapters={() => setTab('chapters')}
+            onSaveDesigned={saveDesignedCover}
+            editorRef={coverEditorRef}
+            titleDraft={coverTitleDraft}
+            onTitleDraftChange={setCoverTitleDraft}
+            draftDesc={draftDesc}
+            setDraftDesc={setDraftDesc}
+            draftGenre={draftGenre}
+            setDraftGenre={setDraftGenre}
+            showGenrePicker={showGenrePicker}
+            setShowGenrePicker={setShowGenrePicker}
+            isMature={story.isMature}
+            onToggleMature={toggleMature}
+            detailsDirty={detailsDirty}
+            detailsBusy={detailsBusy}
+            onSaveDetails={saveDetails}
+            onDelete={confirmDelete}
           />
         )}
 
@@ -347,174 +411,259 @@ export default function StoryWriter() {
           <ChaptersSection
             chapters={chapters}
             pendingFreeId={pendingFreeId}
+            story={story}
+            busy={busy}
+            onChangeStatus={changeStatus}
             onOpen={openEditor}
             onNew={openNew}
             onToggleFree={toggleChapterFree}
           />
         )}
 
-        {tab === 'details' && (
-          <DetailsSection
-            draftTitle={draftTitle}
-            setDraftTitle={setDraftTitle}
-            draftDesc={draftDesc}
-            setDraftDesc={setDraftDesc}
-            draftGenre={draftGenre}
-            setDraftGenre={setDraftGenre}
-            genreQuery={genreQuery}
-            setGenreQuery={setGenreQuery}
-            showGenrePicker={showGenrePicker}
-            setShowGenrePicker={setShowGenrePicker}
-            isMature={story.isMature}
-            onToggleMature={toggleMature}
-            dirty={detailsDirty}
-            busy={detailsBusy}
-            saved={detailsSaved}
-            error={detailsError}
-            onSave={saveDetails}
-            onDelete={confirmDelete}
-          />
-        )}
-
-        {tab === 'status' && (
-          <StatusSection
-            story={story}
-            busy={busy}
-            onChangeStatus={changeStatus}
-          />
-        )}
-
         {!!status && <Text style={styles.statusMsg}>{status}</Text>}
       </ScrollView>
 
-      {/* Tap-anywhere-to-close backdrop when the FAB menu is open. */}
-      {menuOpen && (
-        <Pressable
-          style={StyleSheet.absoluteFill}
-          onPress={() => setMenuOpen(false)}
-        />
-      )}
-
       {/* Fly-out stack — four section buttons rise from the FAB. */}
-      <View
-        pointerEvents={menuOpen ? 'box-none' : 'none'}
-        style={[styles.fabStack, { bottom: fabBottom + 78 }]}
-      >
-        {SECTION_ORDER.map((s, i) => {
-          // Farthest-from-FAB item moves first so the rise reads as a stack.
-          const order = SECTION_ORDER.length - 1 - i;
-          return (
-            <FloatingItem
-              key={s}
-              anim={menuAnim}
-              order={order}
-              icon={SECTION_LABELS[s].icon}
-              label={SECTION_LABELS[s].label}
-              active={tab === s}
-              onPress={() => selectSection(s)}
-            />
-          );
-        })}
-      </View>
-
-      {/* The hamburger / X FAB itself — cream background with the icon in
-          ink so it matches the home Read/Save button family. */}
-      <Pressable
-        style={[styles.fab, { bottom: fabBottom }]}
-        onPress={() => setMenuOpen((o) => !o)}
-        hitSlop={6}
-        accessibilityRole="button"
-        accessibilityLabel={menuOpen ? 'Close section menu' : 'Open section menu'}
-      >
-        <Animated.View
-          style={{
-            transform: [
-              {
-                rotate: menuAnim.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: ['0deg', '90deg'],
-                }),
-              },
-            ],
-          }}
-        >
-          <Ionicons
-            name={menuOpen ? 'close' : 'menu'}
-            size={28}
-            color={colors.creamInk}
-          />
-        </Animated.View>
-      </Pressable>
+      {/* Apple-Music-style two-tab switcher anchored above the home
+          indicator. Replaces the old hamburger fly-out — only two screens
+          to choose between (Cover · Chapters), no need for a stack menu. */}
+      <AppleMusicSwitcher
+        tabs={[
+          { key: 'cover',    label: SECTION_LABELS.cover.label,    icon: SECTION_LABELS.cover.icon },
+          { key: 'chapters', label: SECTION_LABELS.chapters.label, icon: SECTION_LABELS.chapters.icon },
+        ]}
+        value={tab}
+        onChange={(next) => {
+          // Auto-save the designed cover when leaving the Cover tab IF the
+          // title was edited on-canvas. Means we never silently lose a typed
+          // title and the user doesn't need a separate Save button — switching
+          // tabs IS the save. Font/position autosave is follow-up (task #292).
+          if (tab === 'cover' && next !== 'cover') {
+            const typed = (coverTitleDraft || '').trim();
+            if (typed && typed !== story.title) {
+              saveDesignedCover();
+            }
+          }
+          setTab(next);
+          setTabExplicitlySet(true);
+        }}
+      />
     </SafeAreaView>
   );
 }
 
-// ---------- Section: Cover --------------------------------------------------
-// A full-page preview with upload + "go to chapters" beneath. The cover image
-// gets the spotlight here — no other competing content on the page.
+// ---------- Section: Cover (merged with Details + Access) -----------------
+// Single screen for the book's identity. Genre pill in the top-right opens
+// the genre picker. CoverEditor handles title + font + visual design. Below:
+// description input + mature toggle + danger-zone delete. Save buttons are
+// gone — author hits "Save changes" if anything is dirty, or just leaves
+// (the field-level inputs already push to draftTitle/Desc/Genre state).
 function CoverSection({
   story,
   busy,
   error,
   onPick,
-  onGoChapters,
+  onSaveDesigned,
+  editorRef,
+  titleDraft,
+  onTitleDraftChange,
+  draftDesc,
+  setDraftDesc,
+  draftGenre,
+  setDraftGenre,
+  showGenrePicker,
+  setShowGenrePicker,
+  isMature,
+  onToggleMature,
+  detailsDirty,
+  detailsBusy,
+  onSaveDetails,
+  onDelete,
 }: {
   story: Story;
   busy: boolean;
   error: string;
   onPick: () => void;
-  onGoChapters: () => void;
+  onSaveDesigned: () => void;
+  editorRef: React.MutableRefObject<CoverEditorHandle | null>;
+  titleDraft: string;
+  onTitleDraftChange: (next: string) => void;
+  draftDesc: string;
+  setDraftDesc: (s: string) => void;
+  draftGenre: Story['genre'];
+  setDraftGenre: (g: Story['genre']) => void;
+  showGenrePicker: boolean;
+  setShowGenrePicker: (v: boolean) => void;
+  isMature: boolean;
+  onToggleMature: () => void;
+  detailsDirty: boolean;
+  detailsBusy: boolean;
+  onSaveDetails: () => void;
+  onDelete: () => void;
 }) {
   return (
-    <View style={{ alignItems: 'center' }}>
-      <Cover
-        coverUrl={story.coverUrl}
-        coverColor={story.coverColor}
-        title={story.title}
-        style={styles.coverHero}
+    <View>
+      {/* Genre pill top-right of the Cover section. Open → picker sheet. */}
+      <View style={styles.genreRow}>
+        <Pressable
+          onPress={() => setShowGenrePicker(!showGenrePicker)}
+          style={styles.genrePill}
+        >
+          <Ionicons name="pricetag-outline" size={13} color={colors.creamInk} />
+          <Text style={styles.genrePillText}>{genreLabel(draftGenre)}</Text>
+          <Ionicons name="chevron-down" size={14} color={colors.creamInk} />
+        </Pressable>
+      </View>
+
+      <CoverEditor
+        ref={editorRef}
+        storyId={story.id}
+        imageUri={story.coverUrl}
+        title={titleDraft}
+        onTitleChange={onTitleDraftChange}
+        genre={draftGenre}
+        authorName={story.author?.displayName ?? null}
+        onTapBackground={onPick}
+        style={styles.coverEditor}
       />
-      <Pressable
-        style={[styles.primaryBtn, busy && { opacity: 0.6 }]}
-        onPress={onPick}
-        disabled={busy}
-      >
-        <Text style={styles.primaryBtnText}>
-          {busy ? 'Uploading…' : story.coverUrl ? 'Replace cover' : 'Upload cover'}
-        </Text>
-      </Pressable>
-      <Text style={styles.helperCentered}>JPEG, PNG or WebP · up to 5 MB</Text>
+      <Text style={styles.helperCentered}>
+        {busy
+          ? 'Saving cover…'
+          : 'Tap the title to edit. Tap the cover background to replace the image. Changes save when you switch tabs.'}
+      </Text>
       {!!error && <Text style={styles.errorCentered}>{error}</Text>}
 
-      <Pressable style={styles.secondaryBtn} onPress={onGoChapters}>
-        <Text style={styles.secondaryBtnText}>Go to chapters</Text>
-        <Ionicons name="arrow-forward" size={15} color={colors.ink} />
+      {/* Genre picker — inline list. */}
+      {showGenrePicker && (
+        <View style={styles.genreSheet}>
+          {GENRES.map((g) => (
+            <Pressable
+              key={g.value}
+              style={[
+                styles.genreSheetRow,
+                draftGenre === g.value && styles.genreSheetRowActive,
+              ]}
+              onPress={() => {
+                setDraftGenre(g.value as Story['genre']);
+                setShowGenrePicker(false);
+              }}
+            >
+              <Text
+                style={[
+                  styles.genreSheetText,
+                  draftGenre === g.value && { color: colors.creamInk, fontWeight: '700' },
+                ]}
+              >
+                {g.label}
+              </Text>
+              {draftGenre === g.value && (
+                <Ionicons name="checkmark" size={16} color={colors.creamInk} />
+              )}
+            </Pressable>
+          ))}
+        </View>
+      )}
+
+      {/* Description — at the bottom where the buttons used to live. */}
+      <View style={styles.fieldGroup}>
+        <Text style={styles.fieldLabel}>Description</Text>
+        <TextInput
+          style={styles.descInput}
+          value={draftDesc}
+          onChangeText={setDraftDesc}
+          placeholder="A few lines about what this story is. The hook a reader sees before they tap in."
+          placeholderTextColor={colors.inkFaint}
+          multiline
+          textAlignVertical="top"
+        />
+      </View>
+
+      {/* Mature toggle. */}
+      <Pressable style={styles.matureRow} onPress={onToggleMature}>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.fieldLabel}>Mature (18+)</Text>
+          <Text style={styles.matureHint}>
+            Readers without a verified date of birth won't see this story.
+          </Text>
+        </View>
+        <Switch
+          value={isMature}
+          onValueChange={onToggleMature}
+          trackColor={{ false: colors.borderSoft, true: colors.signal }}
+          thumbColor={colors.cream}
+        />
+      </Pressable>
+
+      {/* Save changes — appears only when title/desc/genre have unsaved edits. */}
+      {detailsDirty && (
+        <Pressable
+          style={[styles.primaryBtnWide, detailsBusy && { opacity: 0.6 }]}
+          onPress={onSaveDetails}
+          disabled={detailsBusy}
+        >
+          <Text style={styles.primaryBtnText}>
+            {detailsBusy ? 'Saving…' : 'Save changes'}
+          </Text>
+        </Pressable>
+      )}
+
+      {/* Danger zone — delete the story. */}
+      <Pressable style={styles.dangerBtn} onPress={onDelete}>
+        <Ionicons name="trash-outline" size={15} color={colors.signal} />
+        <Text style={styles.dangerBtnText}>Delete this story</Text>
       </Pressable>
     </View>
   );
 }
 
 // ---------- Section: Chapters ----------------------------------------------
-// Ordered chapter list. Each row has a Free ⟷ Paid pill that flips
-// instantly — that's how authors gate chapters. No reorder UI.
+// Ordered chapter list. Top-right pill toggles the book between Draft
+// (unpublished) and Live (published). At the end of the list — only once
+// at least one chapter exists — a chapter-shaped pill lets the author
+// toggle the book between Ongoing and Complete.
 function ChaptersSection({
   chapters,
   pendingFreeId,
+  story,
+  busy,
+  onChangeStatus,
   onOpen,
   onNew,
   onToggleFree,
 }: {
   chapters: Chapter[];
   pendingFreeId: string | null;
+  story: Story;
+  busy: boolean;
+  onChangeStatus: (next: 'draft' | 'ongoing' | 'complete') => void;
   onOpen: (c: Chapter) => void;
   onNew: () => void;
   onToggleFree: (c: Chapter) => void;
 }) {
+  const isLive = story.status !== 'draft';
+  const isComplete = story.status === 'complete';
   return (
     <View>
-      <Pressable style={styles.primaryBtnWide} onPress={onNew}>
-        <Ionicons name="add" size={18} color={colors.creamInk} />
-        <Text style={styles.primaryBtnText}>New chapter</Text>
-      </Pressable>
+      {/* Book Live/Draft toggle in the top-right of the Chapters tab. */}
+      <View style={styles.chaptersHead}>
+        <Pressable style={styles.primaryBtnInline} onPress={onNew}>
+          <Ionicons name="add" size={18} color={colors.creamInk} />
+          <Text style={styles.primaryBtnText}>New chapter</Text>
+        </Pressable>
+        <Pressable
+          onPress={() => onChangeStatus(isLive ? 'draft' : 'ongoing')}
+          disabled={busy}
+          style={[
+            styles.liveTopPill,
+            { backgroundColor: isLive ? colors.signal : colors.paperSoft, borderColor: isLive ? colors.signal : colors.borderSoft },
+          ]}
+        >
+          <View style={[styles.liveDot, { backgroundColor: isLive ? colors.cream : colors.inkMuted }]} />
+          <Text style={[styles.liveTopText, { color: isLive ? colors.cream : colors.inkMuted }]}>
+            {isLive ? 'LIVE' : 'DRAFT'}
+          </Text>
+        </Pressable>
+      </View>
 
       {chapters.length === 0 && (
         <Text style={styles.empty}>No chapters yet — start with one above.</Text>
@@ -562,10 +711,39 @@ function ChaptersSection({
       })}
 
       {chapters.length > 0 && (
-        <Text style={styles.helper}>
-          Tap a chapter to edit. Tap the Free/Paid pill to gate it behind an ad
-          or NovelStack+.
-        </Text>
+        <>
+          <Text style={styles.helper}>
+            Tap a chapter to edit. Tap the Free/Paid pill to gate it behind an ad
+            or NovelStack+.
+          </Text>
+          {/* Book status pill — same shape as a chapter row so it sits at the
+              end of the list like a final card. Tap to flip Ongoing ⟷ Complete. */}
+          <Pressable
+            onPress={() => onChangeStatus(isComplete ? 'ongoing' : 'complete')}
+            disabled={busy}
+            style={[
+              styles.chapterCard,
+              { justifyContent: 'space-between', alignItems: 'center', marginTop: spacing.md },
+              isComplete && { borderColor: colors.cream },
+            ]}
+          >
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.chapterTitle, { color: isComplete ? colors.cream : colors.ink }]}>
+                {isComplete ? 'Book is complete' : 'Book is ongoing'}
+              </Text>
+              <Text style={styles.chapterMeta}>
+                {isComplete
+                  ? 'Readers see the "complete" badge. Tap to mark ongoing again.'
+                  : 'Tap when you\'ve published the final chapter.'}
+              </Text>
+            </View>
+            <Ionicons
+              name={isComplete ? 'checkmark-circle' : 'time-outline'}
+              size={22}
+              color={isComplete ? colors.cream : colors.inkMuted}
+            />
+          </Pressable>
+        </>
       )}
     </View>
   );
@@ -920,6 +1098,97 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     marginBottom: spacing.lg,
   },
+  // CoverEditor wraps the editable canvas + font picker + position chips.
+  // Centred and width-capped so it reads well on phone AND on iPad.
+  coverEditor: {
+    width: '100%',
+    maxWidth: 360,
+    alignSelf: 'center',
+    marginBottom: spacing.md,
+  },
+  // Genre row above the cover — pill aligned to the right.
+  genreRow: { flexDirection: 'row', justifyContent: 'flex-end', marginBottom: spacing.sm },
+  genrePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: radius.pill,
+    backgroundColor: colors.cream,
+  },
+  genrePillText: { fontSize: 12, fontWeight: '700', color: colors.creamInk, letterSpacing: 0.2 },
+  genreSheet: {
+    marginTop: spacing.sm,
+    backgroundColor: colors.card,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.borderSoft,
+    overflow: 'hidden',
+  },
+  genreSheetRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  genreSheetRowActive: { backgroundColor: colors.cream },
+  genreSheetText: { fontSize: 14, color: colors.ink },
+  // Description input + mature row below the cover editor.
+  fieldGroup: { marginTop: spacing.lg },
+  descInput: {
+    minHeight: 110,
+    backgroundColor: colors.paperSoft,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.borderSoft,
+    padding: 12,
+    color: colors.ink,
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  matureHint: { fontSize: 12, color: colors.inkFaint, marginTop: 2, lineHeight: 16 },
+  dangerBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: spacing.xl,
+    padding: 12,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: colors.signalSoft,
+  },
+  dangerBtnText: { color: colors.signal, fontWeight: '700', fontSize: 13 },
+  // Chapters header — New chapter button + Live/Draft pill, in a row.
+  chaptersHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  primaryBtnInline: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: radius.pill,
+    backgroundColor: colors.cream,
+  },
+  liveTopPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+  },
+  liveDot: { width: 8, height: 8, borderRadius: 999 },
+  liveTopText: { fontSize: 11, fontWeight: '700', letterSpacing: 1.4 },
 
   // Primary action button — cream rounded-square like the home Read button.
   primaryBtn: {
