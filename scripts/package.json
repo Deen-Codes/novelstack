@@ -1,0 +1,11 @@
+{
+  "name": "novelstack-scripts",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "description": "Operational scripts — seed loaders, cover compositors. Standalone from web/ and mobile/ so they can be run from the repo root.",
+  "dependencies": {
+    "postgres": "^3.4.5",
+    "@aws-sdk/client-s3": "^3.658.1"
+  }
+}

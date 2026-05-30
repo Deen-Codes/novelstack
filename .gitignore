@@ -20,6 +20,7 @@ web-build/
 # env — never commit secrets; see web/.env.example
 .env
 .env*.local
+scripts/.env.covers
 
 # credentials — App Store / Play signing keys, never commit these
 *.p8

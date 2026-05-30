@@ -26,6 +26,8 @@ import {
   Pressable,
   FlatList,
   Modal,
+  PanResponder,
+  Animated,
   StyleSheet,
   Keyboard,
   KeyboardAvoidingView,
@@ -91,6 +93,30 @@ function fontForGenre(genre: string | null | undefined): FontKey {
 // ---- Position presets ----------------------------------------------------
 type Position = 'bottom-left' | 'bottom-center' | 'top-left' | 'centered';
 
+// ---- Title colour palette ------------------------------------------------
+//
+// Vertical strip displayed on the right edge of the cover in focus mode.
+// Picked to cover the registers of the 13 catalogue books — cream for the
+// shipped 5, ember for thrillers, plum for romance, forest for fantasy,
+// midnight for academia, etc. Top-to-bottom order roughly: light → warm →
+// cool → dark, so the strip reads as a gradient at a glance.
+const TITLE_COLORS = [
+  '#F4ECDF', // cream (default)
+  '#FFFFFF', // white
+  '#FFD86A', // warm yellow
+  '#FF8A57', // ember orange
+  '#C8414E', // ember red
+  '#A2516B', // dusty rose
+  '#5C2A55', // plum
+  '#1E2A4A', // midnight blue
+  '#3F4956', // slate
+  '#5A6F4F', // sage
+  '#2E4E3F', // forest
+  '#7A2434', // burgundy
+  '#A87142', // sand
+  '#1A1714', // ink-black
+];
+
 export type CoverEditorHandle = {
   // Capture the current composite as a PNG and return its file:// URI. Parent
   // then uploads it via the existing /api/me/cover endpoint.
@@ -128,9 +154,12 @@ export const CoverEditor = forwardRef<CoverEditorHandle, {
   // bottom of covers so bottom-left titles get clipped. Centred reads cleanly
   // at thumbnail and hero size both.
   const [position, setPosition] = useState<Position>('centered');
-  // Title alignment within its overlay box — independent of `position`. The
-  // focus-mode toolbar exposes left / centre / right chips that flip this.
+  // Title alignment within its overlay box — single cycle-button in focus
+  // mode toggles through these three. Independent of `position`.
   const [alignment, setAlignment] = useState<'left' | 'center' | 'right'>('center');
+  // Title colour — Snapchat-style vertical strip in focus mode lets you pick.
+  // Default cream reads against most cover backgrounds.
+  const [titleColor, setTitleColor] = useState<string>('#F4ECDF');
   const [editing, setEditing] = useState(false);
 
   const shotRef = useRef<ViewShot | null>(null);
@@ -151,17 +180,17 @@ export const CoverEditor = forwardRef<CoverEditorHandle, {
 
   const activeFont = FONT_PALETTE.find((f) => f.key === fontKey) ?? FONT_PALETTE[0];
 
-  // Title rendering style — bottom-left default. Adjusts for position preset.
+  // Title rendering style — colour comes from the Snapchat-style vertical
+  // picker in focus mode (defaults to cream).
   const titleStyle = useMemo(() => {
-    const base = {
+    return {
       fontFamily: activeFont.family,
-      color: '#F4ECDF',
+      color: titleColor,
       fontSize: 34,
       lineHeight: 36,
       letterSpacing: -0.8,
     } as const;
-    return base;
-  }, [activeFont.family]);
+  }, [activeFont.family, titleColor]);
 
   const overlayPositionStyle: ViewStyle = useMemo(() => {
     switch (position) {
@@ -256,32 +285,108 @@ export const CoverEditor = forwardRef<CoverEditorHandle, {
     </ViewShot>
   );
 
-  // Alignment chips — three icons (left / centre / right) docked above the
-  // font strip in focus mode. Updates the textAlign of the title without
-  // changing the position anchor. MaterialIcons has proper format-align
-  // icons that read as actual alignment glyphs at chip size.
-  const alignmentRow = (
-    <View style={styles.alignRow}>
-      {(['left', 'center', 'right'] as const).map((a) => {
-        const isActive = a === alignment;
-        const iconName: React.ComponentProps<typeof MaterialIcons>['name'] =
-          a === 'left' ? 'format-align-left' : a === 'center' ? 'format-align-center' : 'format-align-right';
-        return (
-          <Pressable
-            key={a}
-            onPress={() => setAlignment(a)}
-            style={[styles.alignChip, isActive && styles.alignChipActive]}
-            hitSlop={6}
-            accessibilityLabel={`Align ${a}`}
-          >
-            <MaterialIcons
-              name={iconName}
-              size={20}
-              color={isActive ? colors.creamInk : '#F4ECDF'}
-            />
-          </Pressable>
-        );
-      })}
+  // Snapchat-style colour picker + alignment cycle button.
+  // Lives in a vertical column on the right edge of the cover. The colour
+  // strip is touch-and-drag — as the finger moves vertically through the
+  // strip, the picked colour updates live and a magnified swatch appears
+  // pinned just to the left of the finger (Snapchat's "loupe").
+  // Below the strip sits a single circular button — tap cycles
+  // left → centre → right → left, the current alignment glyph is shown on
+  // the button face.
+  const swatchCount = TITLE_COLORS.length;
+  const swatchUnit = 18; // px height per swatch
+  const stripHeight = swatchCount * swatchUnit; // total height of the strip
+  const loupeY = useRef(new Animated.Value(0)).current;
+  const [loupeVisible, setLoupeVisible] = useState(false);
+
+  // Maps a Y coordinate (within the strip) to a colour from TITLE_COLORS.
+  function colorForY(y: number): string {
+    const clamped = Math.max(0, Math.min(stripHeight - 1, y));
+    const idx = Math.floor(clamped / swatchUnit);
+    return TITLE_COLORS[Math.min(swatchCount - 1, Math.max(0, idx))];
+  }
+
+  // PanResponder for the colour strip. Tracks Y on the strip, updates
+  // titleColor on every move, and animates the loupe (magnified preview
+  // swatch) to follow the finger vertically.
+  const colorPan = useMemo(
+    () =>
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => true,
+        onMoveShouldSetPanResponder: () => true,
+        onPanResponderGrant: (_e, gs) => {
+          setLoupeVisible(true);
+          const y = gs.y0 - gs.moveY + gs.dy; // not reliable on grant; use locationY via e
+          // Fallback: use the touch's locationY from the event for first contact.
+          // _e.nativeEvent.locationY is relative to the strip.
+          const localY = (_e as unknown as { nativeEvent: { locationY: number } }).nativeEvent.locationY;
+          const useY = Number.isFinite(localY) ? localY : Math.max(0, y);
+          loupeY.setValue(useY);
+          setTitleColor(colorForY(useY));
+        },
+        onPanResponderMove: (_e, gs) => {
+          const localY = (_e as unknown as { nativeEvent: { locationY: number } }).nativeEvent.locationY;
+          const useY = Number.isFinite(localY) ? localY : gs.dy;
+          loupeY.setValue(useY);
+          setTitleColor(colorForY(useY));
+        },
+        onPanResponderRelease: () => setLoupeVisible(false),
+        onPanResponderTerminate: () => setLoupeVisible(false),
+      }),
+    [loupeY],
+  );
+
+  const alignmentIcon: React.ComponentProps<typeof MaterialIcons>['name'] =
+    alignment === 'left' ? 'format-align-left' : alignment === 'center' ? 'format-align-center' : 'format-align-right';
+
+  function cycleAlignment() {
+    setAlignment((a) => (a === 'left' ? 'center' : a === 'center' ? 'right' : 'left'));
+  }
+
+  const rightToolColumn = (
+    <View style={styles.rightToolCol} pointerEvents="box-none">
+      {/* Vertical colour strip — tap or drag. */}
+      <View style={[styles.colorStripWrap, { height: stripHeight }]} {...colorPan.panHandlers}>
+        {TITLE_COLORS.map((c, i) => (
+          <View
+            key={c}
+            style={{
+              width: 18,
+              height: swatchUnit,
+              backgroundColor: c,
+              borderTopLeftRadius: i === 0 ? 10 : 0,
+              borderTopRightRadius: i === 0 ? 10 : 0,
+              borderBottomLeftRadius: i === swatchCount - 1 ? 10 : 0,
+              borderBottomRightRadius: i === swatchCount - 1 ? 10 : 0,
+            }}
+          />
+        ))}
+        {/* Loupe — magnified preview swatch, sits to the left of the finger
+            while dragging. Follows the touch Y via Animated. */}
+        {loupeVisible && (
+          <Animated.View
+            pointerEvents="none"
+            style={[
+              styles.loupe,
+              {
+                backgroundColor: titleColor,
+                transform: [{ translateY: Animated.subtract(loupeY, new Animated.Value(20)) }],
+              },
+            ]}
+          />
+        )}
+      </View>
+
+      {/* Alignment cycle button — single circular button, shows current
+          alignment glyph, tap cycles L → C → R → L. */}
+      <Pressable
+        onPress={cycleAlignment}
+        style={styles.alignButton}
+        hitSlop={6}
+        accessibilityLabel={`Alignment ${alignment} — tap to change`}
+      >
+        <MaterialIcons name={alignmentIcon} size={22} color="#F4ECDF" />
+      </Pressable>
     </View>
   );
 
@@ -342,11 +447,16 @@ export const CoverEditor = forwardRef<CoverEditorHandle, {
             onPress={() => { Keyboard.dismiss(); setEditing(false); }}
           />
           <View style={styles.focusCoverWrap} pointerEvents="box-none">
-            <View style={{ width: winW * 0.84, aspectRatio: 3 / 4 }}>
-              {renderCanvas('focus')}
+            {/* Cover + right-side tool column laid out as siblings, so the
+                colour strip and alignment cycle live just outside the right
+                edge of the cover canvas — Snapchat editor layout. */}
+            <View style={styles.focusCoverRow} pointerEvents="box-none">
+              <View style={{ width: winW * 0.76, aspectRatio: 3 / 4 }}>
+                {renderCanvas('focus')}
+              </View>
+              {rightToolColumn}
             </View>
           </View>
-          {alignmentRow}
           {fontStrip}
         </KeyboardAvoidingView>
       </Modal>
@@ -385,26 +495,51 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 16,
   },
-  // Alignment toolbar in focus mode — three chips, centered, sits between
-  // the floating cover and the font picker.
-  alignRow: {
+  // Snapchat-style focus-mode tool column. Cover + tool column sit
+  // side-by-side; tools dock just outside the right edge of the cover.
+  focusCoverRow: {
     flexDirection: 'row',
-    alignSelf: 'center',
-    backgroundColor: 'rgba(20,17,15,0.85)',
-    borderRadius: 999,
-    padding: 4,
-    gap: 4,
-    marginBottom: 8,
+    alignItems: 'center',
+    gap: 10,
   },
-  alignChip: {
+  rightToolCol: {
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    gap: 14,
+  },
+  // Vertical colour strip — tap and drag through swatches.
+  colorStripWrap: {
+    width: 18,
+    borderRadius: 10,
+    overflow: 'visible',
+    backgroundColor: 'rgba(20,17,15,0.4)',
+  },
+  // Magnified preview swatch ("loupe") shown to the left of the strip while
+  // dragging. Animated.translateY pins it to the finger.
+  loupe: {
+    position: 'absolute',
+    left: -56,
+    top: 0,
     width: 40,
+    height: 40,
+    borderRadius: 999,
+    borderWidth: 3,
+    borderColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOpacity: 0.45,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 8,
+  },
+  // Single circular alignment-cycle button under the colour strip.
+  alignButton: {
+    width: 36,
     height: 36,
     borderRadius: 999,
+    backgroundColor: 'rgba(20,17,15,0.7)',
+    borderWidth: 1,
+    borderColor: 'rgba(244,236,223,0.4)',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  alignChipActive: {
-    backgroundColor: colors.cream,
   },
   fontStripWrap: {
     marginTop: 12,
