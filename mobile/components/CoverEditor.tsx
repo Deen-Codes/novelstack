@@ -36,6 +36,7 @@ import {
 } from 'react-native';
 import { Image } from 'expo-image';
 import ViewShot, { captureRef } from 'react-native-view-shot';
+import { MaterialIcons } from '@expo/vector-icons';
 import { colors } from '@/theme/tokens';
 import { DefaultCover } from './DefaultCover';
 
@@ -127,6 +128,9 @@ export const CoverEditor = forwardRef<CoverEditorHandle, {
   // bottom of covers so bottom-left titles get clipped. Centred reads cleanly
   // at thumbnail and hero size both.
   const [position, setPosition] = useState<Position>('centered');
+  // Title alignment within its overlay box — independent of `position`. The
+  // focus-mode toolbar exposes left / centre / right chips that flip this.
+  const [alignment, setAlignment] = useState<'left' | 'center' | 'right'>('center');
   const [editing, setEditing] = useState(false);
 
   const shotRef = useRef<ViewShot | null>(null);
@@ -229,7 +233,7 @@ export const CoverEditor = forwardRef<CoverEditorHandle, {
             style={[
               titleStyle,
               {
-                textAlign: position === 'bottom-center' || position === 'centered' ? 'center' : 'left',
+                textAlign: alignment,
                 padding: 0,
               },
             ]}
@@ -240,7 +244,7 @@ export const CoverEditor = forwardRef<CoverEditorHandle, {
             <Text
               style={[
                 titleStyle,
-                { textAlign: position === 'bottom-center' || position === 'centered' ? 'center' : 'left' },
+                { textAlign: alignment },
               ]}
               numberOfLines={3}
             >
@@ -250,6 +254,35 @@ export const CoverEditor = forwardRef<CoverEditorHandle, {
         )}
       </View>
     </ViewShot>
+  );
+
+  // Alignment chips — three icons (left / centre / right) docked above the
+  // font strip in focus mode. Updates the textAlign of the title without
+  // changing the position anchor. MaterialIcons has proper format-align
+  // icons that read as actual alignment glyphs at chip size.
+  const alignmentRow = (
+    <View style={styles.alignRow}>
+      {(['left', 'center', 'right'] as const).map((a) => {
+        const isActive = a === alignment;
+        const iconName: React.ComponentProps<typeof MaterialIcons>['name'] =
+          a === 'left' ? 'format-align-left' : a === 'center' ? 'format-align-center' : 'format-align-right';
+        return (
+          <Pressable
+            key={a}
+            onPress={() => setAlignment(a)}
+            style={[styles.alignChip, isActive && styles.alignChipActive]}
+            hitSlop={6}
+            accessibilityLabel={`Align ${a}`}
+          >
+            <MaterialIcons
+              name={iconName}
+              size={20}
+              color={isActive ? colors.creamInk : '#F4ECDF'}
+            />
+          </Pressable>
+        );
+      })}
+    </View>
   );
 
   // Font picker strip — shown above the keyboard in focus mode.
@@ -313,6 +346,7 @@ export const CoverEditor = forwardRef<CoverEditorHandle, {
               {renderCanvas('focus')}
             </View>
           </View>
+          {alignmentRow}
           {fontStrip}
         </KeyboardAvoidingView>
       </Modal>
@@ -350,6 +384,27 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 16,
+  },
+  // Alignment toolbar in focus mode — three chips, centered, sits between
+  // the floating cover and the font picker.
+  alignRow: {
+    flexDirection: 'row',
+    alignSelf: 'center',
+    backgroundColor: 'rgba(20,17,15,0.85)',
+    borderRadius: 999,
+    padding: 4,
+    gap: 4,
+    marginBottom: 8,
+  },
+  alignChip: {
+    width: 40,
+    height: 36,
+    borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  alignChipActive: {
+    backgroundColor: colors.cream,
   },
   fontStripWrap: {
     marginTop: 12,
