@@ -38,11 +38,9 @@ export default async function WriterDashboard() {
           <div className="text-center py-20 border border-dashed border-border-soft rounded-2xl">
             <p className="text-ink-muted text-[15px] max-w-md mx-auto">
               No stories yet. Start your first — the first three chapters are free for
-              readers automatically, so they can get hooked.
+              readers automatically, so they can get hooked. Hit{' '}
+              <span className="text-ink font-semibold">+ New story</span> up top to begin.
             </p>
-            <Link href="/write/new" className="btn-cream mt-6">
-              Start a new story
-            </Link>
           </div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6">

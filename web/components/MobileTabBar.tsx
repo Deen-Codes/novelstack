@@ -4,15 +4,16 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 // App-style bottom navigation, shown only on mobile (md:hidden). Mirrors the
-// native app's tab bar: Search · Library · Home · Write · Profile, with Home
-// dead-centre. Hidden on the marketing landing page, auth screens and the
-// reader (which is an immersive, full-screen view).
+// iOS app's tab bar exactly: Search · Library · Home · Write · Community, with
+// Home dead-centre. Profile lives in the top-right avatar circle on web — no
+// need to duplicate it down here. Hidden on the landing page, auth screens
+// and the reader (which is an immersive, full-screen view).
 const TABS = [
   { href: '/search', label: 'Search', icon: 'search' },
   { href: '/library', label: 'Library', icon: 'bookmark' },
   { href: '/', label: 'Home', icon: 'home' },
   { href: '/write', label: 'Write', icon: 'edit' },
-  { href: '/settings', label: 'Profile', icon: 'user' },
+  { href: '/community', label: 'Community', icon: 'community' },
 ] as const;
 
 const HIDE_ON = ['/signin'];
@@ -64,6 +65,17 @@ function Icon({ name, active }: { name: string; active: boolean }) {
         <svg {...common}>
           <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
           <circle cx="12" cy="7" r="4" />
+        </svg>
+      );
+    case 'community':
+      // Two-circle silhouette — the iOS app uses the same primitive for the
+      // Community tab. Beats a bubble icon at small sizes.
+      return (
+        <svg {...common}>
+          <path d="M17 21v-2a4 4 0 0 0-3-3.87" />
+          <path d="M7 21v-2a4 4 0 0 1 3-3.87" />
+          <circle cx="9" cy="7" r="3" />
+          <circle cx="15" cy="7" r="3" />
         </svg>
       );
     default:
